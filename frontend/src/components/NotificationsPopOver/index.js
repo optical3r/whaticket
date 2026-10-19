@@ -14,6 +14,7 @@ import Badge from "@mui/material/Badge";
 import ChatIcon from "@mui/icons-material/Chat";
 
 import TicketListItem from "../TicketListItem";
+import { showBrowserNotification } from "../../helpers/browserNotification";
 import { i18n } from "../../translate/i18n";
 import useTickets from "../../hooks/useTickets";
 import alertSound from "../../assets/sound.mp3";
@@ -141,26 +142,23 @@ const NotificationsPopOver = () => {
 		};
 	}, [user]);
 
-	const handleNotifications = data => {
+	const handleNotifications = async data => {
 		const { message, contact, ticket } = data;
 
-		const options = {
-			body: `${message.body} - ${format(new Date(), "HH:mm")}`,
-			icon: contact.profilePicUrl,
-			tag: ticket.id,
-			renotify: true,
-		};
-
-		const notification = new Notification(
+		const notification = await showBrowserNotification(
 			`${i18n.t("tickets.notification.message")} ${contact.name}`,
-			options
+			{
+				body: `${message.body} - ${format(new Date(), "HH:mm")}`,
+				icon: contact.profilePicUrl,
+				tag: String(ticket.id),
+				renotify: true,
+				url: `/tickets/${ticket.id}`,
+				onClick: () => historyRef.current.push(`/tickets/${ticket.id}`),
+			}
 		);
 
-		notification.onclick = e => {
-			e.preventDefault();
-			window.focus();
-			historyRef.current.push(`/tickets/${ticket.id}`);
-		};
+		soundAlertRef.current();
+		if (!notification) return;
 
 		setDesktopNotifications(prevState => {
 			const notfiticationIndex = prevState.findIndex(
@@ -172,8 +170,6 @@ const NotificationsPopOver = () => {
 			}
 			return [notification, ...prevState];
 		});
-
-		soundAlertRef.current();
 	};
 
 	const handleClick = () => {

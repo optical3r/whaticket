@@ -8,6 +8,7 @@ import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
+import { showBrowserNotification } from "../../helpers/browserNotification";
 import { i18n } from "../../translate/i18n";
 
 // Statuses where the connection is not receiving messages. OPENING is left
@@ -20,17 +21,13 @@ const useStyles = makeStyles()(theme => ({
 	},
 }));
 
-const notifyBrowser = message => {
-	try {
-		if (!("Notification" in window)) return;
-		if (Notification.permission === "granted") {
-			// eslint-disable-next-line no-new
-			new Notification(i18n.t("connectionAlert.title"), { body: message });
-		}
-	} catch {
-		// Notifications are a convenience; the banner is always shown.
-	}
-};
+// Notifications are a convenience; the banner is always shown.
+const notifyBrowser = message =>
+	showBrowserNotification(i18n.t("connectionAlert.title"), {
+		body: message,
+		tag: "connection-alert",
+		url: "/connections",
+	}).catch(() => null);
 
 const ConnectionAlert = () => {
 	const { classes } = useStyles();
