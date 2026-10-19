@@ -50,6 +50,12 @@ class Company extends Model<Company> {
   @Column
   termsAcceptedBy: string;
 
+  // IANA time zone used for business hours and reports.
+  @AllowNull(false)
+  @Default("America/Sao_Paulo")
+  @Column
+  timezone: string;
+
   @CreatedAt
   createdAt: Date;
 

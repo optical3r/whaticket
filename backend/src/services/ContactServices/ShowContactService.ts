@@ -1,4 +1,5 @@
 import Contact from "../../models/Contact";
+import Tag from "../../models/Tag";
 import AppError from "../../errors/AppError";
 
 const ShowContactService = async (
@@ -7,7 +8,15 @@ const ShowContactService = async (
 ): Promise<Contact> => {
   const contact = await Contact.findOne({
     where: { id, companyId },
-    include: ["extraInfo"]
+    include: [
+      "extraInfo",
+      {
+        model: Tag,
+        as: "tags",
+        attributes: ["id", "name", "color"],
+        through: { attributes: [] }
+      }
+    ]
   });
 
   if (!contact) {

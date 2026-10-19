@@ -3,6 +3,7 @@ import isAuth from "../middleware/isAuth";
 import isAdmin from "../middleware/isAdmin";
 
 import * as TicketController from "../controllers/TicketController";
+import * as TicketNoteController from "../controllers/TicketNoteController";
 
 const ticketRoutes = express.Router();
 
@@ -19,6 +20,22 @@ ticketRoutes.delete(
   isAuth,
   isAdmin,
   TicketController.remove
+);
+
+ticketRoutes.get(
+  "/tickets/:ticketId/notes",
+  isAuth,
+  TicketNoteController.index
+);
+ticketRoutes.post(
+  "/tickets/:ticketId/notes",
+  isAuth,
+  TicketNoteController.store
+);
+ticketRoutes.delete(
+  "/tickets/:ticketId/notes/:noteId",
+  isAuth,
+  TicketNoteController.remove
 );
 
 export default ticketRoutes;

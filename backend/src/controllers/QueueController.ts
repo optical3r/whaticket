@@ -13,11 +13,12 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { name, color, greetingMessage } = req.body;
+  const { name, color, greetingMessage, schedules, outOfHoursMessage } =
+    req.body;
   const { companyId } = req.user;
 
   const queue = await CreateQueueService(
-    { name, color, greetingMessage },
+    { name, color, greetingMessage, schedules, outOfHoursMessage },
     companyId
   );
 
@@ -44,11 +45,12 @@ export const update = async (
   const { queueId } = req.params;
 
   const { companyId } = req.user;
-  const { name, color, greetingMessage } = req.body;
+  const { name, color, greetingMessage, schedules, outOfHoursMessage } =
+    req.body;
 
   const queue = await UpdateQueueService(
     queueId,
-    { name, color, greetingMessage },
+    { name, color, greetingMessage, schedules, outOfHoursMessage },
     companyId
   );
 

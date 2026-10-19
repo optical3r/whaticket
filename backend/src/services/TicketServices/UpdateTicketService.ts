@@ -1,6 +1,10 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
+import AppError from "../../errors/AppError";
+import { isSettingEnabled } from "../../helpers/CompanySettings";
+import CloseReason from "../../models/CloseReason";
 import {
+  assertCloseReasonInCompany,
   assertQueuesInCompany,
   assertUserInCompany,
   assertWhatsappInCompany
@@ -14,6 +18,7 @@ interface TicketData {
   userId?: number;
   queueId?: number;
   whatsappId?: number;
+  closeReasonId?: number | null;
 }
 
 interface Request {
@@ -33,13 +38,26 @@ const UpdateTicketService = async ({
   ticketId,
   companyId
 }: Request): Promise<Response> => {
-  const { status, userId, queueId, whatsappId } = ticketData;
+  const { status, userId, queueId, whatsappId, closeReasonId } = ticketData;
 
   const ticket = await ShowTicketService(ticketId, companyId);
 
   await assertUserInCompany(userId, companyId);
   await assertQueuesInCompany([queueId], companyId);
   await assertWhatsappInCompany(whatsappId, companyId);
+  await assertCloseReasonInCompany(closeReasonId, companyId);
+
+  const isClosing = status === "closed" && ticket.status !== "closed";
+  const isReopening = status !== undefined && status !== "closed";
+
+  if (
+    isClosing &&
+    !closeReasonId &&
+    (await isSettingEnabled(companyId, "closeReasonRequired")) &&
+    (await CloseReason.count({ where: { companyId } })) > 0
+  ) {
+    throw new AppError("ERR_CLOSE_REASON_REQUIRED");
+  }
 
   await SetTicketMessagesAsRead(ticket);
 
@@ -57,7 +75,12 @@ const UpdateTicketService = async ({
   await ticket.update({
     status,
     queueId,
-    userId
+    userId,
+    // closedAt and the reason describe the latest closing only.
+    ...(isClosing
+      ? { closedAt: new Date(), closeReasonId: closeReasonId || null }
+      : {}),
+    ...(isReopening ? { closedAt: null, closeReasonId: null } : {})
   });
 
   if (whatsappId) {

@@ -10,9 +10,12 @@ import {
   Default,
   HasMany,
   ForeignKey,
-  BelongsTo
+  BelongsTo,
+  BelongsToMany
 } from "sequelize-typescript";
 import Company from "./Company";
+import Tag from "./Tag";
+import ContactTag from "./ContactTag";
 import ContactCustomField from "./ContactCustomField";
 import Ticket from "./Ticket";
 
@@ -62,6 +65,9 @@ class Contact extends Model<Contact> {
 
   @HasMany(() => ContactCustomField)
   extraInfo: ContactCustomField[];
+
+  @BelongsToMany(() => Tag, () => ContactTag)
+  tags: Tag[];
 }
 
 export default Contact;

@@ -18,6 +18,11 @@ import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTi
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
+import SendOutOfHoursMessage from "../services/QueueService/SendOutOfHoursMessage";
+import {
+  FindPendingRating,
+  RegisterRatingAnswer
+} from "../services/TicketServices/TicketRatingService";
 
 import { whatsappProvider } from "../providers/WhatsApp/whatsappProvider";
 import { MessageType, MessageAck } from "../providers/WhatsApp/types";
@@ -263,6 +268,37 @@ export const handleMessage = async (
       return;
     }
 
+    // An answer to the satisfaction survey is stored in the closed ticket
+    // instead of reopening it.
+    if (!processedMessage.fromMe && !groupContact) {
+      const pendingRating = await FindPendingRating(
+        contact,
+        contextPayload.whatsappId
+      );
+      if (
+        pendingRating &&
+        (await RegisterRatingAnswer(
+          pendingRating,
+          processedMessage.body,
+          contact
+        ))
+      ) {
+        await CreateMessageService({
+          messageData: {
+            id: processedMessage.id,
+            ticketId: pendingRating.ticketId,
+            contactId: contact.id,
+            body: processedMessage.body,
+            fromMe: false,
+            read: true,
+            mediaType: processedMessage.type,
+            ack: processedMessage.ack !== undefined ? processedMessage.ack : 0
+          }
+        });
+        return;
+      }
+    }
+
     const ticket = await FindOrCreateTicketService(
       contact,
       contextPayload.whatsappId,
@@ -318,6 +354,12 @@ export const handleMessage = async (
         ticket,
         contactPayload
       );
+    }
+
+    if (!processedMessage.fromMe && !contextPayload.groupContact) {
+      // The queue may have just been chosen above.
+      await ticket.reload();
+      await SendOutOfHoursMessage(ticket, contact);
     }
   } catch (err) {
     Sentry.captureException(err);

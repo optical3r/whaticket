@@ -2,12 +2,15 @@ import { Op } from "sequelize";
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import { QueueSchedule, isValidSchedule } from "../../helpers/BusinessHours";
 import ShowQueueService from "./ShowQueueService";
 
 interface QueueData {
   name?: string;
   color?: string;
   greetingMessage?: string;
+  schedules?: QueueSchedule[];
+  outOfHoursMessage?: string;
 }
 
 const UpdateQueueService = async (
@@ -57,6 +60,13 @@ const UpdateQueueService = async (
         }
       )
   });
+
+  if (
+    queueData.schedules !== undefined &&
+    !isValidSchedule(queueData.schedules)
+  ) {
+    throw new AppError("ERR_QUEUE_INVALID_SCHEDULE");
+  }
 
   try {
     await queueSchema.validate({ color, name });

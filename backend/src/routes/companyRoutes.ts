@@ -9,6 +9,7 @@ const companyRoutes = Router();
 
 // Current company (any logged-in user)
 companyRoutes.get("/company", isAuth, CompanyController.current);
+companyRoutes.put("/company", isAuth, CompanyController.updateCurrent);
 companyRoutes.post("/company/terms", isAuth, CompanyController.acceptTerms);
 
 // Platform administration (Cerqueira Labs staff only)

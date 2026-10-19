@@ -9,6 +9,9 @@ import UpdateTicketService from "../services/TicketServices/UpdateTicketService"
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import formatBody from "../helpers/Mustache";
+import { DispatchWebhookEvent } from "../services/WebhookServices/WebhookServices";
+import { ticketPayload } from "../helpers/WebhookPayloads";
+import { SendRatingRequest } from "../services/TicketServices/TicketRatingService";
 
 type IndexQuery = {
   searchParam: string;
@@ -18,6 +21,7 @@ type IndexQuery = {
   showAll: string;
   withUnreadMessages: string;
   queueIds: string;
+  tagIds: string;
 };
 
 interface TicketData {
@@ -25,6 +29,7 @@ interface TicketData {
   status: string;
   queueId: number;
   userId: number;
+  closeReasonId?: number | null;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -35,10 +40,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     searchParam,
     showAll,
     queueIds: queueIdsStringified,
+    tagIds: tagIdsStringified,
     withUnreadMessages
   } = req.query as IndexQuery;
 
-  const { id: userId, companyId } = req.user;
+  const { id: userId, companyId, profile } = req.user;
 
   let queueIds: number[] = [];
 
@@ -46,15 +52,22 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     queueIds = JSON.parse(queueIdsStringified);
   }
 
+  const tagIds: number[] = tagIdsStringified
+    ? JSON.parse(tagIdsStringified)
+    : [];
+
   const { tickets, count, hasMore } = await ListTicketsService({
     searchParam,
     pageNumber,
     status,
     date,
-    showAll,
+    // Only managers may see every ticket, regardless of who is assigned.
+    showAll:
+      profile === "admin" || profile === "supervisor" ? showAll : "false",
     userId,
     queueIds,
     withUnreadMessages,
+    tagIds: Array.isArray(tagIds) ? tagIds : [],
     companyId
   });
 
@@ -97,13 +110,13 @@ export const update = async (
   const ticketData: TicketData = req.body;
   const { companyId } = req.user;
 
-  const { ticket } = await UpdateTicketService({
+  const { ticket, oldStatus } = await UpdateTicketService({
     ticketData,
     ticketId,
     companyId
   });
 
-  if (ticket.status === "closed") {
+  if (ticket.status === "closed" && oldStatus !== "closed") {
     const whatsapp = await ShowWhatsAppService(ticket.whatsappId, companyId);
 
     const { farewellMessage } = whatsapp;
@@ -114,6 +127,9 @@ export const update = async (
         ticket
       });
     }
+
+    await SendRatingRequest(ticket);
+    DispatchWebhookEvent(companyId, "ticket.closed", ticketPayload(ticket));
   }
 
   return res.status(200).json(ticket);

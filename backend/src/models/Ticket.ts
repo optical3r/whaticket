@@ -9,9 +9,14 @@ import {
   BelongsTo,
   HasMany,
   AutoIncrement,
-  Default
+  Default,
+  BelongsToMany,
+  DataType
 } from "sequelize-typescript";
 import Company from "./Company";
+import Tag from "./Tag";
+import TicketTag from "./TicketTag";
+import CloseReason from "./CloseReason";
 
 import Contact from "./Contact";
 import Message from "./Message";
@@ -82,6 +87,23 @@ class Ticket extends Model<Ticket> {
 
   @HasMany(() => Message)
   messages: Message[];
+
+  @BelongsToMany(() => Tag, () => TicketTag)
+  tags: Tag[];
+
+  @ForeignKey(() => CloseReason)
+  @Column
+  closeReasonId: number;
+
+  @BelongsTo(() => CloseReason)
+  closeReason: CloseReason;
+
+  @Column(DataType.DATE)
+  closedAt: Date | null;
+
+  // Last time the out-of-hours message was sent for this ticket.
+  @Column(DataType.DATE)
+  outOfHoursNotifiedAt: Date | null;
 }
 
 export default Ticket;

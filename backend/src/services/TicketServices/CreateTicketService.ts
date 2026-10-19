@@ -4,6 +4,8 @@ import GetDefaultWhatsApp from "../../helpers/GetDefaultWhatsApp";
 import Ticket from "../../models/Ticket";
 import User from "../../models/User";
 import ShowContactService from "../ContactServices/ShowContactService";
+import { DispatchWebhookEvent } from "../WebhookServices/WebhookServices";
+import { ticketPayload } from "../../helpers/WebhookPayloads";
 
 interface Request {
   contactId: number;
@@ -48,6 +50,8 @@ const CreateTicketService = async ({
   if (!ticket) {
     throw new AppError("ERR_CREATING_TICKET");
   }
+
+  DispatchWebhookEvent(companyId, "ticket.created", ticketPayload(ticket));
 
   return ticket;
 };

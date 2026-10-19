@@ -3,6 +3,7 @@ import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import User from "../../models/User";
+import { PROFILES } from "../../middleware/hasProfile";
 import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
 import {
   assertQueuesInCompany,
@@ -51,11 +52,12 @@ const CreateUserService = async ({
           return !emailExists;
         }
       ),
-    password: Yup.string().required().min(5)
+    password: Yup.string().required().min(5),
+    profile: Yup.string().oneOf(PROFILES, "ERR_INVALID_PROFILE")
   });
 
   try {
-    await schema.validate({ email, password, name });
+    await schema.validate({ email, password, name, profile });
   } catch (err) {
     throw new AppError(err.message);
   }

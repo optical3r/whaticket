@@ -1,4 +1,6 @@
 import { companyRoom, getIO } from "../../libs/socket";
+import { DispatchWebhookEvent } from "../WebhookServices/WebhookServices";
+import { messagePayload } from "../../helpers/WebhookPayloads";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
@@ -63,6 +65,12 @@ const CreateMessageService = async ({
       ticket: message.ticket,
       contact: message.ticket.contact
     });
+
+  DispatchWebhookEvent(
+    companyId,
+    message.fromMe ? "message.sent" : "message.received",
+    messagePayload(message)
+  );
 
   return message;
 };

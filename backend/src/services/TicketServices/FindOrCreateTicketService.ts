@@ -3,6 +3,8 @@ import { Op } from "sequelize";
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
+import { DispatchWebhookEvent } from "../WebhookServices/WebhookServices";
+import { ticketPayload } from "../../helpers/WebhookPayloads";
 
 const FindOrCreateTicketService = async (
   contact: Contact,
@@ -63,7 +65,9 @@ const FindOrCreateTicketService = async (
     }
   }
 
+  let created = false;
   if (!ticket) {
+    created = true;
     ticket = await Ticket.create({
       contactId: groupContact ? groupContact.id : contact.id,
       status: "pending",
@@ -75,6 +79,14 @@ const FindOrCreateTicketService = async (
   }
 
   ticket = await ShowTicketService(ticket.id, contact.companyId);
+
+  if (created) {
+    DispatchWebhookEvent(
+      ticket.companyId,
+      "ticket.created",
+      ticketPayload(ticket)
+    );
+  }
 
   return ticket;
 };

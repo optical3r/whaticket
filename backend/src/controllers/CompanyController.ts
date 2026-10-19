@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 
 import AppError from "../errors/AppError";
+import { isValidTimezone } from "../helpers/BusinessHours";
+import Company from "../models/Company";
 import { emitToCompany } from "../libs/socket";
 import AcceptTermsService from "../services/CompanyService/AcceptTermsService";
 import CreateCompanyService from "../services/CompanyService/CreateCompanyService";
@@ -15,6 +17,26 @@ export const current = async (
 ): Promise<Response> => {
   const { company, usage } = await ShowCompanyService(req.user.companyId);
 
+  return res.status(200).json({ ...company.toJSON(), usage });
+};
+
+// Company admins can only change their company's time zone.
+export const updateCurrent = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const { timezone } = req.body;
+  if (typeof timezone !== "string" || !isValidTimezone(timezone)) {
+    throw new AppError("ERR_INVALID_TIMEZONE");
+  }
+
+  await Company.update({ timezone }, { where: { id: req.user.companyId } });
+
+  const { company, usage } = await ShowCompanyService(req.user.companyId);
   return res.status(200).json({ ...company.toJSON(), usage });
 };
 

@@ -1,12 +1,15 @@
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import { QueueSchedule, isValidSchedule } from "../../helpers/BusinessHours";
 import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
 
 interface QueueData {
   name: string;
   color: string;
   greetingMessage?: string;
+  schedules?: QueueSchedule[];
+  outOfHoursMessage?: string;
 }
 
 const CreateQueueService = async (
@@ -56,6 +59,13 @@ const CreateQueueService = async (
         }
       )
   });
+
+  if (
+    queueData.schedules !== undefined &&
+    !isValidSchedule(queueData.schedules)
+  ) {
+    throw new AppError("ERR_QUEUE_INVALID_SCHEDULE");
+  }
 
   try {
     await queueSchema.validate({ color, name });

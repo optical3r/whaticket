@@ -1,4 +1,13 @@
-import { Op, fn, where, col, Filterable, Includeable } from "sequelize";
+import {
+  Op,
+  WhereOptions,
+  fn,
+  where,
+  col,
+  literal,
+  Filterable,
+  Includeable
+} from "sequelize";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
 
 import Ticket from "../../models/Ticket";
@@ -7,6 +16,7 @@ import Message from "../../models/Message";
 import Queue from "../../models/Queue";
 import ShowUserService from "../UserServices/ShowUserService";
 import Whatsapp from "../../models/Whatsapp";
+import Tag from "../../models/Tag";
 
 interface Request {
   searchParam?: string;
@@ -17,6 +27,7 @@ interface Request {
   userId: string;
   withUnreadMessages?: string;
   queueIds: number[];
+  tagIds?: number[];
   companyId: number;
 }
 
@@ -35,6 +46,7 @@ const ListTicketsService = async ({
   showAll,
   userId,
   withUnreadMessages,
+  tagIds = [],
   companyId
 }: Request): Promise<Response> => {
   let whereCondition: Filterable["where"] = {
@@ -58,6 +70,12 @@ const ListTicketsService = async ({
       model: Whatsapp,
       as: "whatsapp",
       attributes: ["name"]
+    },
+    {
+      model: Tag,
+      as: "tags",
+      attributes: ["id", "name", "color"],
+      through: { attributes: [] }
     }
   ];
 
@@ -134,12 +152,27 @@ const ListTicketsService = async ({
     };
   }
 
+  // Tickets with any of the selected tags. A subquery keeps every tag of the
+  // matching tickets in the result, not only the filtered ones.
+  const safeTagIds = tagIds.map(Number).filter(Number.isInteger);
+  const tagFilter: WhereOptions = safeTagIds.length
+    ? {
+        id: {
+          [Op.in]: literal(
+            `(SELECT \`ticketId\` FROM \`TicketTags\` WHERE \`tagId\` IN (${safeTagIds.join(
+              ","
+            )}))`
+          )
+        }
+      }
+    : {};
+
   const limit = 40;
   const offset = limit * (+pageNumber - 1);
 
   const { count, rows: tickets } = await Ticket.findAndCountAll({
     // The company filter is applied last so no branch above can drop it.
-    where: { ...whereCondition, companyId },
+    where: { [Op.and]: [whereCondition, tagFilter, { companyId }] },
     include: includeCondition,
     distinct: true,
     limit,

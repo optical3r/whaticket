@@ -3,6 +3,7 @@ import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import ShowUserService from "./ShowUserService";
+import { PROFILES } from "../../middleware/hasProfile";
 import {
   assertQueuesInCompany,
   assertWhatsappInCompany
@@ -40,7 +41,7 @@ const UpdateUserService = async ({
   const schema = Yup.object().shape({
     name: Yup.string().min(2),
     email: Yup.string().email(),
-    profile: Yup.string(),
+    profile: Yup.string().oneOf(PROFILES, "ERR_INVALID_PROFILE"),
     password: Yup.string()
   });
 

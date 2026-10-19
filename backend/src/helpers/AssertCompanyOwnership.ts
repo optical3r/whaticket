@@ -3,6 +3,8 @@ import AppError from "../errors/AppError";
 import Queue from "../models/Queue";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
+import Tag from "../models/Tag";
+import CloseReason from "../models/CloseReason";
 
 type CountInCompany = (
   ids: Array<number | string>,
@@ -66,4 +68,27 @@ export const assertWhatsappInCompany = (
     [whatsappId],
     companyId,
     "ERR_NO_WAPP_FOUND"
+  );
+
+export const assertTagsInCompany = (
+  tagIds: Array<number | string | null | undefined>,
+  companyId: number
+): Promise<void> =>
+  assertOwned(
+    (ids, id) => Tag.count({ where: { id: { [Op.in]: ids }, companyId: id } }),
+    tagIds,
+    companyId,
+    "ERR_TAG_NOT_FOUND"
+  );
+
+export const assertCloseReasonInCompany = (
+  closeReasonId: number | string | null | undefined,
+  companyId: number
+): Promise<void> =>
+  assertOwned(
+    (ids, id) =>
+      CloseReason.count({ where: { id: { [Op.in]: ids }, companyId: id } }),
+    [closeReasonId],
+    companyId,
+    "ERR_CLOSE_REASON_NOT_FOUND"
   );

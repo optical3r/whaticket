@@ -12,6 +12,13 @@ import UserQueue from "../models/UserQueue";
 import QuickAnswer from "../models/QuickAnswer";
 import Company from "../models/Company";
 import Plan from "../models/Plan";
+import Tag from "../models/Tag";
+import TicketTag from "../models/TicketTag";
+import ContactTag from "../models/ContactTag";
+import TicketNote from "../models/TicketNote";
+import CloseReason from "../models/CloseReason";
+import TicketRating from "../models/TicketRating";
+import Webhook from "../models/Webhook";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -32,7 +39,14 @@ const models = [
   UserQueue,
   QuickAnswer,
   Company,
-  Plan
+  Plan,
+  Tag,
+  TicketTag,
+  ContactTag,
+  TicketNote,
+  CloseReason,
+  TicketRating,
+  Webhook
 ];
 
 sequelize.addModels(models);
