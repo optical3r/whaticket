@@ -5,15 +5,7 @@ import {
   createRefreshToken
 } from "../../helpers/CreateTokens";
 import { SerializeUser } from "../../helpers/SerializeUser";
-import Queue from "../../models/Queue";
-
-interface SerializedUser {
-  id: number;
-  name: string;
-  email: string;
-  profile: string;
-  queues: Queue[];
-}
+import { assertCompanyIsActive } from "../../helpers/CompanyStatus";
 
 interface Request {
   email: string;
@@ -21,7 +13,7 @@ interface Request {
 }
 
 interface Response {
-  serializedUser: SerializedUser;
+  serializedUser: ReturnType<typeof SerializeUser>;
   token: string;
   refreshToken: string;
 }
@@ -32,7 +24,7 @@ const AuthUserService = async ({
 }: Request): Promise<Response> => {
   const user = await User.findOne({
     where: { email },
-    include: ["queues"]
+    include: ["queues", "company"]
   });
 
   if (!user) {
@@ -42,6 +34,8 @@ const AuthUserService = async ({
   if (!(await user.checkPassword(password))) {
     throw new AppError("ERR_INVALID_CREDENTIALS", 401);
   }
+
+  await assertCompanyIsActive(user.companyId);
 
   const token = createAccessToken(user);
   const refreshToken = createRefreshToken(user);

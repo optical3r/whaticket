@@ -2,7 +2,10 @@ import * as Yup from "yup";
 
 import AppError from "../../errors/AppError";
 import Whatsapp from "../../models/Whatsapp";
+import Company from "../../models/Company";
 import AssociateWhatsappQueue from "./AssociateWhatsappQueue";
+import { assertQueuesInCompany } from "../../helpers/AssertCompanyOwnership";
+import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
 
 interface Request {
   name: string;
@@ -11,6 +14,7 @@ interface Request {
   farewellMessage?: string;
   status?: string;
   isDefault?: boolean;
+  companyId: number;
 }
 
 interface Response {
@@ -24,7 +28,8 @@ const CreateWhatsAppService = async ({
   queueIds = [],
   greetingMessage,
   farewellMessage,
-  isDefault = false
+  isDefault = false,
+  companyId
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string()
@@ -36,7 +41,7 @@ const CreateWhatsAppService = async ({
         async value => {
           if (!value) return false;
           const nameExists = await Whatsapp.findOne({
-            where: { name: value }
+            where: { name: value, companyId }
           });
           return !nameExists;
         }
@@ -50,7 +55,17 @@ const CreateWhatsAppService = async ({
     throw new AppError(err.message);
   }
 
-  const whatsappFound = await Whatsapp.findOne();
+  // QR code connections can get the number banned; the company admin has to
+  // accept that risk before the first connection is created.
+  const company = await Company.findByPk(companyId);
+  if (!company?.termsAcceptedAt) {
+    throw new AppError("ERR_TERMS_NOT_ACCEPTED", 403);
+  }
+
+  await CheckCompanyLimit(companyId, "connections");
+  await assertQueuesInCompany(queueIds, companyId);
+
+  const whatsappFound = await Whatsapp.findOne({ where: { companyId } });
 
   isDefault = !whatsappFound;
 
@@ -58,7 +73,7 @@ const CreateWhatsAppService = async ({
 
   if (isDefault) {
     oldDefaultWhatsapp = await Whatsapp.findOne({
-      where: { isDefault: true }
+      where: { isDefault: true, companyId }
     });
     if (oldDefaultWhatsapp) {
       await oldDefaultWhatsapp.update({ isDefault: false });
@@ -75,7 +90,8 @@ const CreateWhatsAppService = async ({
       status,
       greetingMessage,
       farewellMessage,
-      isDefault
+      isDefault,
+      companyId
     },
     { include: ["queues"] }
   );

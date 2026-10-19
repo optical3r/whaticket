@@ -7,9 +7,11 @@ import {
   PrimaryKey,
   AutoIncrement,
   AllowNull,
-  Unique,
-  BelongsToMany
+  BelongsToMany,
+  ForeignKey,
+  BelongsTo
 } from "sequelize-typescript";
+import Company from "./Company";
 import User from "./User";
 import UserQueue from "./UserQueue";
 
@@ -24,17 +26,22 @@ class Queue extends Model<Queue> {
   id: number;
 
   @AllowNull(false)
-  @Unique
   @Column
   name: string;
 
   @AllowNull(false)
-  @Unique
   @Column
   color: string;
 
   @Column
   greetingMessage: string;
+
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;

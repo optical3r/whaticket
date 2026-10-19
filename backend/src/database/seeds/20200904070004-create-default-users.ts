@@ -24,6 +24,8 @@ module.exports = {
           email,
           passwordHash: await hash(password, 8),
           profile: "admin",
+          super: true,
+          companyId: 1,
           tokenVersion: 0,
           createdAt: new Date(),
           updatedAt: new Date()

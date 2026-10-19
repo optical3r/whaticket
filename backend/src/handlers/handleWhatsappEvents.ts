@@ -3,7 +3,7 @@ import { promisify } from "util";
 import { writeFile } from "fs";
 import * as Sentry from "@sentry/node";
 
-import { getIO } from "../libs/socket";
+import { companyRoom, getIO } from "../libs/socket";
 import { logger } from "../utils/logger";
 import { debounce } from "../helpers/Debounce";
 import formatBody from "../helpers/Mustache";
@@ -110,7 +110,8 @@ const saveMediaFile = async (mediaPayload: MediaPayload): Promise<string> => {
 };
 
 const processVcardMessage = async (
-  messagePayload: MessagePayload
+  messagePayload: MessagePayload,
+  companyId: number
 ): Promise<void> => {
   if (messagePayload.type !== "vcard") return;
 
@@ -135,7 +136,8 @@ const processVcardMessage = async (
       phoneNumbers.map(({ number }) =>
         CreateContactService({
           name: contactName,
-          number: number.replace(/\D/g, "")
+          number: number.replace(/\D/g, ""),
+          companyId
         })
       )
     );
@@ -150,12 +152,16 @@ const handleQueueLogic = async (
   ticket: Ticket,
   contactPayload: ContactPayload
 ): Promise<void> => {
-  const { queues, greetingMessage } = await ShowWhatsAppService(whatsappId);
+  const { queues, greetingMessage } = await ShowWhatsAppService(
+    whatsappId,
+    ticket.companyId
+  );
 
   if (queues.length === 1) {
     await UpdateTicketService({
       ticketData: { queueId: queues[0].id },
-      ticketId: ticket.id
+      ticketId: ticket.id,
+      companyId: ticket.companyId
     });
     return;
   }
@@ -166,7 +172,8 @@ const handleQueueLogic = async (
   if (choosenQueue) {
     await UpdateTicketService({
       ticketData: { queueId: choosenQueue.id },
-      ticketId: ticket.id
+      ticketId: ticket.id,
+      companyId: ticket.companyId
     });
 
     const body = formatBody(
@@ -223,7 +230,12 @@ export const handleMessage = async (
   try {
     const processedMessage = processLocationMessage(messagePayload);
 
+    // The connection decides which company the conversation belongs to.
+    const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
+    const { companyId } = whatsapp;
+
     const contact = await CreateOrUpdateContactService({
+      companyId,
       name: contactPayload.name,
       number: contactPayload.number,
       lid: contactPayload.lid,
@@ -234,6 +246,7 @@ export const handleMessage = async (
     let groupContact: Contact | undefined;
     if (contextPayload.groupContact) {
       groupContact = await CreateOrUpdateContactService({
+        companyId,
         name: contextPayload.groupContact.name,
         number: contextPayload.groupContact.number,
         lid: contextPayload.groupContact.lid,
@@ -242,7 +255,6 @@ export const handleMessage = async (
       });
     }
 
-    const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
     if (
       contextPayload.unreadMessages === 0 &&
       whatsapp.farewellMessage &&
@@ -291,7 +303,7 @@ export const handleMessage = async (
 
     await CreateMessageService({ messageData });
 
-    await processVcardMessage(processedMessage);
+    await processVcardMessage(processedMessage, companyId);
 
     if (
       !ticket.queue &&
@@ -332,6 +344,7 @@ export const handleMessageAck = async (
     const messageToUpdate = await Message.findByPk(messageId, {
       include: [
         "contact",
+        { model: Ticket, as: "ticket", attributes: ["id", "companyId"] },
         {
           model: Message,
           as: "quotedMsg",
@@ -346,7 +359,12 @@ export const handleMessageAck = async (
 
     await messageToUpdate.update({ ack });
 
-    io.to(messageToUpdate.ticketId.toString()).emit("appMessage", {
+    io.to(
+      companyRoom(
+        messageToUpdate.ticket.companyId,
+        messageToUpdate.ticketId.toString()
+      )
+    ).emit("appMessage", {
       action: "update",
       message: messageToUpdate
     });

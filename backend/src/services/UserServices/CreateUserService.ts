@@ -3,6 +3,11 @@ import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import User from "../../models/User";
+import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
+import {
+  assertQueuesInCompany,
+  assertWhatsappInCompany
+} from "../../helpers/AssertCompanyOwnership";
 
 interface Request {
   email: string;
@@ -11,6 +16,7 @@ interface Request {
   queueIds?: number[];
   profile?: string;
   whatsappId?: number;
+  companyId: number;
 }
 
 interface Response {
@@ -26,7 +32,8 @@ const CreateUserService = async ({
   name,
   queueIds = [],
   profile = "admin",
-  whatsappId
+  whatsappId,
+  companyId
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string().required().min(2),
@@ -53,13 +60,18 @@ const CreateUserService = async ({
     throw new AppError(err.message);
   }
 
+  await CheckCompanyLimit(companyId, "users");
+  await assertQueuesInCompany(queueIds, companyId);
+  await assertWhatsappInCompany(whatsappId, companyId);
+
   const user = await User.create(
     {
       email,
       password,
       name,
       profile,
-      whatsappId: whatsappId ? whatsappId : null
+      whatsappId: whatsappId || null,
+      companyId
     },
     { include: ["queues", "whatsapp"] }
   );

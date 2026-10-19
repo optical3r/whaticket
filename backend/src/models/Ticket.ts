@@ -11,6 +11,7 @@ import {
   AutoIncrement,
   Default
 } from "sequelize-typescript";
+import Company from "./Company";
 
 import Contact from "./Contact";
 import Message from "./Message";
@@ -37,6 +38,13 @@ class Ticket extends Model<Ticket> {
   @Default(false)
   @Column
   isGroup: boolean;
+
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;

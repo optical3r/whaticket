@@ -7,7 +7,7 @@ import {
   Contact as WbotContact,
   MessageSendOptions
 } from "whatsapp-web.js";
-import { getIO } from "../../../libs/socket";
+import EmitWhatsappSession from "../../../helpers/EmitWhatsappSession";
 import Whatsapp from "../../../models/Whatsapp";
 import AppError from "../../../errors/AppError";
 import { logger } from "../../../utils/logger";
@@ -444,7 +444,6 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
   try {
     removeSession(whatsapp.id);
 
-    const io = getIO();
     const sessionName = whatsapp.name;
 
     const args: string = process.env.CHROME_ARGS || "";
@@ -479,10 +478,7 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
         sessions.push(wbot);
       }
 
-      io.emit("whatsappSession", {
-        action: "update",
-        session: whatsapp
-      });
+      EmitWhatsappSession(whatsapp);
     });
 
     wbot.on("authenticated", async () => {
@@ -503,10 +499,7 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
         retries: whatsapp.retries + 1
       });
 
-      io.emit("whatsappSession", {
-        action: "update",
-        session: whatsapp
-      });
+      EmitWhatsappSession(whatsapp);
     });
 
     wbot.on("ready", async () => {
@@ -519,10 +512,7 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
           retries: 0
         });
 
-        io.emit("whatsappSession", {
-          action: "update",
-          session: whatsapp
-        });
+        EmitWhatsappSession(whatsapp);
 
         const sessionIndex = sessions.findIndex(s => s.id === whatsapp.id);
         if (sessionIndex === -1) {
@@ -542,10 +532,7 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
       try {
         await whatsapp.update({ status: newState });
 
-        io.emit("whatsappSession", {
-          action: "update",
-          session: whatsapp
-        });
+        EmitWhatsappSession(whatsapp);
       } catch (err) {
         logger.error(err, "Error on whatsapp change state event");
       }
@@ -556,10 +543,7 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
       try {
         await whatsapp.update({ status: "OPENING", session: "" });
 
-        io.emit("whatsappSession", {
-          action: "update",
-          session: whatsapp
-        });
+        EmitWhatsappSession(whatsapp);
 
         logger.warn(
           `Session ${sessionName} disconnected. Restarting in 2 seconds...`

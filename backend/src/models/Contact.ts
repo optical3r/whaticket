@@ -7,10 +7,12 @@ import {
   PrimaryKey,
   AutoIncrement,
   AllowNull,
-  Unique,
   Default,
-  HasMany
+  HasMany,
+  ForeignKey,
+  BelongsTo
 } from "sequelize-typescript";
+import Company from "./Company";
 import ContactCustomField from "./ContactCustomField";
 import Ticket from "./Ticket";
 
@@ -24,11 +26,9 @@ class Contact extends Model<Contact> {
   @Column
   name: string;
 
-  @Unique
   @Column
   number: string;
 
-  @Unique
   @Column
   lid: string;
 
@@ -43,6 +43,13 @@ class Contact extends Model<Contact> {
   @Default(false)
   @Column
   isGroup: boolean;
+
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;

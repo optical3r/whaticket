@@ -3,9 +3,13 @@ import Whatsapp from "../models/Whatsapp";
 import { logger } from "../utils/logger";
 
 const GetDefaultWhatsAppByUser = async (
-  userId: number
+  userId: number,
+  companyId: number
 ): Promise<Whatsapp | null> => {
-  const user = await User.findByPk(userId, { include: ["whatsapp"] });
+  const user = await User.findOne({
+    where: { id: userId, companyId },
+    include: ["whatsapp"]
+  });
   if (user === null) {
     return null;
   }

@@ -1,6 +1,7 @@
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
 
 interface QueueData {
   name: string;
@@ -8,7 +9,10 @@ interface QueueData {
   greetingMessage?: string;
 }
 
-const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
+const CreateQueueService = async (
+  queueData: QueueData,
+  companyId: number
+): Promise<Queue> => {
   const { color, name } = queueData;
 
   const queueSchema = Yup.object().shape({
@@ -21,7 +25,7 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
         async value => {
           if (value) {
             const queueWithSameName = await Queue.findOne({
-              where: { name: value }
+              where: { name: value, companyId }
             });
 
             return !queueWithSameName;
@@ -44,7 +48,7 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
         async value => {
           if (value) {
             const queueWithSameColor = await Queue.findOne({
-              where: { color: value }
+              where: { color: value, companyId }
             });
             return !queueWithSameColor;
           }
@@ -59,7 +63,9 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
     throw new AppError(err.message);
   }
 
-  const queue = await Queue.create(queueData);
+  await CheckCompanyLimit(companyId, "queues");
+
+  const queue = await Queue.create({ ...queueData, companyId });
 
   return queue;
 };

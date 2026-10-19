@@ -4,6 +4,7 @@ import Contact from "../../models/Contact";
 interface Request {
   searchParam?: string;
   pageNumber?: string;
+  companyId: number;
 }
 
 interface Response {
@@ -14,9 +15,11 @@ interface Response {
 
 const ListContactsService = async ({
   searchParam = "",
-  pageNumber = "1"
+  pageNumber = "1",
+  companyId
 }: Request): Promise<Response> => {
   const whereCondition = {
+    companyId,
     [Op.or]: [
       {
         name: Sequelize.where(

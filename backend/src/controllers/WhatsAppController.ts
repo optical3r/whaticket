@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitToCompany } from "../libs/socket";
 import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSession";
 
 import CreateWhatsAppService from "../services/WhatsappService/CreateWhatsAppService";
@@ -19,7 +19,7 @@ interface WhatsappData {
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const whatsapps = await ListWhatsAppsService();
+  const whatsapps = await ListWhatsAppsService(req.user.companyId);
 
   return res.status(200).json(whatsapps);
 };
@@ -33,8 +33,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     farewellMessage,
     queueIds
   }: WhatsappData = req.body;
+  const { companyId } = req.user;
 
   const { whatsapp, oldDefaultWhatsapp } = await CreateWhatsAppService({
+    companyId,
     name,
     status,
     isDefault,
@@ -45,14 +47,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   StartWhatsAppSession(whatsapp);
 
-  const io = getIO();
-  io.emit("whatsapp", {
+  emitToCompany(companyId, "whatsapp", {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-    io.emit("whatsapp", {
+    emitToCompany(companyId, "whatsapp", {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -64,7 +65,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
 
-  const whatsapp = await ShowWhatsAppService(whatsappId);
+  const whatsapp = await ShowWhatsAppService(whatsappId, req.user.companyId);
 
   return res.status(200).json(whatsapp);
 };
@@ -75,20 +76,21 @@ export const update = async (
 ): Promise<Response> => {
   const { whatsappId } = req.params;
   const whatsappData = req.body;
+  const { companyId } = req.user;
 
   const { whatsapp, oldDefaultWhatsapp } = await UpdateWhatsAppService({
     whatsappData,
-    whatsappId
+    whatsappId,
+    companyId
   });
 
-  const io = getIO();
-  io.emit("whatsapp", {
+  emitToCompany(companyId, "whatsapp", {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-    io.emit("whatsapp", {
+    emitToCompany(companyId, "whatsapp", {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -103,11 +105,11 @@ export const remove = async (
 ): Promise<Response> => {
   const { whatsappId } = req.params;
 
-  await DeleteWhatsAppService(whatsappId);
+  const { companyId } = req.user;
+  await DeleteWhatsAppService(whatsappId, companyId);
   whatsappProvider.removeSession(+whatsappId);
 
-  const io = getIO();
-  io.emit("whatsapp", {
+  emitToCompany(companyId, "whatsapp", {
     action: "delete",
     whatsappId: +whatsappId
   });

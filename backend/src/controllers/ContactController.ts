@@ -1,6 +1,6 @@
 import * as Yup from "yup";
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitToCompany } from "../libs/socket";
 
 import ListContactsService from "../services/ContactServices/ListContactsService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
@@ -37,10 +37,12 @@ interface ContactData {
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { searchParam, pageNumber } = req.query as IndexQuery;
+  const { companyId } = req.user;
 
   const { contacts, count, hasMore } = await ListContactsService({
     searchParam,
-    pageNumber
+    pageNumber,
+    companyId
   });
 
   return res.json({ contacts, count, hasMore });
@@ -54,7 +56,8 @@ export const getContact = async (
 
   const contact = await GetContactService({
     name,
-    number
+    number,
+    companyId: req.user.companyId
   });
 
   return res.status(200).json(contact);
@@ -62,6 +65,7 @@ export const getContact = async (
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const newContact: ContactData = req.body;
+  const { companyId } = req.user;
   newContact.number = newContact.number.replace("-", "").replace(" ", "");
 
   const schema = Yup.object().shape({
@@ -77,10 +81,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message);
   }
 
-  await CheckIsValidContact(newContact.number);
-  const validNumber: any = await CheckContactNumber(newContact.number);
+  await CheckIsValidContact(newContact.number, companyId);
+  const validNumber: any = await CheckContactNumber(
+    newContact.number,
+    companyId
+  );
 
-  const profilePicUrl = await GetProfilePicUrl(validNumber);
+  const profilePicUrl = await GetProfilePicUrl(validNumber, companyId);
 
   let name = newContact.name;
   let number = validNumber;
@@ -92,11 +99,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     number,
     email,
     extraInfo,
-    profilePicUrl
+    profilePicUrl,
+    companyId
   });
 
-  const io = getIO();
-  io.emit("contact", {
+  emitToCompany(companyId, "contact", {
     action: "create",
     contact
   });
@@ -107,7 +114,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { contactId } = req.params;
 
-  const contact = await ShowContactService(contactId);
+  const contact = await ShowContactService(contactId, req.user.companyId);
 
   return res.status(200).json(contact);
 };
@@ -117,6 +124,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const contactData: ContactData = req.body;
+  const { companyId } = req.user;
 
   const schema = Yup.object().shape({
     name: Yup.string(),
@@ -132,14 +140,17 @@ export const update = async (
     throw new AppError(err.message);
   }
 
-  await CheckIsValidContact(contactData.number);
+  await CheckIsValidContact(contactData.number, companyId);
 
   const { contactId } = req.params;
 
-  const contact = await UpdateContactService({ contactData, contactId });
+  const contact = await UpdateContactService({
+    contactData,
+    contactId,
+    companyId
+  });
 
-  const io = getIO();
-  io.emit("contact", {
+  emitToCompany(companyId, "contact", {
     action: "update",
     contact
   });
@@ -152,11 +163,11 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const { contactId } = req.params;
+  const { companyId } = req.user;
 
-  await DeleteContactService(contactId);
+  await DeleteContactService(contactId, companyId);
 
-  const io = getIO();
-  io.emit("contact", {
+  emitToCompany(companyId, "contact", {
     action: "delete",
     contactId
   });

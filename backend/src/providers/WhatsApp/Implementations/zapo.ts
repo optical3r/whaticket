@@ -22,7 +22,7 @@ import type { LibInput } from "wa-store-migrate";
 
 import sequelize from "../../../database";
 import Whatsapp from "../../../models/Whatsapp";
-import { getIO } from "../../../libs/socket";
+import EmitWhatsappSession from "../../../helpers/EmitWhatsappSession";
 import { logger } from "../../../utils/logger";
 import AppError from "../../../errors/AppError";
 import {
@@ -570,10 +570,7 @@ const emitSession = async (sessionId: number): Promise<void> => {
   const updatedWhatsapp = await Whatsapp.findByPk(sessionId);
   if (!updatedWhatsapp) return;
 
-  getIO().emit("whatsappSession", {
-    action: "update",
-    session: updatedWhatsapp
-  });
+  EmitWhatsappSession(updatedWhatsapp);
 };
 
 const getWbot = (sessionId: number): WaClient => {

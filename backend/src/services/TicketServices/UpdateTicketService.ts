@@ -1,9 +1,12 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
-import { getIO } from "../../libs/socket";
+import {
+  assertQueuesInCompany,
+  assertUserInCompany,
+  assertWhatsappInCompany
+} from "../../helpers/AssertCompanyOwnership";
+import { companyRoom, getIO } from "../../libs/socket";
 import Ticket from "../../models/Ticket";
-import SendWhatsAppMessage from "../WbotServices/SendWhatsAppMessage";
-import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 import ShowTicketService from "./ShowTicketService";
 
 interface TicketData {
@@ -16,6 +19,7 @@ interface TicketData {
 interface Request {
   ticketData: TicketData;
   ticketId: string | number;
+  companyId: number;
 }
 
 interface Response {
@@ -26,11 +30,17 @@ interface Response {
 
 const UpdateTicketService = async ({
   ticketData,
-  ticketId
+  ticketId,
+  companyId
 }: Request): Promise<Response> => {
   const { status, userId, queueId, whatsappId } = ticketData;
 
-  const ticket = await ShowTicketService(ticketId);
+  const ticket = await ShowTicketService(ticketId, companyId);
+
+  await assertUserInCompany(userId, companyId);
+  await assertQueuesInCompany([queueId], companyId);
+  await assertWhatsappInCompany(whatsappId, companyId);
+
   await SetTicketMessagesAsRead(ticket);
 
   if (whatsappId && ticket.whatsappId !== whatsappId) {
@@ -61,15 +71,15 @@ const UpdateTicketService = async ({
   const io = getIO();
 
   if (ticket.status !== oldStatus || ticket.user?.id !== oldUserId) {
-    io.to(oldStatus).emit("ticket", {
+    io.to(companyRoom(companyId, oldStatus)).emit("ticket", {
       action: "delete",
       ticketId: ticket.id
     });
   }
 
-  io.to(ticket.status)
-    .to("notification")
-    .to(ticketId.toString())
+  io.to(companyRoom(companyId, ticket.status))
+    .to(companyRoom(companyId, "notification"))
+    .to(companyRoom(companyId, ticketId.toString()))
     .emit("ticket", {
       action: "update",
       ticket

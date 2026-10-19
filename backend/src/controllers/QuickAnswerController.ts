@@ -1,6 +1,6 @@
 import * as Yup from "yup";
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitToCompany } from "../libs/socket";
 
 import ListQuickAnswerService from "../services/QuickAnswerService/ListQuickAnswerService";
 import CreateQuickAnswerService from "../services/QuickAnswerService/CreateQuickAnswerService";
@@ -25,7 +25,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   const { quickAnswers, count, hasMore } = await ListQuickAnswerService({
     searchParam,
-    pageNumber
+    pageNumber,
+    companyId: req.user.companyId
   });
 
   return res.json({ quickAnswers, count, hasMore });
@@ -33,6 +34,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const newQuickAnswer: QuickAnswerData = req.body;
+  const { companyId } = req.user;
 
   const QuickAnswerSchema = Yup.object().shape({
     shortcut: Yup.string().required(),
@@ -46,11 +48,12 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   const quickAnswer = await CreateQuickAnswerService({
-    ...newQuickAnswer
+    shortcut: newQuickAnswer.shortcut,
+    message: newQuickAnswer.message,
+    companyId
   });
 
-  const io = getIO();
-  io.emit("quickAnswer", {
+  emitToCompany(companyId, "quickAnswer", {
     action: "create",
     quickAnswer
   });
@@ -61,7 +64,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { quickAnswerId } = req.params;
 
-  const quickAnswer = await ShowQuickAnswerService(quickAnswerId);
+  const quickAnswer = await ShowQuickAnswerService(
+    quickAnswerId,
+    req.user.companyId
+  );
 
   return res.status(200).json(quickAnswer);
 };
@@ -71,6 +77,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const quickAnswerData: QuickAnswerData = req.body;
+  const { companyId } = req.user;
 
   const schema = Yup.object().shape({
     shortcut: Yup.string(),
@@ -87,11 +94,11 @@ export const update = async (
 
   const quickAnswer = await UpdateQuickAnswerService({
     quickAnswerData,
-    quickAnswerId
+    quickAnswerId,
+    companyId
   });
 
-  const io = getIO();
-  io.emit("quickAnswer", {
+  emitToCompany(companyId, "quickAnswer", {
     action: "update",
     quickAnswer
   });
@@ -105,10 +112,10 @@ export const remove = async (
 ): Promise<Response> => {
   const { quickAnswerId } = req.params;
 
-  await DeleteQuickAnswerService(quickAnswerId);
+  const { companyId } = req.user;
+  await DeleteQuickAnswerService(quickAnswerId, companyId);
 
-  const io = getIO();
-  io.emit("quickAnswer", {
+  emitToCompany(companyId, "quickAnswer", {
     action: "delete",
     quickAnswerId
   });

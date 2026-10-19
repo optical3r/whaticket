@@ -17,17 +17,19 @@ interface ContactData {
 interface Request {
   contactData: ContactData;
   contactId: string;
+  companyId: number;
 }
 
 const UpdateContactService = async ({
   contactData,
-  contactId
+  contactId,
+  companyId
 }: Request): Promise<Contact> => {
   const { email, name, number, extraInfo } = contactData;
 
   const contact = await Contact.findOne({
-    where: { id: contactId },
-    attributes: ["id", "name", "number", "email", "profilePicUrl"],
+    where: { id: contactId, companyId },
+    attributes: ["id", "name", "number", "email", "profilePicUrl", "companyId"],
     include: ["extraInfo"]
   });
 
@@ -38,7 +40,15 @@ const UpdateContactService = async ({
   if (extraInfo) {
     await Promise.all(
       extraInfo.map(async info => {
-        await ContactCustomField.upsert({ ...info, contactId: contact.id });
+        // Only ids that already belong to this contact may be updated;
+        // anything else is created as a new field.
+        const ownsField = contact.extraInfo.some(old => old.id === info.id);
+        const { id, ...fieldData } = info;
+        await ContactCustomField.upsert({
+          ...fieldData,
+          ...(ownsField ? { id } : {}),
+          contactId: contact.id
+        });
       })
     );
 

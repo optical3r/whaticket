@@ -10,9 +10,11 @@ import {
   Default,
   AllowNull,
   HasMany,
-  Unique,
-  BelongsToMany
+  BelongsToMany,
+  ForeignKey,
+  BelongsTo
 } from "sequelize-typescript";
+import Company from "./Company";
 import Queue from "./Queue";
 import Ticket from "./Ticket";
 import WhatsappQueue from "./WhatsappQueue";
@@ -25,7 +27,6 @@ class Whatsapp extends Model<Whatsapp> {
   id: number;
 
   @AllowNull
-  @Unique
   @Column(DataType.TEXT)
   name: string;
 
@@ -34,6 +35,10 @@ class Whatsapp extends Model<Whatsapp> {
 
   @Column(DataType.TEXT)
   qrcode: string;
+
+  @Default("qrcode")
+  @Column
+  channel: string;
 
   @Column
   status: string;
@@ -57,6 +62,13 @@ class Whatsapp extends Model<Whatsapp> {
   @AllowNull
   @Column
   isDefault: boolean;
+
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;

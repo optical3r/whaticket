@@ -69,11 +69,12 @@ const FindOrCreateTicketService = async (
       status: "pending",
       isGroup: !!groupContact,
       unreadMessages,
-      whatsappId
+      whatsappId,
+      companyId: contact.companyId
     });
   }
 
-  ticket = await ShowTicketService(ticket.id);
+  ticket = await ShowTicketService(ticket.id, contact.companyId);
 
   return ticket;
 };
