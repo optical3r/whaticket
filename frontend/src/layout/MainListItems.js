@@ -22,6 +22,7 @@ import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurned
 import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -228,6 +229,18 @@ const MainListItems = (props) => {
                   to="/reports"
                   primary={i18n.t("mainDrawer.listItems.reports")}
                   icon={<AssessmentOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="campaigns:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/campaigns"
+                  primary={i18n.t("mainDrawer.listItems.campaigns")}
+                  icon={<CampaignOutlinedIcon />}
                   collapsed={collapsed}
                 />
               )}

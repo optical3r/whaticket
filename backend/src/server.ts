@@ -4,6 +4,7 @@ import { initIO } from "./libs/socket";
 import { closeQueue, startWorker } from "./libs/queue";
 import { logger } from "./utils/logger";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
+import { ResumeCampaigns } from "./services/CampaignServices/CampaignDispatcher";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -12,6 +13,9 @@ const server = app.listen(process.env.PORT, () => {
 initIO(server);
 startWorker();
 StartAllWhatsAppsSessions();
+ResumeCampaigns().catch(err =>
+  logger.error({ info: "Could not resume campaigns", err })
+);
 gracefulShutdown(server, {
   onShutdown: () => closeQueue()
 });

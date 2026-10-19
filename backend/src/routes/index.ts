@@ -15,6 +15,7 @@ import companyRoutes from "./companyRoutes";
 import catalogRoutes from "./catalogRoutes";
 import healthRoutes from "./healthRoutes";
 import aiRoutes from "./aiRoutes";
+import campaignRoutes from "./campaignRoutes";
 
 const routes = Router();
 
@@ -32,6 +33,7 @@ routes.use(quickAnswerRoutes);
 routes.use(companyRoutes);
 routes.use(catalogRoutes);
 routes.use(aiRoutes);
+routes.use(campaignRoutes);
 routes.use("/api/messages", apiRoutes);
 
 export default routes;

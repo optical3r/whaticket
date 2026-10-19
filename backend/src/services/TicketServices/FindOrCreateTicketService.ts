@@ -10,7 +10,11 @@ const FindOrCreateTicketService = async (
   contact: Contact,
   whatsappId: number,
   unreadMessages: number,
-  groupContact?: Contact
+  groupContact?: Contact,
+  // For messages the system sends on its own (campaigns): without an open
+  // conversation, the message goes to a closed ticket, which the
+  // customer's reply reopens.
+  { keepClosed = false }: { keepClosed?: boolean } = {}
 ): Promise<Ticket> => {
   let ticket = await Ticket.findOne({
     where: {
@@ -42,6 +46,22 @@ const FindOrCreateTicketService = async (
         unreadMessages
       });
     }
+  }
+
+  if (!ticket && keepClosed) {
+    const closed =
+      (await Ticket.findOne({
+        where: { contactId: contact.id, whatsappId, status: "closed" },
+        order: [["updatedAt", "DESC"]]
+      })) ||
+      (await Ticket.create({
+        contactId: contact.id,
+        status: "closed",
+        unreadMessages: 0,
+        whatsappId,
+        companyId: contact.companyId
+      }));
+    return ShowTicketService(closed.id, contact.companyId);
   }
 
   if (!ticket && !groupContact) {

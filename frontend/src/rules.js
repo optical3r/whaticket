@@ -4,6 +4,7 @@ const managerRules = [
 	"tags:manage",
 	"closeReasons:manage",
 	"reports:view",
+	"campaigns:manage",
 ];
 
 const rules = {

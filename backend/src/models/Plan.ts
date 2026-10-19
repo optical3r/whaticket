@@ -43,6 +43,12 @@ class Plan extends Model<Plan> {
   @Column
   aiEnabled: boolean;
 
+  // Whether companies on this plan can send campaigns.
+  @AllowNull(false)
+  @Default(false)
+  @Column
+  campaignsEnabled: boolean;
+
   // Whose Anthropic key pays: "platform" (Cerqueira Labs) or "company"
   // (each company enters its own key).
   @AllowNull(false)

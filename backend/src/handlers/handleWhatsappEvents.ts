@@ -17,6 +17,8 @@ import UpdateTicketService from "../services/TicketServices/UpdateTicketService"
 import CreateContactService from "../services/ContactServices/CreateContactService";
 import SendOutOfHoursMessage from "../services/QueueService/SendOutOfHoursMessage";
 import { ScheduleAssistantReply } from "../services/AiServices/AssistantService";
+import { isCampaignMessage } from "../services/CampaignServices/CampaignDispatcher";
+import { HandleOptOut } from "../services/CampaignServices/OptOutService";
 import {
   FindPendingRating,
   RegisterRatingAnswer
@@ -299,11 +301,25 @@ export const handleMessage = async (
       }
     }
 
+    // "SAIR" after a campaign: the contact stops receiving campaigns and
+    // the reply does not reopen a conversation.
+    if (
+      !processedMessage.fromMe &&
+      !groupContact &&
+      (await HandleOptOut(contact, contextPayload.whatsappId, processedMessage))
+    ) {
+      return;
+    }
+
     const ticket = await FindOrCreateTicketService(
       contact,
       contextPayload.whatsappId,
       contextPayload.unreadMessages,
-      groupContact
+      groupContact,
+      {
+        keepClosed:
+          processedMessage.fromMe && isCampaignMessage(processedMessage.body)
+      }
     );
 
     const messageData: any = {

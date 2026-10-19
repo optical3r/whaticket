@@ -29,7 +29,7 @@ const useStyles = makeStyles()(theme => ({
 	},
 }));
 
-const limitColumns = ["users", "connections", "queues", "aiMonthlyRequests"];
+const limitColumns = ["users", "connections", "queues", "campaignsEnabled", "aiMonthlyRequests"];
 
 const Plans = () => {
 	const { classes } = useStyles();
@@ -116,7 +116,9 @@ const Plans = () => {
 										className={classes.mono}
 										data-label={i18n.t(`plans.table.${column}`)}
 									>
-										{column !== "aiMonthlyRequests"
+										{column === "campaignsEnabled"
+											? i18n.t(plan.campaignsEnabled ? "plans.yes" : "plans.no")
+											: column !== "aiMonthlyRequests"
 											? plan[column]
 											: !plan.aiEnabled
 												? i18n.t("plans.aiOff")

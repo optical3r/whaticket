@@ -24,6 +24,7 @@ const emptyPlan = {
 	connections: 1,
 	queues: 5,
 	aiEnabled: false,
+	campaignsEnabled: false,
 	aiKeySource: "platform",
 	aiMonthlyRequests: 1000,
 };
@@ -52,6 +53,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			connections: Number(values.connections),
 			queues: Number(values.queues),
 			aiEnabled: values.aiEnabled,
+			campaignsEnabled: values.campaignsEnabled,
 			aiKeySource: values.aiKeySource,
 			aiMonthlyRequests: Number(values.aiMonthlyRequests),
 		};
@@ -107,6 +109,16 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 						autoFocus
 					/>
 					{["users", "connections", "queues"].map(name => numberField(name))}
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.campaignsEnabled}
+								onChange={e => setValues(prev => ({ ...prev, campaignsEnabled: e.target.checked }))}
+							/>
+						}
+						label={i18n.t("planModal.form.campaignsEnabled")}
+					/>
 					<FormControlLabel
 						control={
 							<Switch

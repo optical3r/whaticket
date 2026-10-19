@@ -11,7 +11,8 @@ import {
   HasMany,
   ForeignKey,
   BelongsTo,
-  BelongsToMany
+  BelongsToMany,
+  DataType
 } from "sequelize-typescript";
 import Company from "./Company";
 import Tag from "./Tag";
@@ -53,6 +54,10 @@ class Contact extends Model<Contact> {
 
   @BelongsTo(() => Company)
   company: Company;
+
+  // Set when the contact answered SAIR: no more campaigns.
+  @Column(DataType.DATE)
+  optOutAt: Date | null;
 
   @CreatedAt
   createdAt: Date;

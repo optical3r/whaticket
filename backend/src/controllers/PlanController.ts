@@ -18,6 +18,7 @@ const planFields = (body: Record<string, unknown>) => {
     connections,
     queues,
     aiEnabled,
+    campaignsEnabled,
     aiKeySource,
     aiMonthlyRequests
   } = body;
@@ -27,6 +28,7 @@ const planFields = (body: Record<string, unknown>) => {
     connections,
     queues,
     aiEnabled,
+    campaignsEnabled,
     aiKeySource,
     aiMonthlyRequests
   } as Parameters<typeof SavePlanService>[0];

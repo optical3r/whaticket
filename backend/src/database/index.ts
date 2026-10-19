@@ -22,6 +22,8 @@ import Webhook from "../models/Webhook";
 import KnowledgeArticle from "../models/KnowledgeArticle";
 import AiUsage from "../models/AiUsage";
 import KanbanStage from "../models/KanbanStage";
+import Campaign from "../models/Campaign";
+import CampaignContact from "../models/CampaignContact";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -52,7 +54,9 @@ const models = [
   Webhook,
   KnowledgeArticle,
   AiUsage,
-  KanbanStage
+  KanbanStage,
+  Campaign,
+  CampaignContact
 ];
 
 sequelize.addModels(models);

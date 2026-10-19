@@ -10,6 +10,7 @@ interface PlanData {
   connections: number;
   queues: number;
   aiEnabled?: boolean;
+  campaignsEnabled?: boolean;
   aiKeySource?: string;
   aiMonthlyRequests?: number;
 }
@@ -32,6 +33,7 @@ const schema = Yup.object().shape({
     .min(0, "ERR_PLAN_INVALID_LIMIT")
     .required("ERR_PLAN_INVALID_LIMIT"),
   aiEnabled: Yup.boolean(),
+  campaignsEnabled: Yup.boolean(),
   aiKeySource: Yup.mixed().oneOf(
     ["platform", "company", undefined],
     "ERR_PLAN_INVALID_AI_KEY_SOURCE"
@@ -53,6 +55,7 @@ const SavePlanService = async (
     connections,
     queues,
     aiEnabled,
+    campaignsEnabled,
     aiKeySource,
     aiMonthlyRequests
   } = planData;
@@ -64,6 +67,7 @@ const SavePlanService = async (
       connections,
       queues,
       aiEnabled,
+      campaignsEnabled,
       aiKeySource,
       aiMonthlyRequests
     });
@@ -88,6 +92,7 @@ const SavePlanService = async (
     queues: Number(queues),
     // AI fields are kept as they are when a client does not send them.
     ...(typeof aiEnabled === "boolean" ? { aiEnabled } : {}),
+    ...(typeof campaignsEnabled === "boolean" ? { campaignsEnabled } : {}),
     ...(aiKeySource ? { aiKeySource } : {}),
     ...(aiMonthlyRequests !== undefined && aiMonthlyRequests !== null
       ? { aiMonthlyRequests: Number(aiMonthlyRequests) }
