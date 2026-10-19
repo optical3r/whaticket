@@ -6,6 +6,7 @@ import * as TagController from "../controllers/TagController";
 import * as CloseReasonController from "../controllers/CloseReasonController";
 import * as ReportController from "../controllers/ReportController";
 import * as WebhookController from "../controllers/WebhookController";
+import * as KanbanController from "../controllers/KanbanController";
 import isAdmin from "../middleware/isAdmin";
 
 const catalogRoutes = Router();
@@ -74,6 +75,38 @@ catalogRoutes.post(
   isAuth,
   isAdmin,
   WebhookController.test
+);
+
+// Everyone uses the board; managers shape its columns.
+catalogRoutes.get("/kanban", isAuth, KanbanController.board);
+catalogRoutes.post(
+  "/kanban/stages",
+  isAuth,
+  isManager,
+  KanbanController.storeStage
+);
+catalogRoutes.put(
+  "/kanban/stages/order",
+  isAuth,
+  isManager,
+  KanbanController.reorderStages
+);
+catalogRoutes.put(
+  "/kanban/stages/:stageId",
+  isAuth,
+  isManager,
+  KanbanController.updateStage
+);
+catalogRoutes.delete(
+  "/kanban/stages/:stageId",
+  isAuth,
+  isManager,
+  KanbanController.removeStage
+);
+catalogRoutes.put(
+  "/tickets/:ticketId/kanban",
+  isAuth,
+  KanbanController.moveTicket
 );
 
 export default catalogRoutes;

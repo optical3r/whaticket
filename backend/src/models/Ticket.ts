@@ -17,6 +17,7 @@ import Company from "./Company";
 import Tag from "./Tag";
 import TicketTag from "./TicketTag";
 import CloseReason from "./CloseReason";
+import KanbanStage from "./KanbanStage";
 
 import Contact from "./Contact";
 import Message from "./Message";
@@ -112,6 +113,13 @@ class Ticket extends Model<Ticket> {
   @Default(0)
   @Column
   aiReplies: number;
+
+  @ForeignKey(() => KanbanStage)
+  @Column(DataType.INTEGER)
+  kanbanStageId: number | null;
+
+  @BelongsTo(() => KanbanStage)
+  kanbanStage: KanbanStage;
 }
 
 export default Ticket;

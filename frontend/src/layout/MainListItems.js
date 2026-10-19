@@ -21,6 +21,7 @@ import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -187,6 +188,12 @@ const MainListItems = (props) => {
         to="/tickets"
         primary={i18n.t("mainDrawer.listItems.tickets")}
         icon={<WhatsAppIcon />}
+        collapsed={collapsed}
+      />
+      <ListItemLink
+        to="/kanban"
+        primary={i18n.t("mainDrawer.listItems.kanban")}
+        icon={<ViewKanbanOutlinedIcon />}
         collapsed={collapsed}
       />
 

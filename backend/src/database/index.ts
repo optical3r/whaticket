@@ -21,6 +21,7 @@ import TicketRating from "../models/TicketRating";
 import Webhook from "../models/Webhook";
 import KnowledgeArticle from "../models/KnowledgeArticle";
 import AiUsage from "../models/AiUsage";
+import KanbanStage from "../models/KanbanStage";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -50,7 +51,8 @@ const models = [
   TicketRating,
   Webhook,
   KnowledgeArticle,
-  AiUsage
+  AiUsage,
+  KanbanStage
 ];
 
 sequelize.addModels(models);
