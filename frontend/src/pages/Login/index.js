@@ -1,17 +1,14 @@
 import React, { useState, useContext } from "react";
-import { Link as RouterLink } from "react-router-dom";
 
 import {
   Button,
   CssBaseline,
   TextField,
-  Grid,
   Box,
   Typography,
   Container,
   InputAdornment,
-  IconButton,
-  Link
+  IconButton
 } from '@material-ui/core';
 
 import { Visibility, VisibilityOff } from '@material-ui/icons';
@@ -144,18 +141,6 @@ const Login = () => {
           >
             {i18n.t("login.buttons.submit")}
           </Button>
-          <Grid container>
-            <Grid item>
-              <Link
-                href="#"
-                variant="body2"
-                component={RouterLink}
-                to="/signup"
-              >
-                {i18n.t("login.buttons.register")}
-              </Link>
-            </Grid>
-          </Grid>
         </form>
       </div>
       <Box mt={8}>{/* <Copyright /> */}</Box>

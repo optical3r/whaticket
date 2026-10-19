@@ -19,6 +19,8 @@ import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
 import SidebarUserMenu from "../components/SidebarUserMenu";
 import LanguageSelector from "../components/LanguageSelector";
+import ConnectionAlert from "../components/ConnectionAlert";
+import TermsModal from "../components/TermsModal";
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
 import { i18n } from "../translate/i18n";
@@ -205,6 +207,8 @@ const LoggedInLayout = ({ children }) => {
       </AppBar>
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />
+        <ConnectionAlert />
+        <TermsModal />
         {children ? children : null}
       </main>
     </div>

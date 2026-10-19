@@ -13,13 +13,26 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Respostas rápidas**: atalhos com `/` para as perguntas mais comuns.
 - **Mídia**: imagem, áudio (com gravação no navegador), vídeo, documentos, localização e contatos.
 - **Contatos**: cadastro, campos personalizados e importação dos contatos do celular.
-- **Usuários**: perfis de administrador e atendente.
+- **Multiempresa**: cada cliente é uma empresa com usuários, conexões, filas, contatos, tickets e token de API próprios. Uma empresa nunca vê os dados de outra.
+- **Planos e limites**: cada empresa tem um plano com limite de usuários, conexões e filas.
+- **Painel da plataforma** (superadmin da Cerqueira Labs): criar empresas e o primeiro administrador, trocar o plano, suspender e reativar.
+- **Termos de uso**: o administrador da empresa aceita os riscos da conexão por QR Code antes de criar a primeira conexão.
+- **Alerta de conexão caída**: banner e aviso no navegador quando uma conexão do WhatsApp para de funcionar.
+- **Usuários**: perfis de administrador e atendente dentro de cada empresa.
 - **Dashboard**: volume de tickets do dia.
-- **API**: envio de mensagens por `POST /api/messages/send`, autenticado por token.
+- **API**: envio de mensagens por `POST /api/messages/send`, autenticado pelo token da empresa (em **Configurações**).
 - **Idiomas**: português (Brasil), o padrão, e inglês. A troca fica no ícone de idioma da barra superior e da tela de login.
 - **Temas**: claro (padrão) e escuro, seguindo o design system Cerqueira Labs.
 
-O roteiro de evolução (multiempresa, API oficial do WhatsApp, IA, relatórios e campanhas) está no plano de implementação aprovado.
+O roteiro de evolução (API oficial do WhatsApp, IA, relatórios e campanhas) está no plano de implementação aprovado.
+
+## Empresas, planos e superadmin
+
+- O administrador criado pelo seed é o **superadmin**. Ele vê o menu **Plataforma**, com as telas **Empresas** e **Planos**.
+- Não existe cadastro público: cada empresa é criada pelo superadmin, junto com o seu primeiro administrador.
+- Ao suspender uma empresa, os usuários dela perdem o acesso e as conexões do WhatsApp são desligadas. Os dados e o login do WhatsApp ficam guardados, e reativar a empresa religa as conexões.
+- Ao atualizar uma instalação anterior, todos os dados existentes vão para a empresa 1 ("Cerqueira Labs", plano "Interno"), e o administrador mais antigo vira superadmin.
+- Cada conexão tem um canal (`qrcode` hoje). A estrutura para a API oficial está descrita em [docs/whatsapp-cloud-api.md](docs/whatsapp-cloud-api.md).
 
 ## Arquitetura
 
@@ -99,7 +112,8 @@ Guarde uma cópia fora do servidor (por exemplo, em um bucket S3/R2).
 ## Segurança
 
 - Segredos JWT fracos, conhecidos ou com menos de 32 caracteres impedem o backend de iniciar.
-- O cadastro público de usuários vem **desativado**. Novos usuários são criados por um administrador.
+- Não há cadastro público. Empresas são criadas pelo superadmin e usuários pelo administrador de cada empresa.
+- Todo acesso é filtrado pela empresa do usuário logado, inclusive os eventos em tempo real e o token da API.
 - Conexões, filas e exclusão de tickets e contatos só podem ser alterados por administradores, e o backend faz essa checagem.
 - As mídias só abrem por links assinados que expiram. O arquivo não fica público.
 - O login e o cadastro têm limite de tentativas (20 a cada 15 minutos por IP).

@@ -33,6 +33,8 @@ i18n.init({
 	fallbackLng: DEFAULT_LANGUAGE,
 	ns: ["translations"],
 	resources: messages,
+	// React already escapes rendered text.
+	interpolation: { escapeValue: false },
 });
 
 applyHtmlLang(i18n.language);

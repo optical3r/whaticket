@@ -293,6 +293,9 @@ const messages = {
           administration: "Administração",
           users: "Usuários",
           settings: "Configurações",
+          platform: "Plataforma",
+          companies: "Empresas",
+          plans: "Planos",
         },
         appBar: {
           user: {
@@ -372,14 +375,20 @@ const messages = {
       settings: {
         success: "Configurações salvas com sucesso.",
         title: "Configurações",
-        settings: {
-          userCreation: {
-            name: "Criação de usuário",
-            options: {
-              enabled: "Ativado",
-              disabled: "Desativado",
-            },
-          },
+        company: {
+          title: "Sua empresa",
+          plan: "Plano",
+          usage: "Uso do plano",
+          users: "Usuários",
+          connections: "Conexões",
+          queues: "Filas",
+          of: "de",
+          termsAccepted: "Termos de uso aceitos em {{date}} por {{by}}.",
+          termsPending: "Os termos de uso da conexão por QR Code ainda não foram aceitos.",
+        },
+        apiToken: {
+          label: "Token da API",
+          help: "Use este token no cabeçalho Authorization (Bearer) para enviar mensagens pela API. Ele é exclusivo da sua empresa.",
         },
       },
       messagesList: {
@@ -433,7 +442,142 @@ const messages = {
           message: "Esta ação não pode ser revertida.",
         },
       },
+      companies: {
+        title: "Empresas",
+        buttons: {
+          add: "Nova empresa",
+          edit: "Editar empresa",
+          suspend: "Suspender",
+          reactivate: "Reativar",
+        },
+        table: {
+          name: "Empresa",
+          plan: "Plano",
+          status: "Situação",
+          users: "Usuários",
+          connections: "Conexões",
+          createdAt: "Criada em",
+          actions: "Ações",
+        },
+        status: {
+          active: "Ativa",
+          suspended: "Suspensa",
+        },
+        toasts: {
+          created: "Empresa criada.",
+          updated: "Empresa atualizada.",
+          suspended: "Empresa suspensa.",
+          reactivated: "Empresa reativada.",
+        },
+        confirmSuspend: {
+          title: "Suspender {{name}}?",
+          message: "Os usuários da empresa perdem o acesso e as conexões do WhatsApp são desligadas. Os dados são mantidos e você pode reativar depois.",
+        },
+      },
+      companyModal: {
+        title: {
+          add: "Nova empresa",
+          edit: "Editar empresa",
+        },
+        form: {
+          name: "Nome da empresa",
+          plan: "Plano",
+          adminSection: "Primeiro administrador",
+          adminName: "Nome",
+          adminEmail: "E-mail",
+          adminPassword: "Senha (mínimo de 5 caracteres)",
+        },
+        buttons: {
+          cancel: "Cancelar",
+          save: "Salvar",
+          create: "Criar empresa",
+        },
+      },
+      plans: {
+        title: "Planos",
+        buttons: {
+          add: "Novo plano",
+          edit: "Editar plano",
+          delete: "Excluir plano",
+        },
+        table: {
+          name: "Plano",
+          users: "Usuários",
+          connections: "Conexões",
+          queues: "Filas",
+          actions: "Ações",
+        },
+        toasts: {
+          saved: "Plano salvo.",
+          deleted: "Plano excluído.",
+        },
+        confirmDelete: {
+          title: "Excluir o plano {{name}}?",
+          message: "Só é possível excluir planos que nenhuma empresa usa.",
+        },
+      },
+      planModal: {
+        title: {
+          add: "Novo plano",
+          edit: "Editar plano",
+        },
+        form: {
+          name: "Nome do plano",
+          users: "Limite de usuários",
+          connections: "Limite de conexões",
+          queues: "Limite de filas",
+        },
+        buttons: {
+          cancel: "Cancelar",
+          save: "Salvar",
+        },
+      },
+      termsModal: {
+        title: "Antes de conectar um número",
+        intro: "A conexão por QR Code usa clientes não oficiais do WhatsApp. Leia com atenção antes de continuar:",
+        items: {
+          ban: "O WhatsApp pode bloquear o número conectado, de forma temporária ou definitiva.",
+          official: "O uso não é autorizado pelo WhatsApp. A alternativa oficial é a API do WhatsApp Business (Cloud API).",
+          responsibility: "Evite envios em massa e mensagens não solicitadas: são a principal causa de bloqueio.",
+          support: "Se o número for bloqueado, não temos como reverter o bloqueio.",
+        },
+        checkbox: "Li e entendo os riscos da conexão por QR Code para a minha empresa.",
+        buttons: {
+          later: "Agora não",
+          accept: "Aceitar e continuar",
+        },
+        success: "Termos aceitos. Você já pode criar conexões.",
+        nonAdmin: "Um administrador da sua empresa precisa aceitar os termos de uso antes de criar conexões.",
+      },
+      connectionAlert: {
+        title: "Conexão do WhatsApp fora do ar",
+        message: "A conexão {{names}} não está conectada. As mensagens dessa conexão não chegam até ela voltar.",
+        message_plural: "As conexões {{names}} não estão conectadas. As mensagens dessas conexões não chegam até elas voltarem.",
+        action: "Ver conexões",
+        toast: "A conexão {{name}} caiu. Abra Conexões para reconectar.",
+      },
+      suspended: {
+        message: "O acesso da sua empresa está suspenso. Fale com a Cerqueira Labs.",
+      },
       backendErrors: {
+        ERR_COMPANY_SUSPENDED: "O acesso da sua empresa está suspenso. Fale com a Cerqueira Labs.",
+        ERR_COMPANY_NOT_FOUND: "Empresa não encontrada.",
+        ERR_COMPANY_INVALID_NAME: "Informe um nome de empresa com pelo menos 2 caracteres.",
+        ERR_COMPANY_NAME_ALREADY_EXISTS: "Já existe uma empresa com esse nome.",
+        ERR_COMPANY_ADMIN_REQUIRED: "Preencha nome, e-mail válido e senha (mínimo de 5 caracteres) do administrador.",
+        ERR_COMPANY_INVALID_STATUS: "Situação inválida.",
+        ERR_CANNOT_SUSPEND_OWN_COMPANY: "Você não pode suspender a sua própria empresa.",
+        ERR_USER_EMAIL_ALREADY_EXISTS: "Já existe um usuário com esse e-mail.",
+        ERR_PLAN_NOT_FOUND: "Plano não encontrado.",
+        ERR_PLAN_INVALID_NAME: "Informe um nome de plano com pelo menos 2 caracteres.",
+        ERR_PLAN_INVALID_LIMIT: "Os limites precisam ser números inteiros (mínimo 1 para usuários e conexões).",
+        ERR_PLAN_NAME_ALREADY_EXISTS: "Já existe um plano com esse nome.",
+        ERR_PLAN_IN_USE: "Este plano está em uso por pelo menos uma empresa. Troque o plano dessas empresas antes de excluir.",
+        ERR_PLAN_LIMIT_USERS: "Seu plano chegou ao limite de usuários. Fale com a Cerqueira Labs para ampliar.",
+        ERR_PLAN_LIMIT_CONNECTIONS: "Seu plano chegou ao limite de conexões. Fale com a Cerqueira Labs para ampliar.",
+        ERR_PLAN_LIMIT_QUEUES: "Seu plano chegou ao limite de filas. Fale com a Cerqueira Labs para ampliar.",
+        ERR_TERMS_NOT_ACCEPTED: "Aceite os termos de uso da conexão por QR Code antes de criar uma conexão.",
+        ERR_CHANNEL_NOT_AVAILABLE: "Este tipo de conexão ainda não está disponível.",
         ERR_NO_OTHER_WHATSAPP: "Deve haver pelo menos um WhatsApp padrão.",
         ERR_NO_DEF_WAPP_FOUND:
           "Nenhum WhatsApp padrão encontrado. Verifique a página de conexões.",
