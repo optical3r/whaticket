@@ -14,6 +14,7 @@ import apiRoutes from "./apiRoutes";
 import companyRoutes from "./companyRoutes";
 import catalogRoutes from "./catalogRoutes";
 import healthRoutes from "./healthRoutes";
+import aiRoutes from "./aiRoutes";
 
 const routes = Router();
 
@@ -30,6 +31,7 @@ routes.use(queueRoutes);
 routes.use(quickAnswerRoutes);
 routes.use(companyRoutes);
 routes.use(catalogRoutes);
+routes.use(aiRoutes);
 routes.use("/api/messages", apiRoutes);
 
 export default routes;

@@ -77,8 +77,14 @@ const UpdateTicketService = async ({
     queueId,
     userId,
     // closedAt and the reason describe the latest closing only.
+    // A reopened conversation gets the virtual assistant again.
     ...(isClosing
-      ? { closedAt: new Date(), closeReasonId: closeReasonId || null }
+      ? {
+          closedAt: new Date(),
+          closeReasonId: closeReasonId || null,
+          aiHandoffAt: null,
+          aiReplies: 0
+        }
       : {}),
     ...(isReopening ? { closedAt: null, closeReasonId: null } : {})
   });

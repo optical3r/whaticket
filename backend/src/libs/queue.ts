@@ -17,6 +17,18 @@ const QUEUE_NAME = "cerqueira-jobs";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const definitions = new Map<string, JobDefinition<any>>();
 
+// Inline mode: state of the jobs that have a dedupe key.
+const inlineState = new Map<string, "waiting" | "running" | "rerun">();
+
+export interface EnqueueOptions {
+  // Run the job only after this many milliseconds.
+  delay?: number;
+  // While a job with this key waits, new ones with the same key are dropped
+  // (the waiting job reads fresh data when it runs). While it runs, one new
+  // job is kept and starts after it, so two never run at the same time.
+  dedupeKey?: string;
+}
+
 let queue: Queue | null = null;
 let worker: Worker | null = null;
 
@@ -57,23 +69,49 @@ export const defineJob = <T>(
   definitions.set(name, { handler, options });
 };
 
-export const enqueue = async <T>(name: string, data: T): Promise<void> => {
+export const enqueue = async <T>(
+  name: string,
+  data: T,
+  { delay = 0, dedupeKey }: EnqueueOptions = {}
+): Promise<void> => {
   const definition = definitions.get(name);
   if (!definition) {
     throw new Error(`Unknown job: ${name}`);
   }
 
   if (!isQueueEnabled()) {
+    const state = dedupeKey ? inlineState.get(dedupeKey) : undefined;
+    if (dedupeKey && state) {
+      if (state === "running") inlineState.set(dedupeKey, "rerun");
+      return;
+    }
+    if (dedupeKey) inlineState.set(dedupeKey, "waiting");
+
     // Inline mode: the caller is not delayed and errors are only logged.
-    setImmediate(() => {
-      definition.handler(data, 1).catch(err => {
+    const run = async () => {
+      if (dedupeKey) inlineState.set(dedupeKey, "running");
+      try {
+        await definition.handler(data, 1);
+      } catch (err) {
         logger.error({ info: "Inline job failed", job: name, err });
-      });
-    });
+      }
+      if (!dedupeKey) return;
+      const again = inlineState.get(dedupeKey) === "rerun";
+      inlineState.delete(dedupeKey);
+      if (again) await enqueue(name, data, { delay, dedupeKey });
+    };
+    if (delay > 0) setTimeout(run, delay);
+    else setImmediate(run);
     return;
   }
 
-  await getQueue().add(name, data, definition.options);
+  await getQueue().add(name, data, {
+    ...definition.options,
+    ...(delay > 0 ? { delay } : {}),
+    ...(dedupeKey
+      ? { deduplication: { id: dedupeKey, keepLastIfActive: true } }
+      : {})
+  });
 };
 
 export const startWorker = (): void => {

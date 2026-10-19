@@ -26,6 +26,7 @@ const rules = {
 			"contacts-page:deleteContact",
 			"connections-page:manageConnections",
 			"webhooks:manage",
+			"ai:manage",
 		],
 	},
 };

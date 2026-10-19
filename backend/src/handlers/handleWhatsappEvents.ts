@@ -16,6 +16,7 @@ import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
 import SendOutOfHoursMessage from "../services/QueueService/SendOutOfHoursMessage";
+import { ScheduleAssistantReply } from "../services/AiServices/AssistantService";
 import {
   FindPendingRating,
   RegisterRatingAnswer
@@ -358,7 +359,10 @@ export const handleMessage = async (
     if (!processedMessage.fromMe && !contextPayload.groupContact) {
       // The queue may have just been chosen above.
       await ticket.reload();
-      await SendOutOfHoursMessage(ticket, contact);
+      // The virtual assistant tells the customer about business hours itself.
+      if (!(await ScheduleAssistantReply(ticket))) {
+        await SendOutOfHoursMessage(ticket, contact);
+      }
     }
   } catch (err) {
     Sentry.captureException(err);

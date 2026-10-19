@@ -11,9 +11,15 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { name, users, connections, queues } = req.body;
+  const { name, users, connections, queues, aiMonthlyRequests } = req.body;
 
-  const plan = await SavePlanService({ name, users, connections, queues });
+  const plan = await SavePlanService({
+    name,
+    users,
+    connections,
+    queues,
+    aiMonthlyRequests
+  });
 
   return res.status(200).json(plan);
 };
@@ -23,10 +29,10 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const { planId } = req.params;
-  const { name, users, connections, queues } = req.body;
+  const { name, users, connections, queues, aiMonthlyRequests } = req.body;
 
   const plan = await SavePlanService(
-    { name, users, connections, queues },
+    { name, users, connections, queues, aiMonthlyRequests },
     planId
   );
 

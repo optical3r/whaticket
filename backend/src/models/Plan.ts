@@ -8,7 +8,8 @@ import {
   AutoIncrement,
   AllowNull,
   Unique,
-  HasMany
+  HasMany,
+  Default
 } from "sequelize-typescript";
 import Company from "./Company";
 
@@ -35,6 +36,12 @@ class Plan extends Model<Plan> {
   @AllowNull(false)
   @Column
   queues: number;
+
+  // AI requests allowed per month; 0 turns AI off for the plan.
+  @AllowNull(false)
+  @Default(1000)
+  @Column
+  aiMonthlyRequests: number;
 
   @CreatedAt
   createdAt: Date;

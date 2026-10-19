@@ -118,6 +118,18 @@ const useStyles = makeStyles()(theme => ({
 		backgroundColor: theme.palette.queue.fallback,
 	},
 
+	aiTag: {
+		flex: "none",
+		alignSelf: "center",
+		marginLeft: theme.spacing(1),
+		padding: theme.spacing(0, 0.75),
+		borderRadius: theme.borderRadius.pill,
+		backgroundColor: theme.palette.tintedBackground,
+		color: theme.palette.text.link,
+		...theme.typography.caption,
+		fontWeight: 600,
+	},
+
 	userTag: {
 		flex: "none",
 		alignSelf: "center",
@@ -246,6 +258,13 @@ const TicketListItem = ({ ticket }) => {
 								)}
 							</Typography>
 
+							{ticket.status === "pending" &&
+								ticket.aiReplies > 0 &&
+								!ticket.aiHandoffAt && (
+									<span className={classes.aiTag} title={i18n.t("ticketsList.aiTagTitle")}>
+										{i18n.t("ticketsList.aiTag")}
+									</span>
+								)}
 							{ticket.whatsappId && (
 								<span className={classes.userTag} title={i18n.t("ticketsList.connectionTitle")}>{ticket.whatsapp?.name}</span>
 							)}

@@ -29,7 +29,7 @@ const useStyles = makeStyles()(theme => ({
 	},
 }));
 
-const limitColumns = ["users", "connections", "queues"];
+const limitColumns = ["users", "connections", "queues", "aiMonthlyRequests"];
 
 const Plans = () => {
 	const { classes } = useStyles();

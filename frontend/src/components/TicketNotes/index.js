@@ -134,7 +134,10 @@ const TicketNotes = ({ ticketId }) => {
 						{note.body}
 					</Typography>
 					<Typography className={classes.noteMeta}>
-						{note.user?.name || i18n.t("ticketNotes.deletedUser")} ·{" "}
+						{note.userId
+							? note.user?.name || i18n.t("ticketNotes.deletedUser")
+							: i18n.t("ticketNotes.assistant")}{" "}
+						·{" "}
 						{format(parseISO(note.createdAt), "dd/MM/yyyy HH:mm")}
 					</Typography>
 					{(isManager || note.userId === user.id) && (

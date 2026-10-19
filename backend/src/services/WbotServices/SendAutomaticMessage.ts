@@ -8,13 +8,13 @@ interface AutomaticMessageJob {
 }
 
 // Messages the system sends by itself (out-of-hours notice, satisfaction
-// survey, thank-you). They start with ‎ so reports don't count them as
+// survey, thank-you). They start with \u200e so reports don't count them as
 // an agent's reply. With Redis, a send that fails because the session is
 // reconnecting is retried 3 times (30s, 1min, 2min).
 defineJob<AutomaticMessageJob>(
   "whatsapp.automaticMessage",
   async ({ whatsappId, chatId, body }) => {
-    await whatsappProvider.sendMessage(whatsappId, chatId, `‎${body}`);
+    await whatsappProvider.sendMessage(whatsappId, chatId, `\u200e${body}`);
   },
   { attempts: 3, backoff: { type: "exponential", delay: 30000 } }
 );

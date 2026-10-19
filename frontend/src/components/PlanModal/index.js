@@ -12,7 +12,7 @@ import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
-const emptyPlan = { name: "", users: 5, connections: 1, queues: 5 };
+const emptyPlan = { name: "", users: 5, connections: 1, queues: 5, aiMonthlyRequests: 1000 };
 
 const PlanModal = ({ open, onClose, plan, onSaved }) => {
 	const [values, setValues] = useState(emptyPlan);
@@ -37,6 +37,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			users: Number(values.users),
 			connections: Number(values.connections),
 			queues: Number(values.queues),
+			aiMonthlyRequests: Number(values.aiMonthlyRequests),
 		};
 		try {
 			const { data } = plan
@@ -60,7 +61,8 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			label={i18n.t(`planModal.form.${name}`)}
 			value={values[name]}
 			onChange={handleChange}
-			inputProps={{ min: name === "queues" ? 0 : 1, step: 1 }}
+			inputProps={{ min: name === "queues" || name === "aiMonthlyRequests" ? 0 : 1, step: 1 }}
+			helperText={name === "aiMonthlyRequests" ? i18n.t("planModal.form.aiMonthlyRequestsHelp") : undefined}
 			variant="outlined"
 			margin="dense"
 			fullWidth
@@ -87,7 +89,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 						required
 						autoFocus
 					/>
-					{["users", "connections", "queues"].map(numberField)}
+					{["users", "connections", "queues", "aiMonthlyRequests"].map(numberField)}
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={onClose} variant="outlined" disabled={saving}>

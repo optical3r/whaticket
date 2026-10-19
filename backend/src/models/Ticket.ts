@@ -104,6 +104,14 @@ class Ticket extends Model<Ticket> {
   // Last time the out-of-hours message was sent for this ticket.
   @Column(DataType.DATE)
   outOfHoursNotifiedAt: Date | null;
+
+  // Set when the virtual assistant handed the conversation to the team.
+  @Column(DataType.DATE)
+  aiHandoffAt: Date | null;
+
+  @Default(0)
+  @Column
+  aiReplies: number;
 }
 
 export default Ticket;

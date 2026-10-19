@@ -20,6 +20,7 @@ import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -276,6 +277,18 @@ const MainListItems = (props) => {
                   to="/webhooks"
                   primary={i18n.t("mainDrawer.listItems.webhooks")}
                   icon={<SettingsEthernetIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="ai:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/ai"
+                  primary={i18n.t("mainDrawer.listItems.ai")}
+                  icon={<AutoAwesomeOutlinedIcon />}
                   collapsed={collapsed}
                 />
               )}

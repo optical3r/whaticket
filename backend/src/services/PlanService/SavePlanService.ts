@@ -9,6 +9,7 @@ interface PlanData {
   users: number;
   connections: number;
   queues: number;
+  aiMonthlyRequests?: number;
 }
 
 const schema = Yup.object().shape({
@@ -27,7 +28,11 @@ const schema = Yup.object().shape({
   queues: Yup.number()
     .integer()
     .min(0, "ERR_PLAN_INVALID_LIMIT")
-    .required("ERR_PLAN_INVALID_LIMIT")
+    .required("ERR_PLAN_INVALID_LIMIT"),
+  aiMonthlyRequests: Yup.number()
+    .integer("ERR_PLAN_INVALID_LIMIT")
+    .min(0, "ERR_PLAN_INVALID_LIMIT")
+    .max(10000000, "ERR_PLAN_INVALID_LIMIT")
 });
 
 // Creates a plan, or updates it when planId is given.
@@ -35,10 +40,16 @@ const SavePlanService = async (
   planData: PlanData,
   planId?: number | string
 ): Promise<Plan> => {
-  const { name, users, connections, queues } = planData;
+  const { name, users, connections, queues, aiMonthlyRequests } = planData;
 
   try {
-    await schema.validate({ name, users, connections, queues });
+    await schema.validate({
+      name,
+      users,
+      connections,
+      queues,
+      aiMonthlyRequests
+    });
   } catch (err) {
     throw new AppError(err.message);
   }
@@ -57,7 +68,11 @@ const SavePlanService = async (
     name: name.trim(),
     users: Number(users),
     connections: Number(connections),
-    queues: Number(queues)
+    queues: Number(queues),
+    // Kept as is when an older client does not send it.
+    ...(aiMonthlyRequests !== undefined && aiMonthlyRequests !== null
+      ? { aiMonthlyRequests: Number(aiMonthlyRequests) }
+      : {})
   };
 
   if (!planId) {

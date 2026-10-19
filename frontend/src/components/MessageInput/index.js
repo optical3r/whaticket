@@ -32,6 +32,7 @@ import ClickAwayListener from "@mui/material/ClickAwayListener";
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import RecordingTimer from "./RecordingTimer";
+import AiAssistMenu from "../AiAssistMenu";
 import { ReplyMessageContext } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
@@ -612,6 +613,16 @@ const MessageInput = ({ ticketStatus }) => {
               </MenuItem>
             </Menu>
           </Box>
+          <AiAssistMenu
+            ticketId={ticketId}
+            draft={inputMessage}
+            disabled={loading || recording || ticketStatus !== "open"}
+            iconClassName={classes.sendMessageIcons}
+            onText={text => {
+              setInputMessage(text);
+              inputRef.current?.focus();
+            }}
+          />
           <div className={classes.messageInputWrapper}>
             <InputBase
               inputRef={input => {

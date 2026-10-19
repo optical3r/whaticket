@@ -14,7 +14,7 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Mídia**: imagem, áudio (com gravação no navegador), vídeo, documentos, localização e contatos.
 - **Contatos**: cadastro, campos personalizados e importação dos contatos do celular.
 - **Multiempresa**: cada cliente é uma empresa com usuários, conexões, filas, contatos, tickets e token de API próprios. Uma empresa nunca vê os dados de outra.
-- **Planos e limites**: cada empresa tem um plano com limite de usuários, conexões e filas.
+- **Planos e limites**: cada empresa tem um plano com limite de usuários, conexões, filas e solicitações de IA por mês.
 - **Painel da plataforma** (superadmin da Cerqueira Labs): criar empresas e o primeiro administrador, trocar o plano, suspender e reativar.
 - **Termos de uso**: o administrador da empresa aceita os riscos da conexão por QR Code antes de criar a primeira conexão.
 - **Alerta de conexão caída**: banner e aviso no navegador quando uma conexão do WhatsApp para de funcionar.
@@ -26,12 +26,14 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Pesquisa de satisfação** (nota de 1 a 5) enviada ao encerrar o ticket. A resposta fica registrada no ticket encerrado, sem reabri-lo.
 - **Relatórios**: tempo de primeira resposta, tempo de resolução, volume por dia, fila, atendente e motivo, satisfação média e exportação em CSV.
 - **Webhooks** para enviar eventos (ticket criado, encerrado, avaliado, mensagem recebida e enviada) para outros sistemas.
+- **IA no atendimento** (Claude, da Anthropic): sugestão de resposta, resumo da conversa e revisão do texto do atendente.
+- **Assistente virtual**: responde os clientes que aguardam na fila usando a base de conhecimento da empresa e transfere para a equipe quando necessário.
 - **Dashboard**: volume de tickets do dia.
 - **API**: envio de mensagens por `POST /api/messages/send`, autenticado pelo token da empresa (em **Configurações**).
 - **Idiomas**: português (Brasil), o padrão, e inglês. A troca fica no ícone de idioma da barra superior e da tela de login.
 - **Temas**: claro (padrão) e escuro, seguindo o design system Cerqueira Labs.
 
-O roteiro de evolução (API oficial do WhatsApp, IA e campanhas) está no plano de implementação aprovado.
+O roteiro de evolução (API oficial do WhatsApp e campanhas) está no plano de implementação aprovado.
 
 ## Empresas, planos e superadmin
 
@@ -171,6 +173,33 @@ const valido = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.hea
 
 Por segurança, URLs que apontam para a rede interna (localhost, 10.x, 192.168.x, 169.254.x etc.) são recusadas. Em desenvolvimento, `WEBHOOK_ALLOW_PRIVATE_URLS=true` libera esses endereços.
 
+## Inteligência artificial
+
+A IA usa a API do Claude, da Anthropic. Para ligar, crie uma chave em https://platform.claude.com e preencha no `.env`:
+
+| Variável | Uso |
+|---|---|
+| `ANTHROPIC_API_KEY` | Chave da API. Vazia = IA desligada. |
+| `AI_MODEL` | Modelo usado (padrão `claude-opus-5-5`). |
+| `AI_ASSISTANT_DELAY_MS` | Espera antes de o assistente responder, para juntar mensagens enviadas em sequência (padrão 8000). |
+
+Os custos ficam na conta da chave configurada, que pertence à instalação e não a cada cliente. Para controlar o gasto:
+
+- Cada plano define as **solicitações de IA por mês** (0 desliga a IA para as empresas do plano). Sugestões, resumos, revisões e respostas do assistente contam igualmente.
+- Cada usuário pode fazer até 20 solicitações por minuto.
+- Cada solicitação fica registrada na tabela `AiUsages`, com tokens de entrada e saída, para conferir o custo por empresa.
+
+**Para o atendente**: no campo de mensagem, o botão de IA sugere uma resposta, resume a conversa (o resumo pode ser salvo como nota) e reescreve o rascunho (corrigir, mais formal, mais cordial, mais curto). Nada é enviado ao cliente sem o atendente revisar.
+
+**Assistente virtual**: o administrador ativa em **Administração → Inteligência artificial** e cadastra a base de conhecimento (horários, preços, políticas, perguntas frequentes). O assistente:
+
+- responde só tickets aguardando, sem atendente, fora de grupos, e depois que o cliente escolheu a fila no menu;
+- usa somente a base de conhecimento e as instruções da empresa, e não inventa preços nem políticas;
+- transfere para a equipe quando não sabe a resposta, quando o cliente pede uma pessoa, em reclamações e cancelamentos, se a IA falhar ou depois do limite de respostas por conversa. A transferência envia a mensagem configurada, deixa uma nota no ticket com o motivo e, fora do horário da fila, também a mensagem de fora do horário;
+- para quando alguém aceita o ticket ou responde ao cliente pelo celular, e volta a valer quando o ticket é encerrado e reaberto.
+
+Quando o modelo recusa um pedido por política de uso, a API tenta de novo em um modelo alternativo recomendado pela Anthropic (`fallbacks: "default"`).
+
 ## Segurança
 
 - Segredos JWT fracos, conhecidos ou com menos de 32 caracteres impedem o backend de iniciar.
@@ -180,6 +209,7 @@ Por segurança, URLs que apontam para a rede interna (localhost, 10.x, 192.168.x
 - As mídias só abrem por links assinados que expiram. O arquivo não fica público.
 - O login e o cadastro têm limite de tentativas (20 a cada 15 minutos por IP).
 - Cabeçalhos de segurança HTTP são aplicados com `helmet`.
+- As mensagens do cliente vão para a IA marcadas como conteúdo da conversa, e o assistente é instruído a não seguir ordens vindas delas. Ele só escreve texto para o cliente e não executa nenhuma ação no sistema.
 
 ## Desenvolvimento local
 
@@ -218,7 +248,7 @@ DB_PASS=sua-senha
 cd backend && npm test
 ```
 
-Os testes da fila com Redis só rodam quando `REDIS_TEST_URL` está definido (por exemplo, `redis://127.0.0.1:6379/15`). Os testes de armazenamento usam um S3 local simulado e não precisam de conta.
+Os testes de IA usam um servidor local que imita a API da Anthropic, sem chave nem custo. Os testes da fila com Redis só rodam quando `REDIS_TEST_URL` está definido (por exemplo, `redis://127.0.0.1:6379/15`). Os testes de armazenamento usam um S3 local simulado e não precisam de conta.
 
 O CI (`.github/workflows/ci.yaml`) roda o build e os testes do backend e o build do frontend em todo pull request.
 

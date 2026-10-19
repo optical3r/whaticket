@@ -19,6 +19,8 @@ import TicketNote from "../models/TicketNote";
 import CloseReason from "../models/CloseReason";
 import TicketRating from "../models/TicketRating";
 import Webhook from "../models/Webhook";
+import KnowledgeArticle from "../models/KnowledgeArticle";
+import AiUsage from "../models/AiUsage";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -46,7 +48,9 @@ const models = [
   TicketNote,
   CloseReason,
   TicketRating,
-  Webhook
+  Webhook,
+  KnowledgeArticle,
+  AiUsage
 ];
 
 sequelize.addModels(models);

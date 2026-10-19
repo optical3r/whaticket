@@ -18,6 +18,7 @@ import Tags from "../pages/Tags/";
 import CloseReasons from "../pages/CloseReasons/";
 import Reports from "../pages/Reports/";
 import Webhooks from "../pages/Webhooks/";
+import Ai from "../pages/Ai/";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import { ThemeProvider } from "../context/DarkMode";
@@ -46,6 +47,7 @@ const Routes = () => {
                   <Route exact path="/closeReasons" component={CloseReasons} isPrivate />
                   <Route exact path="/reports" component={Reports} isPrivate />
                   <Route exact path="/webhooks" component={Webhooks} isPrivate />
+                  <Route exact path="/ai" component={Ai} isPrivate />
                 </LoggedInLayout>
               </WhatsAppsProvider>
             </Switch>
