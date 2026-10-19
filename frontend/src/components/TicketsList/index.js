@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useReducer, useContext } from "react";
 import openSocket from "../../services/socket-io";
 
-import { makeStyles } from "@material-ui/core/styles";
-import List from "@material-ui/core/List";
-import Paper from "@material-ui/core/Paper";
+import { makeStyles } from 'tss-react/mui';
+import List from "@mui/material/List";
+import Paper from "@mui/material/Paper";
 
 import TicketListItem from "../TicketListItem";
 import TicketsListSkeleton from "../TicketsListSkeleton";
@@ -12,7 +12,7 @@ import useTickets from "../../hooks/useTickets";
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	ticketsListWrapper: {
 		position: "relative",
 		display: "flex",
@@ -160,7 +160,7 @@ const reducer = (state, action) => {
 			updateCount,
 			style,
 		} = props;
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const [pageNumber, setPageNumber] = useState(1);
 	const [ticketsList, dispatch] = useReducer(reducer, []);
 	const { user } = useContext(AuthContext);

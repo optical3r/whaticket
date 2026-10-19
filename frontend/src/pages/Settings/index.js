@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 
-import { makeStyles } from "@material-ui/core/styles";
-import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
-import Container from "@material-ui/core/Container";
-import TextField from "@material-ui/core/TextField";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import Switch from "@material-ui/core/Switch";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import MenuItem from "@material-ui/core/MenuItem";
-import Button from "@material-ui/core/Button";
+import { makeStyles } from 'tss-react/mui';
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Container from "@mui/material/Container";
+import TextField from "@mui/material/TextField";
+import LinearProgress from "@mui/material/LinearProgress";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Button from "@mui/material/Button";
 import { toast } from "react-toastify";
 
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n.js";
 import toastError from "../../errors/toastError";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	root: {
 		display: "flex",
 		alignItems: "center",
 		padding: theme.spacing(8, 8, 3),
-		[theme.breakpoints.down("sm")]: {
+		[theme.breakpoints.down('md')]: {
 			padding: theme.spacing(4, 2, 3),
 		},
 	},
@@ -63,7 +63,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const UsageBar = ({ label, used, limit }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 100;
 
 	return (
@@ -104,7 +104,7 @@ const TIMEZONES = (() => {
 })();
 
 const Settings = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	const [company, setCompany] = useState(null);
 	const [apiToken, setApiToken] = useState("");

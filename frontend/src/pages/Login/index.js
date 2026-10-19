@@ -9,11 +9,13 @@ import {
   Container,
   InputAdornment,
   IconButton
-} from '@material-ui/core';
+} from '@mui/material';
 
-import { Visibility, VisibilityOff } from '@material-ui/icons';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
-import { makeStyles, useTheme } from "@material-ui/core/styles";
+import { useTheme } from "@mui/material/styles";
+
+import { makeStyles } from 'tss-react/mui';
 
 import { i18n } from "../../translate/i18n";
 
@@ -34,7 +36,7 @@ import LanguageSelector from "../../components/LanguageSelector";
 // 	);
 // };
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   languageSelector: {
     position: "absolute",
     top: theme.spacing(2),
@@ -49,7 +51,7 @@ const useStyles = makeStyles((theme) => ({
   logo: {
     width: "75%",
     marginBottom: theme.spacing(3),
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       width: "95%",
     },
   },
@@ -63,7 +65,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const Login = () => {
-  const classes = useStyles();
+  const { classes } = useStyles();
   const theme = useTheme();
 
   const [user, setUser] = useState({ email: "", password: "" });
@@ -80,7 +82,7 @@ const Login = () => {
     handleLogin(user);
   };
 
-  const logo = getLogoFor(theme.palette.type);
+  const logo = getLogoFor(theme.palette.mode);
 
   return (
     <Container component="main" maxWidth="xs">
@@ -125,7 +127,7 @@ const Login = () => {
                   <IconButton
                     aria-label="toggle password visibility"
                     onClick={() => setShowPassword((e) => !e)}
-                  >
+                    size="large">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>

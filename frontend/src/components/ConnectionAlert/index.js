@@ -2,10 +2,10 @@ import React, { useContext, useEffect, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { makeStyles } from "@material-ui/core/styles";
-import Button from "@material-ui/core/Button";
-import Alert from "@material-ui/lab/Alert";
-import AlertTitle from "@material-ui/lab/AlertTitle";
+import { makeStyles } from 'tss-react/mui';
+import Button from "@mui/material/Button";
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import { i18n } from "../../translate/i18n";
@@ -14,7 +14,7 @@ import { i18n } from "../../translate/i18n";
 // out because it is the normal state while a session (re)starts.
 const DOWN_STATUSES = ["DISCONNECTED", "qrcode", "TIMEOUT", "PAIRING"];
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	alert: {
 		margin: theme.spacing(1, 1, 0),
 	},
@@ -33,7 +33,7 @@ const notifyBrowser = message => {
 };
 
 const ConnectionAlert = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const { whatsApps } = useContext(WhatsAppsContext);
 	const connectedIds = useRef(new Set());
 

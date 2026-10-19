@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { format, parseISO, subDays } from "date-fns";
 
-import { makeStyles, useTheme } from "@material-ui/core/styles";
+import { useTheme } from "@mui/material/styles";
+import { makeStyles } from 'tss-react/mui';
 import {
 	Button,
 	Grid,
@@ -14,8 +15,8 @@ import {
 	TableRow,
 	TextField,
 	Typography,
-} from "@material-ui/core";
-import GetAppOutlined from "@material-ui/icons/GetAppOutlined";
+} from "@mui/material";
+import GetAppOutlined from "@mui/icons-material/GetAppOutlined";
 import {
 	Bar,
 	BarChart,
@@ -43,7 +44,7 @@ import { formatDuration, formatRating } from "../../helpers/formatDuration";
 // The cyan is below 3:1 on white, so the chart also offers a table view.
 export const SERIES = { created: "#3478F6", closed: "#2AA5B8" };
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	content: {
 		flex: 1,
 		overflowY: "auto",
@@ -138,7 +139,7 @@ const DataTable = ({ columns, rows }) => (
 );
 
 const Reports = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const theme = useTheme();
 
 	const [filters, setFilters] = useState({
@@ -303,21 +304,21 @@ const Reports = () => {
 				{report && (
 					<>
 						<Grid container spacing={2}>
-							<Grid item xs={12} sm={6} md>
+							<Grid size={{ xs: 12, sm: 6, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("reports.cards.created")}
 									value={report.totals.created}
 									period={period}
 								/>
 							</Grid>
-							<Grid item xs={12} sm={6} md>
+							<Grid size={{ xs: 12, sm: 6, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("reports.cards.closed")}
 									value={report.totals.closed}
 									period={period}
 								/>
 							</Grid>
-							<Grid item xs={12} sm={6} md>
+							<Grid size={{ xs: 12, sm: 6, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("reports.cards.firstResponse")}
 									value={formatDuration(report.totals.avgFirstResponseSeconds)}
@@ -325,7 +326,7 @@ const Reports = () => {
 									period={period}
 								/>
 							</Grid>
-							<Grid item xs={12} sm={6} md>
+							<Grid size={{ xs: 12, sm: 6, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("reports.cards.resolution")}
 									value={formatDuration(report.totals.avgResolutionSeconds)}
@@ -333,7 +334,7 @@ const Reports = () => {
 									period={period}
 								/>
 							</Grid>
-							<Grid item xs={12} sm={6} md>
+							<Grid size={{ xs: 12, sm: 6, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("reports.cards.csat")}
 									value={formatRating(report.csat.average)}
@@ -349,7 +350,7 @@ const Reports = () => {
 						</Grid>
 
 						<Grid container spacing={2} style={{ marginTop: 8 }}>
-							<Grid item xs={12} md={8}>
+							<Grid size={{ xs: 12, md: 8 }}>
 								<Paper variant="outlined" className={classes.panel}>
 									<div className={classes.panelHeader}>
 										<Typography variant="h6" component="h2">
@@ -399,7 +400,7 @@ const Reports = () => {
 									)}
 								</Paper>
 							</Grid>
-							<Grid item xs={12} md={4}>
+							<Grid size={{ xs: 12, md: 4 }}>
 								<Paper variant="outlined" className={classes.panel}>
 									<div className={classes.panelHeader}>
 										<Typography variant="h6" component="h2">
@@ -432,7 +433,7 @@ const Reports = () => {
 						</Grid>
 
 						<Grid container spacing={2} style={{ marginTop: 8 }}>
-							<Grid item xs={12} md={6}>
+							<Grid size={{ xs: 12, md: 6 }}>
 								<Paper variant="outlined" className={classes.panel}>
 									<Typography variant="h6" component="h2" gutterBottom>
 										{i18n.t("reports.tables.byQueue")}
@@ -456,7 +457,7 @@ const Reports = () => {
 									/>
 								</Paper>
 							</Grid>
-							<Grid item xs={12} md={6}>
+							<Grid size={{ xs: 12, md: 6 }}>
 								<Paper variant="outlined" className={classes.panel}>
 									<Typography variant="h6" component="h2" gutterBottom>
 										{i18n.t("reports.tables.byUser")}
@@ -486,7 +487,7 @@ const Reports = () => {
 									/>
 								</Paper>
 							</Grid>
-							<Grid item xs={12} md={6}>
+							<Grid size={{ xs: 12, md: 6 }}>
 								<Paper variant="outlined" className={classes.panel}>
 									<Typography variant="h6" component="h2" gutterBottom>
 										{i18n.t("reports.tables.byReason")}

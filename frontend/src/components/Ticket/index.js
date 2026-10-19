@@ -3,9 +3,10 @@ import { useParams, useHistory } from "react-router-dom";
 
 import { toast } from "react-toastify";
 import openSocket from "../../services/socket-io";
-import clsx from "clsx";
 
-import { Paper, makeStyles } from "@material-ui/core";
+import { Paper } from "@mui/material";
+
+import { makeStyles } from 'tss-react/mui';
 
 import ContactDrawer from "../ContactDrawer";
 import MessageInput from "../MessageInput/";
@@ -19,7 +20,7 @@ import toastError from "../../errors/toastError";
 
 const drawerWidth = 320;
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   root: {
     display: "flex",
     height: "100%",
@@ -30,7 +31,7 @@ const useStyles = makeStyles((theme) => ({
   ticketInfo: {
     maxWidth: "50%",
     flexBasis: "50%",
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       maxWidth: "80%",
       flexBasis: "80%",
     },
@@ -39,7 +40,7 @@ const useStyles = makeStyles((theme) => ({
     maxWidth: "50%",
     flexBasis: "50%",
     display: "flex",
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       maxWidth: "100%",
       flexBasis: "100%",
       marginBottom: "5px",
@@ -71,7 +72,7 @@ const useStyles = makeStyles((theme) => ({
 const Ticket = () => {
   const { ticketId } = useParams();
   const history = useHistory();
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -143,7 +144,7 @@ const Ticket = () => {
       <Paper
         variant="outlined"
         elevation={0}
-        className={clsx(classes.mainWrapper, {
+        className={cx(classes.mainWrapper, {
           [classes.mainWrapperShift]: drawerOpen,
         })}
       >

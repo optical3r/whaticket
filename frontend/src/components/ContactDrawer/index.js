@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 
-import { makeStyles } from "@material-ui/core/styles";
-import Typography from "@material-ui/core/Typography";
-import IconButton from "@material-ui/core/IconButton";
-import CloseIcon from "@material-ui/icons/Close";
-import Drawer from "@material-ui/core/Drawer";
-import Link from "@material-ui/core/Link";
-import InputLabel from "@material-ui/core/InputLabel";
-import Avatar from "@material-ui/core/Avatar";
-import Button from "@material-ui/core/Button";
-import Paper from "@material-ui/core/Paper";
+import { makeStyles } from 'tss-react/mui';
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import Drawer from "@mui/material/Drawer";
+import Link from "@mui/material/Link";
+import InputLabel from "@mui/material/InputLabel";
+import Avatar from "@mui/material/Avatar";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
 
 import { i18n } from "../../translate/i18n";
 
@@ -21,7 +21,7 @@ import MarkdownWrapper from "../MarkdownWrapper";
 
 const drawerWidth = 320;
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	drawer: {
 		width: drawerWidth,
 		flexShrink: 0,
@@ -91,12 +91,12 @@ const ContactDrawer = ({
 	onTicketTagsChange,
 	onContactTagsChange,
 }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	const [modalOpen, setModalOpen] = useState(false);
 
 	return (
-		<Drawer
+        <Drawer
 			className={classes.drawer}
 			variant="persistent"
 			anchor="right"
@@ -112,7 +112,7 @@ const ContactDrawer = ({
 			}}
 		>
 			<div className={classes.header}>
-				<IconButton onClick={handleDrawerClose}>
+				<IconButton onClick={handleDrawerClose} size="large">
 					<CloseIcon />
 				</IconButton>
 				<Typography style={{ justifySelf: "center" }}>
@@ -195,7 +195,7 @@ const ContactDrawer = ({
 				</div>
 			)}
 		</Drawer>
-	);
+    );
 };
 
 export default ContactDrawer;

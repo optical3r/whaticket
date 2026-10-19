@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useTheme } from "@material-ui/core/styles";
-import Chip from "@material-ui/core/Chip";
-import TextField from "@material-ui/core/TextField";
-import Autocomplete from "@material-ui/lab/Autocomplete";
+import { useTheme } from "@mui/material/styles";
+import Chip from "@mui/material/Chip";
+import TextField from "@mui/material/TextField";
+import Autocomplete from '@mui/material/Autocomplete';
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
@@ -31,14 +31,14 @@ const TagSelector = ({ id, label, endpoint, value = [], onChange }) => {
 	};
 
 	return (
-		<Autocomplete
+        <Autocomplete
 			id={id}
 			multiple
 			size="small"
 			options={tags}
 			value={tags.filter(tag => value.some(item => item.id === tag.id))}
 			getOptionLabel={option => option.name}
-			getOptionSelected={(option, selected) => option.id === selected.id}
+			isOptionEqualToValue={(option, selected) => option.id === selected.id}
 			onChange={handleChange}
 			disabled={saving}
 			noOptionsText={i18n.t("tagSelector.noOptions")}
@@ -62,7 +62,7 @@ const TagSelector = ({ id, label, endpoint, value = [], onChange }) => {
 				/>
 			)}
 		/>
-	);
+    );
 };
 
 export default TagSelector;

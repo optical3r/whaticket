@@ -1,11 +1,11 @@
 import React from "react";
 
-import { makeStyles } from "@material-ui/core/styles";
-import Table from "@material-ui/core/Table";
+import { makeStyles } from 'tss-react/mui';
+import Table from "@mui/material/Table";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   table: {
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       display: "block",
       "& thead": {
         display: "none",
@@ -70,7 +70,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const ResponsiveTable = ({ children }) => {
-  const classes = useStyles();
+  const { classes } = useStyles();
 
   return (
     <Table size="small" className={classes.table}>

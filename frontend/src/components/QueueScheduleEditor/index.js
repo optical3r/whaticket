@@ -1,21 +1,21 @@
 import React from "react";
 
-import { makeStyles } from "@material-ui/core/styles";
-import Checkbox from "@material-ui/core/Checkbox";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Switch from "@material-ui/core/Switch";
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
+import { makeStyles } from 'tss-react/mui';
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 
 import { i18n } from "../../translate/i18n";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	row: {
 		display: "grid",
 		gridTemplateColumns: "minmax(110px, 1fr) auto 150px 150px",
 		alignItems: "center",
 		gap: theme.spacing(1),
-		[theme.breakpoints.down("xs")]: {
+		[theme.breakpoints.down('sm')]: {
 			gridTemplateColumns: "1fr auto",
 		},
 	},
@@ -37,7 +37,7 @@ export const defaultSchedules = () =>
 	}));
 
 const QueueScheduleEditor = ({ value = [], onChange }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const active = value.length > 0;
 
 	const update = (weekday, changes) =>

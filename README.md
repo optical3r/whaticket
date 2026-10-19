@@ -47,8 +47,10 @@ O roteiro de evolução (API oficial do WhatsApp, IA e campanhas) está no plano
 |---|---|
 | Backend | Node.js 22, TypeScript, Express, Sequelize, Socket.IO |
 | Banco | MariaDB 10.6 (ou MySQL 5.7+) |
+| Fila | Redis 7 com BullMQ (webhooks e mensagens automáticas) |
+| Mídias | Disco local ou bucket compatível com S3 (AWS S3, Cloudflare R2, MinIO) |
 | WhatsApp | Camada de provedores trocável em `backend/src/providers/WhatsApp`: `wwebjs` (padrão) e `zapo` |
-| Frontend | React, Material UI e Vite |
+| Frontend | React 18, MUI 7 e Vite |
 
 > **Importante:** a conexão por QR Code usa clientes não oficiais do WhatsApp. O número pode ser bloqueado pelo WhatsApp. Informe isso aos clientes. A estrutura de provedores já está preparada para receber a API oficial (WhatsApp Cloud API).
 
@@ -81,6 +83,41 @@ Se `ADMIN_PASSWORD` estiver vazio, o seed gera uma senha aleatória e mostra no 
 
 Depois, entre no sistema, abra **Conexões**, crie a primeira conexão e leia o QR Code com o celular.
 
+### Fila de processamento (Redis)
+
+O `docker compose` já sobe um Redis e configura `REDIS_URL`. Com ele, webhooks e mensagens automáticas (fora do horário e pesquisa de satisfação) vão para uma fila e são reenviados em caso de falha: até 5 tentativas para webhooks e 3 para mensagens, com espera crescente entre elas. Um reinício do backend não perde o que estava na fila.
+
+Sem `REDIS_URL`, o envio acontece na hora, sem novas tentativas. Serve para desenvolvimento, mas não é indicado em produção.
+
+O processamento roda no próprio backend, porque as sessões do WhatsApp ficam nele. `QUEUE_CONCURRENCY` (padrão 5) define quantos envios rodam ao mesmo tempo.
+
+### Saúde do sistema
+
+`GET /health` responde `{"status":"ok","database":"ok","queue":"ok"}`. Se o banco ou o Redis estiverem fora, responde com código 503 e indica qual parte falhou. Use essa rota no monitoramento.
+
+### Mídias em S3 ou R2
+
+Por padrão, as mídias ficam em `backend/public`. Para guardar em um bucket, preencha no `.env`:
+
+| Variável | Exemplo |
+|---|---|
+| `STORAGE_DRIVER` | `s3` |
+| `S3_BUCKET` | `atendimento-midias` |
+| `S3_REGION` | `auto` (R2) ou `us-east-1` |
+| `S3_ENDPOINT` | `https://<conta>.r2.cloudflarestorage.com` (vazio para AWS) |
+| `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY` | chaves com leitura e escrita no bucket |
+| `S3_FORCE_PATH_STYLE` | `true` para MinIO |
+
+O bucket deve ser privado. As mídias continuam abrindo só por links assinados, e o backend busca o arquivo no bucket.
+
+Para levar as mídias que já estão no disco para o bucket:
+
+```bash
+docker compose exec backend npm run storage:migrate
+```
+
+Os arquivos que ainda não estiverem no bucket continuam sendo lidos do disco, então a troca pode ser feita sem parar o sistema.
+
 ### HTTPS
 
 Coloque os certificados em `ssl/certs`, uma pasta por serviço:
@@ -105,7 +142,7 @@ O backend (porta 8080) e o banco (porta 3306) só ficam acessíveis pelo própri
 
 ### Backup
 
-`scripts/backup.sh` salva o banco, as sessões do WhatsApp (para não precisar ler o QR Code de novo) e as mídias em `backups/<data>`. Backups com mais de `BACKUP_RETENTION_DAYS` dias (padrão 14) são apagados.
+`scripts/backup.sh` salva o banco, as sessões do WhatsApp (para não precisar ler o QR Code de novo) e as mídias em `backups/<data>`. Com `STORAGE_DRIVER=s3`, as mídias ficam de fora: use o versionamento ou a replicação do próprio bucket. Backups com mais de `BACKUP_RETENTION_DAYS` dias (padrão 14) são apagados.
 
 ```bash
 ./scripts/backup.sh
@@ -146,7 +183,7 @@ Por segurança, URLs que apontam para a rede interna (localhost, 10.x, 192.168.x
 
 ## Desenvolvimento local
 
-Requisitos: Node.js 22 e MariaDB 10.6.
+Requisitos: Node.js 22 e MariaDB 10.6. O Redis é opcional no desenvolvimento.
 
 ```bash
 # Backend
@@ -180,6 +217,8 @@ DB_PASS=sua-senha
 ```bash
 cd backend && npm test
 ```
+
+Os testes da fila com Redis só rodam quando `REDIS_TEST_URL` está definido (por exemplo, `redis://127.0.0.1:6379/15`). Os testes de armazenamento usam um S3 local simulado e não precisam de conta.
 
 O CI (`.github/workflows/ci.yaml`) roda o build e os testes do backend e o build do frontend em todo pull request.
 

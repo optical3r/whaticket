@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useState } from "react";
 import { format } from "date-fns";
 
-import Paper from "@material-ui/core/Paper";
-import Container from "@material-ui/core/Container";
-import Grid from "@material-ui/core/Grid";
-import { makeStyles } from "@material-ui/core/styles";
+import Paper from "@mui/material/Paper";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import { makeStyles } from 'tss-react/mui';
 
 import useTickets from "../../hooks/useTickets";
 import { AuthContext } from "../../context/Auth/AuthContext";
@@ -15,7 +15,7 @@ import { formatDuration, formatRating } from "../../helpers/formatDuration";
 
 import Chart from "./Chart";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	container: {
 		paddingTop: theme.spacing(4),
 		paddingBottom: theme.spacing(4),
@@ -31,7 +31,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const Dashboard = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const { user } = useContext(AuthContext);
 	const [today, setToday] = useState(null);
 
@@ -65,7 +65,7 @@ const Dashboard = () => {
 		<div>
 			<Container maxWidth="lg" className={classes.container}>
 				<Grid container spacing={2}>
-					<Grid item xs={12} sm={6} md={isManager ? true : 6}>
+					<Grid size={{ xs: 12, sm: 6, md: isManager ? "grow" : 6 }}>
 						<MetricCard
 							label={i18n.t("dashboardCards.open")}
 							value={openCount}
@@ -74,7 +74,7 @@ const Dashboard = () => {
 							source={source}
 						/>
 					</Grid>
-					<Grid item xs={12} sm={6} md={isManager ? true : 6}>
+					<Grid size={{ xs: 12, sm: 6, md: isManager ? "grow" : 6 }}>
 						<MetricCard
 							label={i18n.t("dashboardCards.pending")}
 							value={pendingCount}
@@ -85,7 +85,7 @@ const Dashboard = () => {
 					</Grid>
 					{isManager && today && (
 						<>
-							<Grid item xs={12} sm={4} md>
+							<Grid size={{ xs: 12, sm: 4, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("dashboardCards.closedToday")}
 									value={today.totals.closed}
@@ -94,7 +94,7 @@ const Dashboard = () => {
 									source={source}
 								/>
 							</Grid>
-							<Grid item xs={12} sm={4} md>
+							<Grid size={{ xs: 12, sm: 4, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("dashboardCards.firstResponseToday")}
 									value={formatDuration(today.totals.avgFirstResponseSeconds)}
@@ -103,7 +103,7 @@ const Dashboard = () => {
 									source={source}
 								/>
 							</Grid>
-							<Grid item xs={12} sm={4} md>
+							<Grid size={{ xs: 12, sm: 4, md: "grow" }}>
 								<MetricCard
 									label={i18n.t("dashboardCards.csatToday")}
 									value={formatRating(today.csat.average)}
@@ -115,7 +115,7 @@ const Dashboard = () => {
 							</Grid>
 						</>
 					)}
-					<Grid item xs={12}>
+					<Grid size={12}>
 						<Paper variant="outlined" className={classes.chartPaper}>
 							<Chart />
 						</Paper>

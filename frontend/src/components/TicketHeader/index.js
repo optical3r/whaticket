@@ -1,26 +1,26 @@
 import React from "react";
 
-import { Card, Button } from "@material-ui/core";
-import { makeStyles } from "@material-ui/core/styles";
+import { Card, Button } from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
 import TicketHeaderSkeleton from "../TicketHeaderSkeleton";
-import ArrowBackIos from "@material-ui/icons/ArrowBackIos";
+import ArrowBackIos from "@mui/icons-material/ArrowBackIos";
 import { useHistory } from "react-router-dom";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   ticketHeader: {
     position: "relative",
     display: "flex",
     backgroundColor: theme.palette.action.selected,
     flex: "none",
     borderBottom: theme.border.divider,
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       flexWrap: "wrap",
     },
   },
 }));
 
 const TicketHeader = ({ loading, children }) => {
-  const classes = useStyles();
+  const { classes } = useStyles();
   const history = useHistory();
   const handleBack = () => {
     history.push("/tickets");

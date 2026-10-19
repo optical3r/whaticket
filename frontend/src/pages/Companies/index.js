@@ -2,18 +2,9 @@ import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-toastify";
 
-import {
-	Button,
-	Chip,
-	IconButton,
-	makeStyles,
-	Paper,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableRow,
-} from "@material-ui/core";
-import { Edit, PauseCircleOutline, PlayCircleOutline } from "@material-ui/icons";
+import { Button, Chip, IconButton, Paper, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import { Edit, PauseCircleOutline, PlayCircleOutline } from "@mui/icons-material";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -27,7 +18,7 @@ import { i18n } from "../../translate/i18n";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	mainPaper: {
 		flex: 1,
 		padding: theme.spacing(1),
@@ -48,7 +39,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const Companies = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	const [companies, setCompanies] = useState([]);
 	const [plans, setPlans] = useState([]);

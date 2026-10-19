@@ -2,19 +2,19 @@ import React, { useState } from "react";
 import { toast } from "react-toastify";
 
 import {
-	Button,
-	Chip,
-	IconButton,
-	makeStyles,
-	Paper,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableRow,
-	Typography,
-} from "@material-ui/core";
-import { DeleteOutline, Edit } from "@material-ui/icons";
-import { useTheme } from "@material-ui/core/styles";
+    Button,
+    Chip,
+    IconButton,
+    Paper,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    Typography,
+} from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import { DeleteOutline, Edit } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -30,7 +30,7 @@ import { i18n } from "../../translate/i18n";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	mainPaper: {
 		flex: 1,
 		padding: theme.spacing(1),
@@ -47,7 +47,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const Tags = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const theme = useTheme();
 	// The list updates itself through the "tag" socket events.
 	const { tags, loading } = useTags();

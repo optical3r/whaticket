@@ -17,11 +17,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          "material-ui": [
-            "@material-ui/core",
-            "@material-ui/icons",
-            "@material-ui/lab",
-          ],
+          mui: ["@mui/material", "@emotion/react", "@emotion/styled", "tss-react"],
         },
       },
     },
@@ -43,15 +39,12 @@ export default defineConfig({
     },
     include: [
       "mic-recorder-to-mp3",
-      "@material-ui/core",
-      "@material-ui/icons",
-      "@material-ui/lab",
+      "@mui/material",
+      "@mui/icons-material",
+      "tss-react/mui",
+      // use-sound loads howler dynamically; prebundling gives it named exports.
+      "howler",
     ],
     exclude: [],
-  },
-  resolve: {
-    alias: {
-      "jss-plugin-globalThis": "jss-plugin-global",
-    },
   },
 });

@@ -1,34 +1,32 @@
 import React, { useContext, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import clsx from "clsx";
-
-import { makeStyles } from "@material-ui/core/styles";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemText from "@material-ui/core/ListItemText";
-import ListSubheader from "@material-ui/core/ListSubheader";
-import Divider from "@material-ui/core/Divider";
-import DashboardOutlinedIcon from "@material-ui/icons/DashboardOutlined";
-import WhatsAppIcon from "@material-ui/icons/WhatsApp";
-import SyncAltIcon from "@material-ui/icons/SyncAlt";
-import SettingsOutlinedIcon from "@material-ui/icons/SettingsOutlined";
-import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
-import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
-import AccountTreeOutlinedIcon from "@material-ui/icons/AccountTreeOutlined";
-import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
-import BusinessOutlinedIcon from "@material-ui/icons/BusinessOutlined";
-import LocalOfferOutlinedIcon from "@material-ui/icons/LocalOfferOutlined";
-import AssessmentOutlinedIcon from "@material-ui/icons/AssessmentOutlined";
-import LabelOutlinedIcon from "@material-ui/icons/LabelOutlined";
-import AssignmentTurnedInOutlinedIcon from "@material-ui/icons/AssignmentTurnedInOutlined";
-import SettingsEthernetIcon from "@material-ui/icons/SettingsEthernet";
+import { makeStyles } from 'tss-react/mui';
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import Divider from "@mui/material/Divider";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import SyncAltIcon from "@mui/icons-material/SyncAlt";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import QuestionAnswerOutlinedIcon from "@mui/icons-material/QuestionAnswerOutlined";
+import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
 import { AuthContext } from "../context/Auth/AuthContext";
 import { Can } from "../components/Can";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme, _params, classes) => ({
   navItem: {
     position: "relative",
     gap: theme.spacing(1.5),
@@ -54,10 +52,10 @@ const useStyles = makeStyles((theme) => ({
       borderRadius: theme.borderRadius.pill,
       backgroundColor: theme.palette.primary.main,
     },
-    "& $navIcon": {
+    [`& .${classes.navIcon}`]: {
       color: theme.palette.text.link,
     },
-    "& $navText": {
+    [`& .${classes.navText}`]: {
       fontWeight: 500,
     },
   },
@@ -93,7 +91,7 @@ const useStyles = makeStyles((theme) => ({
 
 function ListItemLink(props) {
   const { icon, primary, to, collapsed, adornment } = props;
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
 
   const renderLink = React.useMemo(
     () =>
@@ -111,10 +109,9 @@ function ListItemLink(props) {
 
   return (
     <li>
-      <ListItem
-        button
+      <ListItemButton
         component={renderLink}
-        className={clsx(classes.navItem, collapsed && classes.navItemCollapsed)}
+        className={cx(classes.navItem, collapsed && classes.navItemCollapsed)}
       >
         {icon ? (
           <ListItemIcon className={classes.navIcon}>{icon}</ListItemIcon>
@@ -127,14 +124,14 @@ function ListItemLink(props) {
           />
         )}
         {adornment}
-      </ListItem>
+      </ListItemButton>
     </li>
   );
 }
 
 const MainListItems = (props) => {
   const { drawerClose, collapsed } = props;
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
   const { whatsApps } = useContext(WhatsAppsContext);
   const { user } = useContext(AuthContext);
   const [connectionWarning, setConnectionWarning] = useState(false);
@@ -177,7 +174,7 @@ const MainListItems = (props) => {
         adornment={
           connectionWarning && (
             <span
-              className={clsx(
+              className={cx(
                 classes.connectionDot,
                 collapsed && classes.connectionDotCollapsed
               )}

@@ -18,12 +18,12 @@ import {
 	TextField,
 	InputAdornment,
 	IconButton
-  } from '@material-ui/core';
+  } from '@mui/material';
 
-import { Visibility, VisibilityOff } from '@material-ui/icons';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
-import { makeStyles } from "@material-ui/core/styles";
-import { green } from "@material-ui/core/colors";
+import { makeStyles } from 'tss-react/mui';
+import { green } from "@mui/material/colors";
 
 import { i18n } from "../../translate/i18n";
 
@@ -34,7 +34,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../Can";
 import useWhatsApps from "../../hooks/useWhatsApps";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	root: {
 		display: "flex",
 		flexWrap: "wrap",
@@ -74,7 +74,7 @@ const UserSchema = Yup.object().shape({
 });
 
 const UserModal = ({ open, onClose, userId }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	const initialState = {
 		name: "",
@@ -88,7 +88,7 @@ const UserModal = ({ open, onClose, userId }) => {
 	const [user, setUser] = useState(initialState);
 	const [selectedQueueIds, setSelectedQueueIds] = useState([]);
 	const [showPassword, setShowPassword] = useState(false);
-	const [whatsappId, setWhatsappId] = useState(false);
+	const [whatsappId, setWhatsappId] = useState("");
 	const {loading, whatsApps} = useWhatsApps();
 
 	useEffect(() => {
@@ -131,7 +131,7 @@ const UserModal = ({ open, onClose, userId }) => {
 	};
 
 	return (
-		<div className={classes.root}>
+        <div className={classes.root}>
 			<Dialog
 				open={open}
 				onClose={handleClose}
@@ -183,9 +183,9 @@ const UserModal = ({ open, onClose, userId }) => {
 										endAdornment: (
 											<InputAdornment position="end">
 											<IconButton
-												aria-label="toggle password visibility"
-												onClick={() => setShowPassword((e) => !e)}
-											>
+                                                aria-label="toggle password visibility"
+                                                onClick={() => setShowPassword((e) => !e)}
+                                                size="large">
 												{showPassword ? <VisibilityOff /> : <Visibility />}
 											</IconButton>
 											</InputAdornment>
@@ -301,7 +301,7 @@ const UserModal = ({ open, onClose, userId }) => {
 				</Formik>
 			</Dialog>
 		</div>
-	);
+    );
 };
 
 export default UserModal;

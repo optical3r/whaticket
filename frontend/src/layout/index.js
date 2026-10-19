@@ -1,19 +1,10 @@
 import React, { useState, useContext, useEffect } from "react";
-import clsx from "clsx";
-import {
-  makeStyles,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Typography,
-  List,
-  IconButton,
-  useMediaQuery,
-} from "@material-ui/core";
-import MenuIcon from "@material-ui/icons/Menu";
-import MenuOpenIcon from "@material-ui/icons/MenuOpen";
-import Brightness4Icon from "@material-ui/icons/Brightness4";
-import Brightness7Icon from "@material-ui/icons/Brightness7";
+import { Drawer, AppBar, Toolbar, Typography, List, IconButton, useMediaQuery } from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import MenuIcon from "@mui/icons-material/Menu";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 
 import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
@@ -30,11 +21,11 @@ import brand from "../brand";
 const drawerWidth = 280;
 const drawerCollapsedWidth = 92;
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   root: {
     display: "flex",
     height: "100vh",
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       height: "100dvh",
     },
   },
@@ -86,7 +77,7 @@ const useStyles = makeStyles((theme) => ({
   drawerSurface: {
     padding: theme.spacing(2, 0, 2, 2),
     backgroundColor: "transparent",
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       pointerEvents: "none",
     },
   },
@@ -103,7 +94,7 @@ const useStyles = makeStyles((theme) => ({
     border: theme.border.divider,
     borderRadius: theme.borderRadius.medium,
     overflow: "hidden",
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       pointerEvents: "auto",
     },
   },
@@ -127,9 +118,9 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const LoggedInLayout = ({ children }) => {
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
   const { loading } = useContext(AuthContext);
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("xs"), {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'), {
     noSsr: true,
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -156,7 +147,7 @@ const LoggedInLayout = ({ children }) => {
         variant={isMobile ? "temporary" : "permanent"}
         className={drawerOpen ? classes.drawerPaper : classes.drawerPaperClose}
         classes={{
-          paper: clsx(
+          paper: cx(
             classes.drawerPaper,
             !drawerOpen && classes.drawerPaperClose,
             classes.drawerSurface
@@ -183,7 +174,7 @@ const LoggedInLayout = ({ children }) => {
             aria-label="open drawer"
             onClick={() => setDrawerOpen(!drawerOpen)}
             className={classes.menuButton}
-          >
+            size="large">
             {drawerOpen ? <MenuOpenIcon /> : <MenuIcon />}
           </IconButton>
           <img src={brand.logos.symbol} alt="" className={classes.logo} />
@@ -198,7 +189,7 @@ const LoggedInLayout = ({ children }) => {
             aria-label={i18n.t("mainDrawer.appBar.darkMode")}
             onClick={toggleTheme}
             className={classes.headerIcon}
-          >
+            size="large">
             {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
 

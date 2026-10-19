@@ -1,9 +1,9 @@
 import React from "react";
-import { makeStyles } from "@material-ui/core/styles";
-import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
+import { makeStyles } from 'tss-react/mui';
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	card: {
 		padding: theme.spacing(3),
 		height: "100%",
@@ -51,7 +51,7 @@ const useStyles = makeStyles(theme => ({
 
 // Design system MetricCard: value, unit, period and source always shown.
 const MetricCard = ({ label, value, unit, detail, period, source, emptyText }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const hasValue = value !== null && value !== undefined;
 
 	return (

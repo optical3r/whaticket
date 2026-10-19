@@ -1,11 +1,11 @@
 import React from "react";
 
-import { Avatar, CardHeader } from "@material-ui/core";
-import { makeStyles } from "@material-ui/core/styles";
+import { Avatar, CardHeader } from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
 
 import { i18n } from "../../translate/i18n";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	queueStrip: {
 		position: "absolute",
 		top: 0,
@@ -17,7 +17,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const TicketInfo = ({ contact, ticket, onClick }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	return (
 		<>

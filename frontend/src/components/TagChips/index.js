@@ -1,8 +1,9 @@
 import React from "react";
-import { makeStyles, useTheme } from "@material-ui/core/styles";
-import Chip from "@material-ui/core/Chip";
+import { useTheme } from "@mui/material/styles";
+import { makeStyles } from 'tss-react/mui';
+import Chip from "@mui/material/Chip";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	root: {
 		display: "flex",
 		flexWrap: "wrap",
@@ -22,7 +23,7 @@ export const tagChipStyle = (theme, color) => ({
 });
 
 const TagChips = ({ tags = [], className }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const theme = useTheme();
 
 	if (!tags.length) return null;

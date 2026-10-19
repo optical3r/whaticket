@@ -28,12 +28,7 @@ const check = (role, action, data) => {
 	return false;
 };
 
-const Can = ({ role, perform, data, yes, no }) =>
+const Can = ({ role, perform, data, yes = () => null, no = () => null }) =>
 	check(role, perform, data) ? yes() : no();
-
-Can.defaultProps = {
-	yes: () => null,
-	no: () => null,
-};
 
 export { Can };

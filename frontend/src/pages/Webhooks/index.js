@@ -3,17 +3,17 @@ import { format, parseISO } from "date-fns";
 import { toast } from "react-toastify";
 
 import {
-	Button,
-	IconButton,
-	makeStyles,
-	Paper,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableRow,
-	Typography,
-} from "@material-ui/core";
-import { DeleteOutline, Edit, Send } from "@material-ui/icons";
+    Button,
+    IconButton,
+    Paper,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    Typography,
+} from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import { DeleteOutline, Edit, Send } from "@mui/icons-material";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -27,7 +27,7 @@ import { i18n } from "../../translate/i18n";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	mainPaper: {
 		flex: 1,
 		padding: theme.spacing(1),
@@ -43,13 +43,13 @@ const useStyles = makeStyles(theme => ({
 		fontSize: 13,
 		wordBreak: "break-all",
 	},
-	ok: { color: theme.palette.type === "dark" ? theme.palette.success.main : "#1B7F57" },
-	error: { color: theme.palette.type === "dark" ? theme.palette.error.main : "#B3261E" },
+	ok: { color: theme.palette.mode === "dark" ? theme.palette.success.main : "#1B7F57" },
+	error: { color: theme.palette.mode === "dark" ? theme.palette.error.main : "#B3261E" },
 	empty: { padding: theme.spacing(3), textAlign: "center" },
 }));
 
 const WebhookStatus = ({ webhook }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	if (!webhook.lastSentAt) {
 		return <Typography variant="body2" color="textSecondary">{i18n.t("webhooks.status.never")}</Typography>;
 	}
@@ -66,7 +66,7 @@ const WebhookStatus = ({ webhook }) => {
 };
 
 const Webhooks = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const [webhooks, setWebhooks] = useState([]);
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);

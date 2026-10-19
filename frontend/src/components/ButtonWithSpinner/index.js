@@ -1,10 +1,10 @@
 import React from "react";
 
-import { makeStyles } from "@material-ui/core/styles";
-import { green } from "@material-ui/core/colors";
-import { CircularProgress, Button } from "@material-ui/core";
+import { makeStyles } from 'tss-react/mui';
+import { green } from "@mui/material/colors";
+import { CircularProgress, Button } from "@mui/material";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	button: {
 		position: "relative",
 	},
@@ -20,7 +20,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const ButtonWithSpinner = ({ loading, children, ...rest }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	return (
 		<Button className={classes.button} disabled={loading} {...rest}>

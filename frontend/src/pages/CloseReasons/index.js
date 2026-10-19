@@ -2,22 +2,22 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 import {
-	Button,
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogTitle,
-	IconButton,
-	makeStyles,
-	Paper,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableRow,
-	TextField,
-	Typography,
-} from "@material-ui/core";
-import { DeleteOutline, Edit } from "@material-ui/icons";
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    Paper,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    TextField,
+    Typography,
+} from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import { DeleteOutline, Edit } from "@mui/icons-material";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -30,7 +30,7 @@ import { i18n } from "../../translate/i18n";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	mainPaper: {
 		flex: 1,
 		padding: theme.spacing(1),
@@ -44,7 +44,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const CloseReasons = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const [reasons, setReasons] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [editing, setEditing] = useState(null); // { id?, name }

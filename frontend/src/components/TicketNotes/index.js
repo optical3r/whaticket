@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 
-import { makeStyles } from "@material-ui/core/styles";
-import Button from "@material-ui/core/Button";
-import IconButton from "@material-ui/core/IconButton";
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
-import DeleteOutline from "@material-ui/icons/DeleteOutline";
+import { makeStyles } from 'tss-react/mui';
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
 
 import api from "../../services/api";
 import openSocket from "../../services/socket-io";
@@ -14,14 +14,14 @@ import toastError from "../../errors/toastError";
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	note: {
 		position: "relative",
 		padding: theme.spacing(1, 1.5),
 		marginBottom: theme.spacing(1),
 		borderRadius: theme.borderRadius.small,
 		// Warm sand accent: internal, never sent to the customer.
-		backgroundColor: theme.palette.type === "dark" ? "rgba(214,185,140,0.12)" : "#FBF6EE",
+		backgroundColor: theme.palette.mode === "dark" ? "rgba(214,185,140,0.12)" : "#FBF6EE",
 		borderLeft: "3px solid #D6B98C",
 	},
 	noteBody: {
@@ -52,7 +52,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const TicketNotes = ({ ticketId }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const { user } = useContext(AuthContext);
 	const [notes, setNotes] = useState([]);
 	const [body, setBody] = useState("");

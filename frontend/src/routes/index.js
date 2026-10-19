@@ -27,30 +27,30 @@ const Routes = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ThemeProvider>
-          <Switch>
-            <Route exact path="/login" component={Login} />
-            <WhatsAppsProvider>
-              <LoggedInLayout>
-                <Route exact path="/" component={Dashboard} isPrivate />
-                <Route exact path="/tickets/:ticketId?" component={Tickets} isPrivate />
-                <Route exact path="/connections" component={Connections} isPrivate />
-                <Route exact path="/contacts" component={Contacts} isPrivate />
-                <Route exact path="/users" component={Users} isPrivate />
-                <Route exact path="/quickAnswers" component={QuickAnswers} isPrivate />
-                <Route exact path="/Settings" component={Settings} isPrivate />
-                <Route exact path="/Queues" component={Queues} isPrivate />
-                <Route exact path="/companies" component={Companies} isPrivate />
-                <Route exact path="/plans" component={Plans} isPrivate />
-                <Route exact path="/tags" component={Tags} isPrivate />
-                <Route exact path="/closeReasons" component={CloseReasons} isPrivate />
-                <Route exact path="/reports" component={Reports} isPrivate />
-                <Route exact path="/webhooks" component={Webhooks} isPrivate />
-              </LoggedInLayout>
-            </WhatsAppsProvider>
-          </Switch>
-          <ToastContainer autoClose={3000} />
-        </ThemeProvider>
+          <ThemeProvider>
+            <Switch>
+              <Route exact path="/login" component={Login} />
+              <WhatsAppsProvider>
+                <LoggedInLayout>
+                  <Route exact path="/" component={Dashboard} isPrivate />
+                  <Route exact path="/tickets/:ticketId?" component={Tickets} isPrivate />
+                  <Route exact path="/connections" component={Connections} isPrivate />
+                  <Route exact path="/contacts" component={Contacts} isPrivate />
+                  <Route exact path="/users" component={Users} isPrivate />
+                  <Route exact path="/quickAnswers" component={QuickAnswers} isPrivate />
+                  <Route exact path="/Settings" component={Settings} isPrivate />
+                  <Route exact path="/Queues" component={Queues} isPrivate />
+                  <Route exact path="/companies" component={Companies} isPrivate />
+                  <Route exact path="/plans" component={Plans} isPrivate />
+                  <Route exact path="/tags" component={Tags} isPrivate />
+                  <Route exact path="/closeReasons" component={CloseReasons} isPrivate />
+                  <Route exact path="/reports" component={Reports} isPrivate />
+                  <Route exact path="/webhooks" component={Webhooks} isPrivate />
+                </LoggedInLayout>
+              </WhatsAppsProvider>
+            </Switch>
+            <ToastContainer autoClose={3000} />
+          </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );
