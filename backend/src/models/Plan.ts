@@ -37,7 +37,13 @@ class Plan extends Model<Plan> {
   @Column
   queues: number;
 
-  // AI requests allowed per month; 0 turns AI off for the plan.
+  // Whether companies on this plan can use the AI module.
+  @AllowNull(false)
+  @Default(false)
+  @Column
+  aiEnabled: boolean;
+
+  // AI requests allowed per month for each company on the plan.
   @AllowNull(false)
   @Default(1000)
   @Column

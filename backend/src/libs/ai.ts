@@ -5,6 +5,7 @@ import AppError from "../errors/AppError";
 import AiUsage from "../models/AiUsage";
 import Company from "../models/Company";
 import Plan from "../models/Plan";
+import { getAiSettings } from "../helpers/AiSettings";
 import { logger } from "../utils/logger";
 
 // Every AI feature goes through this module: one place for the model,
@@ -53,30 +54,61 @@ const startOfMonth = (now: Date): Date =>
 export const getMonthlyUsage = async (
   companyId: number,
   now: Date = new Date()
-): Promise<{ used: number; limit: number }> => {
+): Promise<{ used: number; limit: number; planEnabled: boolean }> => {
   const [used, company] = await Promise.all([
     AiUsage.count({
       where: { companyId, createdAt: { [Op.gte]: startOfMonth(now) } }
     }),
     Company.findByPk(companyId, {
-      include: [{ model: Plan, as: "plan", attributes: ["aiMonthlyRequests"] }]
+      include: [
+        {
+          model: Plan,
+          as: "plan",
+          attributes: ["aiEnabled", "aiMonthlyRequests"]
+        }
+      ]
     })
   ]);
 
-  return { used, limit: company?.plan?.aiMonthlyRequests || 0 };
+  return {
+    used,
+    limit: company?.plan?.aiMonthlyRequests || 0,
+    planEnabled: Boolean(company?.plan?.aiEnabled)
+  };
+};
+
+// Who decides, in order: the installation (API key), the platform (the
+// company's plan) and the company admin (the AI switch).
+export const getAiAccess = async (
+  companyId: number
+): Promise<{ allowed: boolean; reason?: string }> => {
+  if (!isAiConfigured()) {
+    return { allowed: false, reason: "ERR_AI_NOT_CONFIGURED" };
+  }
+  const { used, limit, planEnabled } = await getMonthlyUsage(companyId);
+  if (!planEnabled || limit === 0) {
+    return { allowed: false, reason: "ERR_AI_NOT_IN_PLAN" };
+  }
+  if (!(await getAiSettings(companyId)).enabled) {
+    return { allowed: false, reason: "ERR_AI_DISABLED" };
+  }
+  if (used >= limit) {
+    return { allowed: false, reason: "ERR_AI_LIMIT_REACHED" };
+  }
+  return { allowed: true };
+};
+
+const ACCESS_STATUS: Record<string, number> = {
+  ERR_AI_NOT_CONFIGURED: 503,
+  ERR_AI_NOT_IN_PLAN: 403,
+  ERR_AI_DISABLED: 403,
+  ERR_AI_LIMIT_REACHED: 429
 };
 
 export const assertAiAvailable = async (companyId: number): Promise<void> => {
-  if (!isAiConfigured()) {
-    throw new AppError("ERR_AI_NOT_CONFIGURED", 503);
-  }
-
-  const { used, limit } = await getMonthlyUsage(companyId);
-  if (limit === 0) {
-    throw new AppError("ERR_AI_NOT_IN_PLAN", 403);
-  }
-  if (used >= limit) {
-    throw new AppError("ERR_AI_LIMIT_REACHED", 429);
+  const { allowed, reason } = await getAiAccess(companyId);
+  if (!allowed && reason) {
+    throw new AppError(reason, ACCESS_STATUS[reason]);
   }
 };
 

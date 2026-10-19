@@ -116,7 +116,9 @@ const Plans = () => {
 										className={classes.mono}
 										data-label={i18n.t(`plans.table.${column}`)}
 									>
-										{plan[column]}
+										{column === "aiMonthlyRequests" && !plan.aiEnabled
+											? i18n.t("plans.aiOff")
+											: plan[column]}
 									</TableCell>
 								))}
 								<TableCell align="center">

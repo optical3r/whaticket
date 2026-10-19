@@ -29,6 +29,7 @@ import {
   MAX_KNOWLEDGE_CHARACTERS,
   SaveKnowledgeService
 } from "../../../services/AiServices/KnowledgeServices";
+import SavePlanService from "../../../services/PlanService/SavePlanService";
 import CreateCompanyService from "../../../services/CompanyService/CreateCompanyService";
 import ListSettingsService from "../../../services/SettingServices/ListSettingsService";
 import UpdateTicketService from "../../../services/TicketServices/UpdateTicketService";
@@ -174,7 +175,10 @@ describe("Phase 4: AI", () => {
     requests.length = 0;
     replies = [];
     sendMessage.mockClear();
-    await Plan.update({ aiMonthlyRequests: 1000 }, { where: { id: 1 } });
+    await Plan.update(
+      { aiEnabled: true, aiMonthlyRequests: 1000 },
+      { where: { id: 1 } }
+    );
   });
 
   afterAll(async () => {
@@ -303,13 +307,57 @@ describe("Phase 4: AI", () => {
       await expectAppError(rewrite(), "ERR_AI_NOT_CONFIGURED");
 
       process.env.ANTHROPIC_API_KEY = "test-key";
-      await Plan.update({ aiMonthlyRequests: 0 }, { where: { id: 1 } });
+      await Plan.update({ aiEnabled: false }, { where: { id: 1 } });
       await expectAppError(rewrite(), "ERR_AI_NOT_IN_PLAN");
+
+      await Plan.update(
+        { aiEnabled: true, aiMonthlyRequests: 0 },
+        { where: { id: 1 } }
+      );
+      await expectAppError(rewrite(), "ERR_AI_NOT_IN_PLAN");
+
+      await Plan.update({ aiMonthlyRequests: 5 }, { where: { id: 1 } });
+      await updateAiSettings(1, { enabled: false });
+      await expectAppError(rewrite(), "ERR_AI_DISABLED");
+      await updateAiSettings(1, { enabled: true });
 
       await Plan.update({ aiMonthlyRequests: 1 }, { where: { id: 1 } });
       await expect(rewrite()).resolves.toBe("ok");
       await expectAppError(rewrite(), "ERR_AI_LIMIT_REACHED");
       expect(requests).toHaveLength(1);
+    });
+
+    it("lets the superadmin release AI per plan", async () => {
+      const plan = await SavePlanService({
+        name: "Básico",
+        users: 3,
+        connections: 1,
+        queues: 2
+      });
+      expect(plan.aiEnabled).toBe(false);
+
+      const updated = await SavePlanService(
+        {
+          name: "Básico",
+          users: 3,
+          connections: 1,
+          queues: 2,
+          aiEnabled: true,
+          aiMonthlyRequests: 300
+        },
+        plan.id
+      );
+      expect(updated).toMatchObject({
+        aiEnabled: true,
+        aiMonthlyRequests: 300
+      });
+
+      // Saving without the AI fields keeps them.
+      const kept = await SavePlanService(
+        { name: "Básico", users: 4, connections: 1, queues: 2 },
+        plan.id
+      );
+      expect(kept).toMatchObject({ aiEnabled: true, aiMonthlyRequests: 300 });
     });
   });
 
@@ -397,7 +445,7 @@ describe("Phase 4: AI", () => {
       expect(sendMessage).toHaveBeenCalledWith(
         ticket.whatsappId,
         `${contact.number}@c.us`,
-        "‎Abrimos aos sábados das 9h às 13h."
+        "\u200eAbrimos aos sábados das 9h às 13h."
       );
       expect(requests[0].body.output_config.format.type).toBe("json_schema");
       await ticket.reload();
@@ -417,7 +465,9 @@ describe("Phase 4: AI", () => {
       await waitFor(() => sendMessage.mock.calls.length === 1);
 
       const settings = await getAiSettings(1);
-      expect(sendMessage.mock.calls[0][2]).toBe(`‎${settings.handoffMessage}`);
+      expect(sendMessage.mock.calls[0][2]).toBe(
+        `\u200e${settings.handoffMessage}`
+      );
       const note = await TicketNote.findOne({ where: { ticketId: ticket.id } });
       expect(note?.body).toContain("Pedido de cancelamento.");
 
@@ -463,6 +513,14 @@ describe("Phase 4: AI", () => {
       await expect(ScheduleAssistantReply(ticket)).resolves.toBe(false);
 
       await ticket.update({ isGroup: false });
+      await updateAiSettings(1, { enabled: false });
+      await expect(ScheduleAssistantReply(ticket)).resolves.toBe(false);
+
+      await updateAiSettings(1, { enabled: true });
+      await Plan.update({ aiEnabled: false }, { where: { id: 1 } });
+      await expect(ScheduleAssistantReply(ticket)).resolves.toBe(false);
+
+      await Plan.update({ aiEnabled: true }, { where: { id: 1 } });
       await updateAiSettings(1, { assistantEnabled: false });
       await expect(ScheduleAssistantReply(ticket)).resolves.toBe(false);
       expect(requests).toHaveLength(0);

@@ -14,7 +14,7 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Mídia**: imagem, áudio (com gravação no navegador), vídeo, documentos, localização e contatos.
 - **Contatos**: cadastro, campos personalizados e importação dos contatos do celular.
 - **Multiempresa**: cada cliente é uma empresa com usuários, conexões, filas, contatos, tickets e token de API próprios. Uma empresa nunca vê os dados de outra.
-- **Planos e limites**: cada empresa tem um plano com limite de usuários, conexões, filas e solicitações de IA por mês.
+- **Planos e limites**: cada empresa tem um plano com limite de usuários, conexões e filas. O plano também define se o módulo de IA está liberado e quantas solicitações de IA cada empresa pode fazer por mês.
 - **Painel da plataforma** (superadmin da Cerqueira Labs): criar empresas e o primeiro administrador, trocar o plano, suspender e reativar.
 - **Termos de uso**: o administrador da empresa aceita os riscos da conexão por QR Code antes de criar a primeira conexão.
 - **Alerta de conexão caída**: banner e aviso no navegador quando uma conexão do WhatsApp para de funcionar.
@@ -183,9 +183,15 @@ A IA usa a API do Claude, da Anthropic. Para ligar, crie uma chave em https://pl
 | `AI_MODEL` | Modelo usado (padrão `claude-opus-5-5`). |
 | `AI_ASSISTANT_DELAY_MS` | Espera antes de o assistente responder, para juntar mensagens enviadas em sequência (padrão 8000). |
 
+A IA só funciona quando as três condições valem:
+
+1. **Instalação**: `ANTHROPIC_API_KEY` preenchida.
+2. **Plano**: o superadmin marca **Módulo de IA liberado** no plano, em **Plataforma → Planos**. Planos novos começam sem IA. Na atualização, só o plano 1 ("Interno") vem liberado.
+3. **Empresa**: o administrador deixa ligada a opção **Usar IA nesta empresa**, em **Administração → Inteligência artificial** (ligada por padrão). Desligada, os botões de IA somem para todos da empresa e o assistente virtual para de responder.
+
 Os custos ficam na conta da chave configurada, que pertence à instalação e não a cada cliente. Para controlar o gasto:
 
-- Cada plano define as **solicitações de IA por mês** (0 desliga a IA para as empresas do plano). Sugestões, resumos, revisões e respostas do assistente contam igualmente.
+- Cada plano define as **solicitações de IA por mês** de cada empresa. Sugestões, resumos, revisões e respostas do assistente contam igualmente.
 - Cada usuário pode fazer até 20 solicitações por minuto.
 - Cada solicitação fica registrada na tabela `AiUsages`, com tokens de entrada e saída, para conferir o custo por empresa.
 

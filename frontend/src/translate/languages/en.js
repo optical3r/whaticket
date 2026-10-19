@@ -551,6 +551,7 @@ const messages = {
           aiMonthlyRequests: "AI per month",
           actions: "Actions",
         },
+        aiOff: "Not released",
         toasts: {
           saved: "Plan saved.",
           deleted: "Plan deleted.",
@@ -571,7 +572,8 @@ const messages = {
           connections: "Connection limit",
           queues: "Queue limit",
           aiMonthlyRequests: "AI requests per month",
-          aiMonthlyRequestsHelp: "0 turns AI off for companies on this plan.",
+          aiEnabled: "AI module released",
+          aiMonthlyRequestsHelp: "Limit for each company on the plan. Suggestions, summaries, rewrites and assistant replies count the same."
         },
         buttons: {
           cancel: "Cancel",
@@ -846,7 +848,11 @@ const messages = {
           requests: "AI requests",
           help: "Includes suggestions, summaries, text rewrites and assistant replies. The count restarts on the 1st. Model:",
           notConfigured: "AI is not set up on the server yet. Ask whoever runs the installation to set ANTHROPIC_API_KEY.",
-          notInPlan: "Your company's plan does not include AI.",
+          notInPlan: "Your company's plan does not include the AI module. Contact Cerqueira Labs to release it.",
+          enabled: "Use AI in this company",
+          enabledHelp: "When off, nobody in the company sees the AI buttons and the virtual assistant stops answering.",
+          turnedOn: "AI turned on for the company.",
+          turnedOff: "AI turned off for the company.",
         },
         assistant: {
           title: "Virtual assistant",
@@ -902,6 +908,7 @@ const messages = {
       backendErrors: {
         ERR_AI_NOT_CONFIGURED: "AI is not set up on the server.",
         ERR_AI_NOT_IN_PLAN: "Your company's plan does not include AI.",
+        ERR_AI_DISABLED: "AI is turned off for your company.",
         ERR_AI_LIMIT_REACHED: "This month's AI usage limit has been reached.",
         ERR_AI_TOO_MANY_REQUESTS: "Too many AI requests in a short time. Wait a minute.",
         ERR_AI_BUSY: "The AI is overloaded right now. Try again shortly.",

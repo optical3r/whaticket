@@ -76,7 +76,7 @@ const useStyles = makeStyles()(theme => ({
 	},
 }));
 
-const editableFields = ["assistantEnabled", "assistantName", "instructions", "handoffMessage", "maxReplies"];
+const editableFields = ["enabled", "assistantEnabled", "assistantName", "instructions", "handoffMessage", "maxReplies"];
 
 const Ai = () => {
 	const { classes } = useStyles();
@@ -144,7 +144,20 @@ const Ai = () => {
 		return <LinearProgress aria-label={i18n.t("ai.loading")} />;
 	}
 
+	const toggleCompanyAi = async enabled => {
+		change("enabled", enabled);
+		try {
+			await api.put("/ai/settings", { enabled });
+			clearAiStatus();
+			toast.success(enabled ? i18n.t("ai.usage.turnedOn") : i18n.t("ai.usage.turnedOff"));
+		} catch (err) {
+			change("enabled", !enabled);
+			toastError(err);
+		}
+	};
+
 	const { used, limit } = status.usage;
+	const planAllows = status.planEnabled && limit > 0;
 	const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 100;
 
 	return (
@@ -176,11 +189,24 @@ const Ai = () => {
 					{!status.configured && (
 						<Alert severity="warning">{i18n.t("ai.usage.notConfigured")}</Alert>
 					)}
-					{status.configured && limit === 0 && (
+					{status.configured && !planAllows && (
 						<Alert severity="info">{i18n.t("ai.usage.notInPlan")}</Alert>
 					)}
-					{status.configured && limit > 0 && (
+					{status.configured && planAllows && (
 						<>
+							<FormControlLabel
+								control={
+									<Switch
+										color="primary"
+										checked={values.enabled}
+										onChange={e => toggleCompanyAi(e.target.checked)}
+									/>
+								}
+								label={i18n.t("ai.usage.enabled")}
+							/>
+							<Typography variant="body2" className={classes.help}>
+								{i18n.t("ai.usage.enabledHelp")}
+							</Typography>
 							<div className={classes.usageLabel}>
 								<Typography variant="body2">{i18n.t("ai.usage.requests")}</Typography>
 								<Typography variant="body2" className={classes.mono}>
@@ -213,6 +239,7 @@ const Ai = () => {
 								color="primary"
 								checked={values.assistantEnabled}
 								onChange={e => change("assistantEnabled", e.target.checked)}
+								disabled={!planAllows || !values.enabled}
 							/>
 						}
 						label={i18n.t("ai.assistant.enabled")}

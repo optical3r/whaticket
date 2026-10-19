@@ -25,11 +25,14 @@ export const showSettings = async (
     getMonthlyUsage(companyId)
   ]);
 
+  const { planEnabled, ...counts } = usage;
+
   return res.status(200).json({
     ...settings,
     configured: isAiConfigured(),
+    planEnabled,
     model: aiModel(),
-    usage
+    usage: counts
   });
 };
 

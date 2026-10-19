@@ -556,6 +556,7 @@ const messages = {
           aiMonthlyRequests: "IA por mês",
           actions: "Ações",
         },
+        aiOff: "Não liberada",
         toasts: {
           saved: "Plano salvo.",
           deleted: "Plano excluído.",
@@ -576,7 +577,8 @@ const messages = {
           connections: "Limite de conexões",
           queues: "Limite de filas",
           aiMonthlyRequests: "Solicitações de IA por mês",
-          aiMonthlyRequestsHelp: "0 desativa a IA para as empresas deste plano.",
+          aiEnabled: "Módulo de IA liberado",
+          aiMonthlyRequestsHelp: "Limite de cada empresa do plano. Sugestões, resumos, revisões e respostas do assistente contam igual."
         },
         buttons: {
           cancel: "Cancelar",
@@ -851,7 +853,11 @@ const messages = {
           requests: "Solicitações de IA",
           help: "Inclui sugestões, resumos, revisões de texto e respostas do assistente. A contagem recomeça no dia 1º. Modelo:",
           notConfigured: "A IA ainda não foi configurada no servidor. Peça ao responsável pela instalação para definir ANTHROPIC_API_KEY.",
-          notInPlan: "O plano da sua empresa não inclui IA.",
+          notInPlan: "O plano da sua empresa não inclui o módulo de IA. Fale com a Cerqueira Labs para liberar.",
+          enabled: "Usar IA nesta empresa",
+          enabledHelp: "Desligado, ninguém da empresa vê os botões de IA e o assistente virtual para de responder.",
+          turnedOn: "IA ligada para a empresa.",
+          turnedOff: "IA desligada para a empresa.",
         },
         assistant: {
           title: "Assistente virtual",
@@ -907,6 +913,7 @@ const messages = {
       backendErrors: {
         ERR_AI_NOT_CONFIGURED: "A IA não está configurada no servidor.",
         ERR_AI_NOT_IN_PLAN: "O plano da sua empresa não inclui IA.",
+        ERR_AI_DISABLED: "A IA está desligada para a sua empresa.",
         ERR_AI_LIMIT_REACHED: "O limite de uso de IA deste mês acabou.",
         ERR_AI_TOO_MANY_REQUESTS: "Muitas solicitações de IA em pouco tempo. Aguarde um minuto.",
         ERR_AI_BUSY: "A IA está sobrecarregada no momento. Tente de novo em instantes.",

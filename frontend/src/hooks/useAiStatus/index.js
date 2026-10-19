@@ -31,8 +31,15 @@ export const clearAiStatus = () => {
 	cached = null;
 };
 
+// The installation has a key, the plan includes AI and the company admin
+// left it on.
 export const isAiAvailable = status =>
-	Boolean(status?.configured && status?.usage?.limit > 0);
+	Boolean(
+		status?.configured &&
+			status?.planEnabled &&
+			status?.enabled &&
+			status?.usage?.limit > 0
+	);
 
 const useAiStatus = () => {
 	const [status, setStatus] = useState(cached);

@@ -6,13 +6,22 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
-const emptyPlan = { name: "", users: 5, connections: 1, queues: 5, aiMonthlyRequests: 1000 };
+const emptyPlan = {
+	name: "",
+	users: 5,
+	connections: 1,
+	queues: 5,
+	aiEnabled: false,
+	aiMonthlyRequests: 1000,
+};
 
 const PlanModal = ({ open, onClose, plan, onSaved }) => {
 	const [values, setValues] = useState(emptyPlan);
@@ -37,6 +46,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			users: Number(values.users),
 			connections: Number(values.connections),
 			queues: Number(values.queues),
+			aiEnabled: values.aiEnabled,
 			aiMonthlyRequests: Number(values.aiMonthlyRequests),
 		};
 		try {
@@ -52,7 +62,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 		setSaving(false);
 	};
 
-	const numberField = name => (
+	const numberField = (name, disabled = false) => (
 		<TextField
 			key={name}
 			id={`plan-${name}`}
@@ -67,6 +77,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			margin="dense"
 			fullWidth
 			required
+			disabled={disabled}
 		/>
 	);
 
@@ -89,7 +100,18 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 						required
 						autoFocus
 					/>
-					{["users", "connections", "queues", "aiMonthlyRequests"].map(numberField)}
+					{["users", "connections", "queues"].map(name => numberField(name))}
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.aiEnabled}
+								onChange={e => setValues(prev => ({ ...prev, aiEnabled: e.target.checked }))}
+							/>
+						}
+						label={i18n.t("planModal.form.aiEnabled")}
+					/>
+					{numberField("aiMonthlyRequests", !values.aiEnabled)}
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={onClose} variant="outlined" disabled={saving}>

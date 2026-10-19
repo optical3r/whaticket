@@ -3,9 +3,11 @@ import * as Yup from "yup";
 import AppError from "../errors/AppError";
 import Setting from "../models/Setting";
 
-// Virtual assistant settings of a company. Stored in Settings with an "ai."
-// prefix and edited only through the AI routes, which validate them.
+// AI settings of a company. Stored in Settings with an "ai." prefix and
+// edited only through the AI routes, which validate them. "enabled" turns
+// every AI feature of the company on or off; the plan must allow AI too.
 export interface AiSettings {
+  enabled: boolean;
   assistantEnabled: boolean;
   assistantName: string;
   instructions: string;
@@ -14,6 +16,7 @@ export interface AiSettings {
 }
 
 export const AI_SETTING_DEFAULTS: AiSettings = {
+  enabled: true,
   assistantEnabled: false,
   assistantName: "Assistente virtual",
   instructions: "",
@@ -28,6 +31,7 @@ export const isAiSettingKey = (key: string): boolean =>
   key.startsWith(KEY_PREFIX);
 
 const schema = Yup.object().shape({
+  enabled: Yup.boolean(),
   assistantEnabled: Yup.boolean(),
   assistantName: Yup.string()
     .trim()
@@ -46,6 +50,7 @@ const schema = Yup.object().shape({
 
 const parse = (key: keyof AiSettings, raw: string): AiSettings[typeof key] => {
   switch (key) {
+    case "enabled":
     case "assistantEnabled":
       return raw === "enabled";
     case "maxReplies":
