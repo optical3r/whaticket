@@ -24,6 +24,7 @@ import AiUsage from "../models/AiUsage";
 import KanbanStage from "../models/KanbanStage";
 import Campaign from "../models/Campaign";
 import CampaignContact from "../models/CampaignContact";
+import CloudApiCredential from "../models/CloudApiCredential";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -56,7 +57,8 @@ const models = [
   AiUsage,
   KanbanStage,
   Campaign,
-  CampaignContact
+  CampaignContact,
+  CloudApiCredential
 ];
 
 sequelize.addModels(models);

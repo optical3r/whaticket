@@ -44,6 +44,16 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 
 const useStyles = makeStyles()(theme => ({
+	channelTag: {
+		display: "inline-block",
+		marginLeft: theme.spacing(1),
+		padding: theme.spacing(0, 0.75),
+		borderRadius: theme.borderRadius.pill,
+		backgroundColor: theme.palette.tintedBackground,
+		color: theme.palette.text.link,
+		...theme.typography.caption,
+		fontWeight: 600,
+	},
 	mainPaper: {
 		flex: 1,
 		padding: theme.spacing(1),
@@ -198,6 +208,23 @@ const Connections = () => {
 	};
 
 	const renderActionButtons = whatsApp => {
+		// Official API: no QR code; checking again revalidates the token.
+		if (whatsApp.channel === "cloudapi") {
+			return whatsApp.status === "OPENING" ? (
+				<Button size="small" variant="outlined" disabled>
+					{i18n.t("connections.buttons.connecting")}
+				</Button>
+			) : (
+				<Button
+					size="small"
+					variant="outlined"
+					color="primary"
+					onClick={() => handleStartWhatsAppSession(whatsApp.id)}
+				>
+					{i18n.t("connections.buttons.checkCloud")}
+				</Button>
+			);
+		}
 		return <>
             {whatsApp.status === "qrcode" && (
                 <Button
@@ -360,7 +387,12 @@ const Connections = () => {
 								{whatsApps?.length > 0 &&
 									whatsApps.map(whatsApp => (
 										<TableRow key={whatsApp.id}>
-											<TableCell align="center">{whatsApp.name}</TableCell>
+											<TableCell align="center">
+												{whatsApp.name}
+												{whatsApp.channel === "cloudapi" && (
+													<span className={classes.channelTag}>{i18n.t("connections.cloudTag")}</span>
+												)}
+											</TableCell>
 											<TableCell
 												align="center"
 												data-label={i18n.t("connections.table.status")}

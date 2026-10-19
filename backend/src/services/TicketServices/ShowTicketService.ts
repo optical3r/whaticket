@@ -47,7 +47,7 @@ const ShowTicketService = async (
       {
         model: Whatsapp,
         as: "whatsapp",
-        attributes: ["name"]
+        attributes: ["name", "channel"]
       },
       { model: CloseReason, as: "closeReason", attributes: ["id", "name"] }
     ]

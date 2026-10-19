@@ -148,6 +148,10 @@ const validate = async (
   if (!whatsapp) {
     throw new AppError("ERR_CAMPAIGN_INVALID_CONNECTION");
   }
+  // Cloud API numbers need approved templates for bulk messages.
+  if (whatsapp.channel === "cloudapi") {
+    throw new AppError("ERR_CAMPAIGN_QRCODE_ONLY");
+  }
 
   let scheduledAt: Date | null = null;
   if (data.scheduledAt) {

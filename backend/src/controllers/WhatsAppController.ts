@@ -8,6 +8,13 @@ import ListWhatsAppsService from "../services/WhatsappService/ListWhatsAppsServi
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateWhatsAppService from "../services/WhatsappService/UpdateWhatsAppService";
 import { whatsappProvider } from "../providers/WhatsApp";
+import { listTemplates } from "../providers/WhatsApp/Implementations/cloudapi";
+import {
+  CloudApiInput,
+  publicCloudInfo,
+  saveCloudCredentials
+} from "../helpers/CloudApiCredentials";
+import AppError from "../errors/AppError";
 
 interface WhatsappData {
   name: string;
@@ -16,6 +23,8 @@ interface WhatsappData {
   farewellMessage?: string;
   status?: string;
   isDefault?: boolean;
+  channel?: string;
+  cloud?: CloudApiInput;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -31,7 +40,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     isDefault,
     greetingMessage,
     farewellMessage,
-    queueIds
+    queueIds,
+    channel,
+    cloud
   }: WhatsappData = req.body;
   const { companyId } = req.user;
 
@@ -42,7 +53,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     isDefault,
     greetingMessage,
     farewellMessage,
-    queueIds
+    queueIds,
+    channel,
+    cloud
   });
 
   StartWhatsAppSession(whatsapp);
@@ -66,8 +79,29 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
 
   const whatsapp = await ShowWhatsAppService(whatsappId, req.user.companyId);
+  // Webhook details are for the admin who sets up the Meta app.
+  const cloud =
+    whatsapp.channel === "cloudapi" && req.user.profile === "admin"
+      ? await publicCloudInfo(whatsapp.id)
+      : undefined;
 
-  return res.status(200).json(whatsapp);
+  return res.status(200).json({ ...whatsapp.toJSON(), cloud });
+};
+
+// Approved templates of a Cloud API connection.
+export const templates = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const whatsapp = await ShowWhatsAppService(
+    req.params.whatsappId,
+    req.user.companyId
+  );
+  if (whatsapp.channel !== "cloudapi") {
+    throw new AppError("ERR_CLOUD_TEMPLATES_ONLY");
+  }
+
+  return res.status(200).json(await listTemplates(whatsapp.id));
 };
 
 export const update = async (
@@ -83,6 +117,12 @@ export const update = async (
     whatsappId,
     companyId
   });
+
+  // New Cloud API credentials take effect after a new connection check.
+  if (whatsapp.channel === "cloudapi" && whatsappData.cloud) {
+    await saveCloudCredentials(whatsapp.id, whatsappData.cloud);
+    StartWhatsAppSession(whatsapp);
+  }
 
   emitToCompany(companyId, "whatsapp", {
     action: "update",

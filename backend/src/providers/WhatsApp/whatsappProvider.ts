@@ -9,6 +9,7 @@ import {
 } from "./types";
 import { WhatsappWebJsProvider } from "./Implementations/wwebjs";
 import { ZapoProvider } from "./Implementations/zapo";
+import { CloudApiProvider } from "./Implementations/cloudapi";
 
 export interface WhatsappProvider {
   init(whatsapp: Whatsapp): Promise<void>;
@@ -45,8 +46,7 @@ export interface WhatsappProvider {
 
 // How a connection talks to WhatsApp. Stored in Whatsapps.channel.
 //  - qrcode: unofficial clients (wwebjs or zapo, chosen by WHATSAPP_PROVIDER)
-//  - cloudapi: official WhatsApp Cloud API (not implemented yet, see
-//    docs/whatsapp-cloud-api.md)
+//  - cloudapi: official WhatsApp Cloud API (see docs/whatsapp-cloud-api.md)
 export type WhatsappChannel = "qrcode" | "cloudapi";
 
 const qrcodeImplementations: Record<string, WhatsappProvider> = {
@@ -56,8 +56,8 @@ const qrcodeImplementations: Record<string, WhatsappProvider> = {
 };
 
 const providersByChannel: Partial<Record<WhatsappChannel, WhatsappProvider>> = {
-  qrcode: qrcodeImplementations[process.env.WHATSAPP_PROVIDER || "wwebjs"]
-  // cloudapi: CloudApiProvider
+  qrcode: qrcodeImplementations[process.env.WHATSAPP_PROVIDER || "wwebjs"],
+  cloudapi: CloudApiProvider
 };
 
 export const availableChannels = Object.keys(

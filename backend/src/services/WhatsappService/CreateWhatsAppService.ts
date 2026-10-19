@@ -6,6 +6,14 @@ import Company from "../../models/Company";
 import AssociateWhatsappQueue from "./AssociateWhatsappQueue";
 import { assertQueuesInCompany } from "../../helpers/AssertCompanyOwnership";
 import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
+import {
+  CloudApiInput,
+  saveCloudCredentials
+} from "../../helpers/CloudApiCredentials";
+import {
+  availableChannels,
+  WhatsappChannel
+} from "../../providers/WhatsApp/whatsappProvider";
 
 interface Request {
   name: string;
@@ -14,6 +22,8 @@ interface Request {
   farewellMessage?: string;
   status?: string;
   isDefault?: boolean;
+  channel?: string;
+  cloud?: CloudApiInput;
   companyId: number;
 }
 
@@ -29,8 +39,14 @@ const CreateWhatsAppService = async ({
   greetingMessage,
   farewellMessage,
   isDefault = false,
+  channel = "qrcode",
+  cloud,
   companyId
 }: Request): Promise<Response> => {
+  if (!availableChannels.includes(channel as WhatsappChannel)) {
+    throw new AppError("ERR_CHANNEL_NOT_AVAILABLE");
+  }
+
   const schema = Yup.object().shape({
     name: Yup.string()
       .required()
@@ -58,7 +74,7 @@ const CreateWhatsAppService = async ({
   // QR code connections can get the number banned; the company admin has to
   // accept that risk before the first connection is created.
   const company = await Company.findByPk(companyId);
-  if (!company?.termsAcceptedAt) {
+  if (channel === "qrcode" && !company?.termsAcceptedAt) {
     throw new AppError("ERR_TERMS_NOT_ACCEPTED", 403);
   }
 
@@ -91,10 +107,23 @@ const CreateWhatsAppService = async ({
       greetingMessage,
       farewellMessage,
       isDefault,
+      channel,
       companyId
     },
     { include: ["queues"] }
   );
+
+  if (channel === "cloudapi") {
+    try {
+      await saveCloudCredentials(whatsapp.id, cloud || {});
+    } catch (err) {
+      // A connection without valid credentials would never work.
+      await whatsapp.destroy();
+      if (oldDefaultWhatsapp)
+        await oldDefaultWhatsapp.update({ isDefault: true });
+      throw err;
+    }
+  }
 
   await AssociateWhatsappQueue(whatsapp, queueIds);
 

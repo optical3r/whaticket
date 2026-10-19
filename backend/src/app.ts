@@ -11,6 +11,7 @@ import "./database";
 import AppError from "./errors/AppError";
 import routes from "./routes";
 import mediaRoutes from "./routes/mediaRoutes";
+import jsonBody from "./middleware/jsonBody";
 import { logger } from "./utils/logger";
 
 Sentry.init({ dsn: process.env.SENTRY_DSN });
@@ -38,7 +39,7 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(express.json());
+app.use(jsonBody);
 app.use(Sentry.Handlers.requestHandler());
 app.use("/public", mediaRoutes);
 app.use(routes);

@@ -351,7 +351,10 @@ export const handleMessage = async (
       lastMessageText = processedMessage.body || mediaPayload?.filename || "";
     }
 
-    await ticket.update({ lastMessage: lastMessageText });
+    await ticket.update({
+      lastMessage: lastMessageText,
+      ...(processedMessage.fromMe ? {} : { lastInboundAt: new Date() })
+    });
 
     await CreateMessageService({ messageData });
 

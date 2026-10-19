@@ -16,10 +16,12 @@ import catalogRoutes from "./catalogRoutes";
 import healthRoutes from "./healthRoutes";
 import aiRoutes from "./aiRoutes";
 import campaignRoutes from "./campaignRoutes";
+import cloudWebhookRoutes from "./cloudWebhookRoutes";
 
 const routes = Router();
 
 routes.use(healthRoutes);
+routes.use(cloudWebhookRoutes);
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
 routes.use(settingRoutes);

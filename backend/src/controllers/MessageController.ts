@@ -9,6 +9,7 @@ import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessage";
 import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import SendTemplateService from "../services/WbotServices/SendTemplateService";
 
 type IndexQuery = {
   pageNumber: string;
@@ -78,4 +79,19 @@ export const remove = async (
   );
 
   return res.send();
+};
+
+export const storeTemplate = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const ticket = await ShowTicketService(
+    req.params.ticketId,
+    req.user.companyId
+  );
+  const { name, language, params } = req.body;
+
+  await SendTemplateService({ ticket, name, language, params });
+
+  return res.status(200).json({ message: "Template sent" });
 };

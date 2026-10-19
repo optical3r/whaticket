@@ -4,6 +4,7 @@ import Ticket from "../../models/Ticket";
 import { whatsappProvider, ProviderMessage } from "../../providers/WhatsApp";
 
 import formatBody from "../../helpers/Mustache";
+import { assertCanSendFreeText } from "../../helpers/CloudWindow";
 
 interface Request {
   body: string;
@@ -19,6 +20,8 @@ const SendWhatsAppMessage = async ({
   if (!ticket.whatsappId) {
     throw new AppError("ERR_TICKET_NO_WHATSAPP");
   }
+
+  await assertCanSendFreeText(ticket);
 
   const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
 

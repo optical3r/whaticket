@@ -10,6 +10,7 @@ import { makeStyles } from 'tss-react/mui';
 
 import ContactDrawer from "../ContactDrawer";
 import MessageInput from "../MessageInput/";
+import CloudWindowNotice from "../CloudWindowNotice";
 import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
 import TicketActionButtons from "../TicketActionButtons";
@@ -165,6 +166,7 @@ const Ticket = () => {
             ticketId={ticketId}
             isGroup={ticket.isGroup}
           ></MessagesList>
+          <CloudWindowNotice ticket={ticket} />
           <MessageInput ticketStatus={ticket.status} />
         </ReplyMessageProvider>
       </Paper>

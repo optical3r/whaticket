@@ -106,6 +106,11 @@ class Ticket extends Model<Ticket> {
   @Column(DataType.DATE)
   outOfHoursNotifiedAt: Date | null;
 
+  // Last message from the customer; the Cloud API allows free text only
+  // within 24 hours of it.
+  @Column(DataType.DATE)
+  lastInboundAt: Date | null;
+
   // Set when the virtual assistant handed the conversation to the team.
   @Column(DataType.DATE)
   aiHandoffAt: Date | null;

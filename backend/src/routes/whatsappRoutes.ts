@@ -12,6 +12,12 @@ whatsappRoutes.post("/whatsapp/", isAuth, isAdmin, WhatsAppController.store);
 
 whatsappRoutes.get("/whatsapp/:whatsappId", isAuth, WhatsAppController.show);
 
+whatsappRoutes.get(
+  "/whatsapp/:whatsappId/templates",
+  isAuth,
+  WhatsAppController.templates
+);
+
 whatsappRoutes.put(
   "/whatsapp/:whatsappId",
   isAuth,
