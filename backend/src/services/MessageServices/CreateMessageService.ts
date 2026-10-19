@@ -4,6 +4,7 @@ import { messagePayload } from "../../helpers/WebhookPayloads";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
+import Tag from "../../models/Tag";
 
 interface MessageData {
   id: string;
@@ -35,6 +36,12 @@ const CreateMessageService = async ({
         include: [
           "contact",
           "queue",
+          {
+            model: Tag,
+            as: "tags",
+            attributes: ["id", "name", "color"],
+            through: { attributes: [] }
+          },
           {
             model: Whatsapp,
             as: "whatsapp",

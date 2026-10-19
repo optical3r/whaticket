@@ -21,6 +21,7 @@ import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../Can";
 import TicketsQueueSelect from "../TicketsQueueSelect";
+import TicketsTagSelect from "../TicketsTagSelect";
 
 const useStyles = makeStyles((theme) => ({
   ticketsWrapper: {
@@ -161,9 +162,10 @@ const TicketsManager = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const userQueueIds = user.queues.map((q) => q.id);
   const [selectedQueueIds, setSelectedQueueIds] = useState(userQueueIds || []);
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
 
   useEffect(() => {
-    if (user.profile.toUpperCase() === "ADMIN") {
+    if (user.profile === "admin" || user.profile === "supervisor") {
       setShowAllTickets(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -294,8 +296,13 @@ const TicketsManager = () => {
         <TicketsQueueSelect
           style={{ marginLeft: 6 }}
           selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
           userQueues={user?.queues}
           onChange={(values) => setSelectedQueueIds(values)}
+        />
+        <TicketsTagSelect
+          selectedTagIds={selectedTagIds}
+          onChange={(values) => setSelectedTagIds(values)}
         />
       </Paper>
       <TabPanel value={tab} name="open" className={classes.ticketsWrapper}>
@@ -342,12 +349,16 @@ const TicketsManager = () => {
             status="open"
             showAll={showAllTickets}
             selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
+            selectedTagIds={selectedTagIds}
             updateCount={(val) => setOpenCount(val)}
             style={applyPanelStyle("open")}
           />
           <TicketsList
             status="pending"
             selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
+            selectedTagIds={selectedTagIds}
             updateCount={(val) => setPendingCount(val)}
             style={applyPanelStyle("pending")}
           />
@@ -358,6 +369,7 @@ const TicketsManager = () => {
           status="closed"
           showAll={true}
           selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
         />
       </TabPanel>
       <TabPanel value={tab} name="search" className={classes.ticketsWrapper}>
@@ -365,6 +377,7 @@ const TicketsManager = () => {
           searchParam={searchParam}
           showAll={true}
           selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
         />
       </TabPanel>
       {tab !== "search" && (

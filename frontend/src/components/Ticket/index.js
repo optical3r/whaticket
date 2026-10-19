@@ -171,7 +171,12 @@ const Ticket = () => {
         open={drawerOpen}
         handleDrawerClose={handleDrawerClose}
         contact={contact}
+        ticket={ticket}
         loading={loading}
+        onTicketTagsChange={(tags) => setTicket((prev) => ({ ...prev, tags }))}
+        onContactTagsChange={(tags) =>
+          setContact((prev) => ({ ...prev, tags }))
+        }
       />
     </div>
   );

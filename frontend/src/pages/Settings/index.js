@@ -7,6 +7,11 @@ import Typography from "@material-ui/core/Typography";
 import Container from "@material-ui/core/Container";
 import TextField from "@material-ui/core/TextField";
 import LinearProgress from "@material-ui/core/LinearProgress";
+import Switch from "@material-ui/core/Switch";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import MenuItem from "@material-ui/core/MenuItem";
+import Button from "@material-ui/core/Button";
+import { toast } from "react-toastify";
 
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n.js";
@@ -79,11 +84,59 @@ const UsageBar = ({ label, used, limit }) => {
 	);
 };
 
+// Every IANA zone the browser knows, with Brazilian zones as fallback.
+const TIMEZONES = (() => {
+	try {
+		return Intl.supportedValuesOf("timeZone");
+	} catch {
+		return [
+			"America/Sao_Paulo",
+			"America/Manaus",
+			"America/Belem",
+			"America/Fortaleza",
+			"America/Recife",
+			"America/Cuiaba",
+			"America/Porto_Velho",
+			"America/Rio_Branco",
+			"America/Noronha",
+		];
+	}
+})();
+
 const Settings = () => {
 	const classes = useStyles();
 
 	const [company, setCompany] = useState(null);
 	const [apiToken, setApiToken] = useState("");
+	const [values, setValues] = useState({});
+
+	// Updates the screen right away and undoes it if the server refuses.
+	const saveSetting = async (key, value) => {
+		const previous = values[key];
+		setValues(prev => ({ ...prev, [key]: value }));
+		try {
+			await api.put(`/settings/${key}`, { value });
+			toast.success(i18n.t("settings.success"));
+		} catch (err) {
+			setValues(prev => ({ ...prev, [key]: previous }));
+			toastError(err);
+		}
+	};
+
+	const saveTexts = async () => {
+		await saveSetting("csatMessage", values.csatMessage);
+		await saveSetting("csatThanksMessage", values.csatThanksMessage);
+	};
+
+	const saveTimezone = async timezone => {
+		try {
+			const { data } = await api.put("/company", { timezone });
+			setCompany(data);
+			toast.success(i18n.t("settings.timezone.saved"));
+		} catch (err) {
+			toastError(err);
+		}
+	};
 
 	useEffect(() => {
 		void (async () => {
@@ -95,6 +148,7 @@ const Settings = () => {
 				setCompany(companyData);
 				const token = settings.find(s => s.key === "userApiToken");
 				setApiToken(token ? token.value : "");
+				setValues(Object.fromEntries(settings.map(s => [s.key, s.value])));
 			} catch (err) {
 				toastError(err);
 			}
@@ -143,6 +197,93 @@ const Settings = () => {
 						</Typography>
 					</Paper>
 				)}
+
+				{company && (
+					<Paper className={classes.paper} variant="outlined">
+						<TextField
+							id="company-timezone"
+							select
+							fullWidth
+							variant="outlined"
+							margin="dense"
+							label={i18n.t("settings.timezone.label")}
+							helperText={i18n.t("settings.timezone.help")}
+							value={company.timezone}
+							onChange={e => saveTimezone(e.target.value)}
+						>
+							{TIMEZONES.map(zone => (
+								<MenuItem key={zone} value={zone}>
+									{zone}
+								</MenuItem>
+							))}
+						</TextField>
+					</Paper>
+				)}
+
+				<Paper className={classes.paper} variant="outlined">
+					<Typography variant="h6" component="h2" className={classes.sectionTitle}>
+						{i18n.t("settings.closing.title")}
+					</Typography>
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.closeReasonRequired === "enabled"}
+								onChange={e =>
+									saveSetting("closeReasonRequired", e.target.checked ? "enabled" : "disabled")
+								}
+							/>
+						}
+						label={i18n.t("settings.closing.closeReasonRequired")}
+					/>
+					<Typography variant="body2" color="textSecondary">
+						{i18n.t("settings.closing.closeReasonHelp")}
+					</Typography>
+				</Paper>
+
+				<Paper className={classes.paper} variant="outlined">
+					<Typography variant="h6" component="h2" className={classes.sectionTitle}>
+						{i18n.t("settings.csat.title")}
+					</Typography>
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.csatEnabled === "enabled"}
+								onChange={e => saveSetting("csatEnabled", e.target.checked ? "enabled" : "disabled")}
+							/>
+						}
+						label={i18n.t("settings.csat.enabled")}
+					/>
+					<Typography variant="body2" color="textSecondary" gutterBottom>
+						{i18n.t("settings.csat.help")}
+					</Typography>
+					<TextField
+						id="csat-message"
+						label={i18n.t("settings.csat.message")}
+						value={values.csatMessage || ""}
+						onChange={e => setValues(prev => ({ ...prev, csatMessage: e.target.value }))}
+						inputProps={{ maxLength: 1000 }}
+						variant="outlined"
+						margin="dense"
+						multiline
+						minRows={2}
+						fullWidth
+					/>
+					<TextField
+						id="csat-thanks"
+						label={i18n.t("settings.csat.thanks")}
+						value={values.csatThanksMessage || ""}
+						onChange={e => setValues(prev => ({ ...prev, csatThanksMessage: e.target.value }))}
+						inputProps={{ maxLength: 1000 }}
+						variant="outlined"
+						margin="dense"
+						fullWidth
+					/>
+					<Button variant="outlined" color="primary" onClick={saveTexts} style={{ marginTop: 8 }}>
+						{i18n.t("settings.csat.save")}
+					</Button>
+				</Paper>
 
 				<Paper className={classes.paper} variant="outlined">
 					<TextField

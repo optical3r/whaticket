@@ -18,6 +18,10 @@ import AccountTreeOutlinedIcon from "@material-ui/icons/AccountTreeOutlined";
 import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
 import BusinessOutlinedIcon from "@material-ui/icons/BusinessOutlined";
 import LocalOfferOutlinedIcon from "@material-ui/icons/LocalOfferOutlined";
+import AssessmentOutlinedIcon from "@material-ui/icons/AssessmentOutlined";
+import LabelOutlinedIcon from "@material-ui/icons/LabelOutlined";
+import AssignmentTurnedInOutlinedIcon from "@material-ui/icons/AssignmentTurnedInOutlined";
+import SettingsEthernetIcon from "@material-ui/icons/SettingsEthernet";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -202,7 +206,7 @@ const MainListItems = (props) => {
       />
       <Can
         role={user.profile}
-        perform="drawer-admin-items:view"
+        perform="drawer-manager-items:view"
         yes={() => (
           <>
             <Divider className={classes.divider} />
@@ -211,23 +215,85 @@ const MainListItems = (props) => {
                 {i18n.t("mainDrawer.listItems.administration")}
               </ListSubheader>
             )}
-            <ListItemLink
-              to="/users"
-              primary={i18n.t("mainDrawer.listItems.users")}
-              icon={<PeopleAltOutlinedIcon />}
-              collapsed={collapsed}
+            <Can
+              role={user.profile}
+              perform="reports:view"
+              yes={() => (
+                <ListItemLink
+                  to="/reports"
+                  primary={i18n.t("mainDrawer.listItems.reports")}
+                  icon={<AssessmentOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
             />
-            <ListItemLink
-              to="/queues"
-              primary={i18n.t("mainDrawer.listItems.queues")}
-              icon={<AccountTreeOutlinedIcon />}
-              collapsed={collapsed}
+            <Can
+              role={user.profile}
+              perform="drawer-admin-items:view"
+              yes={() => (
+                <>
+                  <ListItemLink
+                    to="/users"
+                    primary={i18n.t("mainDrawer.listItems.users")}
+                    icon={<PeopleAltOutlinedIcon />}
+                    collapsed={collapsed}
+                  />
+                  <ListItemLink
+                    to="/queues"
+                    primary={i18n.t("mainDrawer.listItems.queues")}
+                    icon={<AccountTreeOutlinedIcon />}
+                    collapsed={collapsed}
+                  />
+                </>
+              )}
             />
-            <ListItemLink
-              to="/settings"
-              primary={i18n.t("mainDrawer.listItems.settings")}
-              icon={<SettingsOutlinedIcon />}
-              collapsed={collapsed}
+            <Can
+              role={user.profile}
+              perform="tags:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/tags"
+                  primary={i18n.t("mainDrawer.listItems.tags")}
+                  icon={<LabelOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="closeReasons:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/closeReasons"
+                  primary={i18n.t("mainDrawer.listItems.closeReasons")}
+                  icon={<AssignmentTurnedInOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="webhooks:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/webhooks"
+                  primary={i18n.t("mainDrawer.listItems.webhooks")}
+                  icon={<SettingsEthernetIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="drawer-admin-items:view"
+              yes={() => (
+                <ListItemLink
+                  to="/settings"
+                  primary={i18n.t("mainDrawer.listItems.settings")}
+                  icon={<SettingsOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
             />
           </>
         )}

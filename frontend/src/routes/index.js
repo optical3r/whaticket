@@ -14,6 +14,10 @@ import QuickAnswers from "../pages/QuickAnswers/";
 import Queues from "../pages/Queues/";
 import Companies from "../pages/Companies/";
 import Plans from "../pages/Plans/";
+import Tags from "../pages/Tags/";
+import CloseReasons from "../pages/CloseReasons/";
+import Reports from "../pages/Reports/";
+import Webhooks from "../pages/Webhooks/";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import { ThemeProvider } from "../context/DarkMode";
@@ -38,6 +42,10 @@ const Routes = () => {
                 <Route exact path="/Queues" component={Queues} isPrivate />
                 <Route exact path="/companies" component={Companies} isPrivate />
                 <Route exact path="/plans" component={Plans} isPrivate />
+                <Route exact path="/tags" component={Tags} isPrivate />
+                <Route exact path="/closeReasons" component={CloseReasons} isPrivate />
+                <Route exact path="/reports" component={Reports} isPrivate />
+                <Route exact path="/webhooks" component={Webhooks} isPrivate />
               </LoggedInLayout>
             </WhatsAppsProvider>
           </Switch>

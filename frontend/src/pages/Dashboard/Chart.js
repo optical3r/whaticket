@@ -70,7 +70,7 @@ const Chart = () => {
 						left: 24,
 					}}
 				>
-					<CartesianGrid strokeDasharray="3 3" />
+					<CartesianGrid stroke={theme.palette.divider} vertical={false} />
 					<XAxis dataKey="time" stroke={theme.palette.text.secondary} />
 					<YAxis
 						type="number"
@@ -85,7 +85,12 @@ const Chart = () => {
 							Tickets
 						</Label>
 					</YAxis>
-					<Bar dataKey="amount" fill={theme.palette.chart[0]} />
+					<Bar
+						dataKey="amount"
+						fill={theme.palette.chart[0]}
+						maxBarSize={24}
+						radius={[4, 4, 0, 0]}
+					/>
 				</BarChart>
 			</ResponsiveContainer>
 		</React.Fragment>

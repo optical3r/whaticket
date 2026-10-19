@@ -44,7 +44,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     withUnreadMessages
   } = req.query as IndexQuery;
 
-  const { id: userId, companyId, profile } = req.user;
+  const { id: userId, companyId } = req.user;
 
   let queueIds: number[] = [];
 
@@ -61,9 +61,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     pageNumber,
     status,
     date,
-    // Only managers may see every ticket, regardless of who is assigned.
-    showAll:
-      profile === "admin" || profile === "supervisor" ? showAll : "false",
+    showAll,
     userId,
     queueIds,
     withUnreadMessages,

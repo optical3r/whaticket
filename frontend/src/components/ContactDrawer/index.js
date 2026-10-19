@@ -14,6 +14,8 @@ import Paper from "@material-ui/core/Paper";
 import { i18n } from "../../translate/i18n";
 
 import ContactModal from "../ContactModal";
+import TagSelector from "../TagSelector";
+import TicketNotes from "../TicketNotes";
 import ContactDrawerSkeleton from "../ContactDrawerSkeleton";
 import MarkdownWrapper from "../MarkdownWrapper";
 
@@ -71,13 +73,24 @@ const useStyles = makeStyles(theme => ({
 		display: "flex",
 		flexDirection: "column",
 	},
+	tagSelector: {
+		margin: theme.spacing(1, 0),
+	},
 	contactExtraInfo: {
 		marginTop: 4,
 		padding: 6,
 	},
 }));
 
-const ContactDrawer = ({ open, handleDrawerClose, contact, loading }) => {
+const ContactDrawer = ({
+	open,
+	handleDrawerClose,
+	contact,
+	ticket,
+	loading,
+	onTicketTagsChange,
+	onContactTagsChange,
+}) => {
 	const classes = useStyles();
 
 	const [modalOpen, setModalOpen] = useState(false);
@@ -152,6 +165,33 @@ const ContactDrawer = ({ open, handleDrawerClose, contact, loading }) => {
 							</Paper>
 						))}
 					</Paper>
+					{ticket?.id && (
+						<Paper square variant="outlined" className={classes.contactDetails}>
+							<div className={classes.tagSelector}>
+								<TagSelector
+									id="ticket-tags"
+									label={i18n.t("tagSelector.ticketTags")}
+									endpoint={`/tickets/${ticket.id}/tags`}
+									value={ticket.tags || []}
+									onChange={onTicketTagsChange}
+								/>
+							</div>
+							<div className={classes.tagSelector}>
+								<TagSelector
+									id="contact-tags"
+									label={i18n.t("tagSelector.contactTags")}
+									endpoint={`/contacts/${contact.id}/tags`}
+									value={contact.tags || []}
+									onChange={onContactTagsChange}
+								/>
+							</div>
+						</Paper>
+					)}
+					{ticket?.id && (
+						<Paper square variant="outlined" className={classes.contactDetails}>
+							<TicketNotes ticketId={ticket.id} />
+						</Paper>
+					)}
 				</div>
 			)}
 		</Drawer>

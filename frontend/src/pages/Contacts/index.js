@@ -32,6 +32,9 @@ import Title from "../../components/Title";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 import MainContainer from "../../components/MainContainer";
 import toastError from "../../errors/toastError";
+import TagChips from "../../components/TagChips";
+import useTags from "../../hooks/useTags";
+import MenuItem from "@material-ui/core/MenuItem";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 
@@ -103,11 +106,13 @@ const Contacts = () => {
   const [deletingContact, setDeletingContact] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [tagId, setTagId] = useState("");
+  const { tags } = useTags();
 
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
-  }, [searchParam]);
+  }, [searchParam, tagId]);
 
   useEffect(() => {
     setLoading(true);
@@ -115,7 +120,7 @@ const Contacts = () => {
       const fetchContacts = async () => {
         try {
           const { data } = await api.get("/contacts/", {
-            params: { searchParam, pageNumber },
+            params: { searchParam, pageNumber, tagId: tagId || undefined },
           });
           dispatch({ type: "LOAD_CONTACTS", payload: data.contacts });
           setHasMore(data.hasMore);
@@ -127,7 +132,7 @@ const Contacts = () => {
       void fetchContacts();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchParam, pageNumber]);
+  }, [searchParam, pageNumber, tagId]);
 
   useEffect(() => {
     const socket = openSocket();
@@ -246,6 +251,25 @@ const Contacts = () => {
       <MainHeader>
         <Title>{i18n.t("contacts.title")}</Title>
         <MainHeaderButtonsWrapper>
+          {tags.length > 0 && (
+            <TextField
+              id="contacts-tag-filter"
+              select
+              size="small"
+              variant="outlined"
+              label={i18n.t("tagSelector.filter")}
+              value={tagId}
+              onChange={(e) => setTagId(e.target.value)}
+              style={{ minWidth: 140 }}
+            >
+              <MenuItem value="">{i18n.t("reports.filters.all")}</MenuItem>
+              {tags.map((tag) => (
+                <MenuItem key={tag.id} value={tag.id}>
+                  {tag.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             placeholder={i18n.t("contacts.searchPlaceholder")}
             type="search"
@@ -303,7 +327,10 @@ const Contacts = () => {
                   <TableCell style={{ paddingRight: 0 }}>
                     {<Avatar src={contact.profilePicUrl} />}
                   </TableCell>
-                  <TableCell>{contact.name}</TableCell>
+                  <TableCell>
+                    {contact.name}
+                    <TagChips tags={contact.tags} />
+                  </TableCell>
                   <TableCell
                     align="center"
                     data-label={i18n.t("contacts.table.whatsapp")}

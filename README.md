@@ -18,13 +18,20 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Painel da plataforma** (superadmin da Cerqueira Labs): criar empresas e o primeiro administrador, trocar o plano, suspender e reativar.
 - **Termos de uso**: o administrador da empresa aceita os riscos da conexão por QR Code antes de criar a primeira conexão.
 - **Alerta de conexão caída**: banner e aviso no navegador quando uma conexão do WhatsApp para de funcionar.
-- **Usuários**: perfis de administrador e atendente dentro de cada empresa.
+- **Perfis**: administrador, supervisor (vê todos os tickets, relatórios, etiquetas e motivos) e atendente.
+- **Etiquetas** em tickets e contatos, com filtro na lista de tickets e de contatos.
+- **Notas internas** no ticket, visíveis só para a equipe.
+- **Horário de atendimento por fila**, no fuso horário da empresa, com mensagem automática fora do horário.
+- **Motivo de encerramento**, opcional ou obrigatório.
+- **Pesquisa de satisfação** (nota de 1 a 5) enviada ao encerrar o ticket. A resposta fica registrada no ticket encerrado, sem reabri-lo.
+- **Relatórios**: tempo de primeira resposta, tempo de resolução, volume por dia, fila, atendente e motivo, satisfação média e exportação em CSV.
+- **Webhooks** para enviar eventos (ticket criado, encerrado, avaliado, mensagem recebida e enviada) para outros sistemas.
 - **Dashboard**: volume de tickets do dia.
 - **API**: envio de mensagens por `POST /api/messages/send`, autenticado pelo token da empresa (em **Configurações**).
 - **Idiomas**: português (Brasil), o padrão, e inglês. A troca fica no ícone de idioma da barra superior e da tela de login.
 - **Temas**: claro (padrão) e escuro, seguindo o design system Cerqueira Labs.
 
-O roteiro de evolução (API oficial do WhatsApp, IA, relatórios e campanhas) está no plano de implementação aprovado.
+O roteiro de evolução (API oficial do WhatsApp, IA e campanhas) está no plano de implementação aprovado.
 
 ## Empresas, planos e superadmin
 
@@ -108,6 +115,24 @@ O backend (porta 8080) e o banco (porta 3306) só ficam acessíveis pelo própri
 ```
 
 Guarde uma cópia fora do servidor (por exemplo, em um bucket S3/R2).
+
+## Webhooks
+
+Cadastre em **Administração → Webhooks**. Cada envio é um `POST` com JSON:
+
+```json
+{ "event": "ticket.closed", "companyId": 1, "sentAt": "2026-10-19T17:28:49.000Z", "data": { "id": 1000, "status": "closed" } }
+```
+
+O cabeçalho `X-Webhook-Signature` traz `sha256=<HMAC do corpo com o segredo do webhook>`. Para validar em Node.js:
+
+```js
+const crypto = require("crypto");
+const expected = "sha256=" + crypto.createHmac("sha256", SEGREDO).update(corpoBruto).digest("hex");
+const valido = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers["x-webhook-signature"]));
+```
+
+Por segurança, URLs que apontam para a rede interna (localhost, 10.x, 192.168.x, 169.254.x etc.) são recusadas. Em desenvolvimento, `WEBHOOK_ALLOW_PRIVATE_URLS=true` libera esses endereços.
 
 ## Segurança
 

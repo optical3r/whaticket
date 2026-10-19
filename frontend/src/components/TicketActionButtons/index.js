@@ -11,6 +11,7 @@ import TicketOptionsMenu from "../TicketOptionsMenu";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import CloseTicketModal from "../CloseTicketModal";
 
 const useStyles = makeStyles(theme => ({
 	actionButtons: {
@@ -40,12 +41,15 @@ const TicketActionButtons = ({ ticket }) => {
 		setAnchorEl(null);
 	};
 
-	const handleUpdateTicketStatus = async (e, status, userId) => {
+	const [closeModal, setCloseModal] = useState({ open: false, reasons: [], required: false });
+
+	const handleUpdateTicketStatus = async (e, status, userId, extra = {}) => {
 		setLoading(true);
 		try {
 			await api.put(`/tickets/${ticket.id}`, {
 				status: status,
 				userId: userId || null,
+				...extra,
 			});
 
 			setLoading(false);
@@ -60,8 +64,39 @@ const TicketActionButtons = ({ ticket }) => {
 		}
 	};
 
+	// Asks for a close reason when the company has registered any.
+	const handleResolve = async e => {
+		setLoading(true);
+		try {
+			const { data } = await api.get("/closeReasons");
+			setLoading(false);
+			if (data.reasons.length > 0) {
+				setCloseModal({ open: true, reasons: data.reasons, required: data.required });
+				return;
+			}
+		} catch (err) {
+			setLoading(false);
+			toastError(err);
+			return;
+		}
+		await handleUpdateTicketStatus(e, "closed", user?.id);
+	};
+
+	const handleConfirmClose = async closeReasonId => {
+		setCloseModal(prev => ({ ...prev, open: false }));
+		await handleUpdateTicketStatus(null, "closed", user?.id, { closeReasonId });
+	};
+
 	return (
 		<div className={classes.actionButtons}>
+			<CloseTicketModal
+				open={closeModal.open}
+				reasons={closeModal.reasons}
+				required={closeModal.required}
+				loading={loading}
+				onClose={() => setCloseModal(prev => ({ ...prev, open: false }))}
+				onConfirm={handleConfirmClose}
+			/>
 			{ticket.status === "closed" && (
 				<ButtonWithSpinner
 					loading={loading}
@@ -87,7 +122,7 @@ const TicketActionButtons = ({ ticket }) => {
 						size="small"
 						variant="contained"
 						color="primary"
-						onClick={e => handleUpdateTicketStatus(e, "closed", user?.id)}
+						onClick={handleResolve}
 					>
 						{i18n.t("messagesList.header.buttons.resolve")}
 					</ButtonWithSpinner>

@@ -19,6 +19,7 @@ import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import ColorPicker from "../ColorPicker";
+import QueueScheduleEditor from "../QueueScheduleEditor";
 import { IconButton, InputAdornment } from "@material-ui/core";
 import { Colorize } from "@material-ui/icons";
 
@@ -70,6 +71,8 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		name: "",
 		color: "",
 		greetingMessage: "",
+		schedules: [],
+		outOfHoursMessage: "",
 	};
 
 	const [colorPickerModalOpen, setColorPickerModalOpen] = useState(false);
@@ -82,7 +85,12 @@ const QueueModal = ({ open, onClose, queueId }) => {
 			try {
 				const { data } = await api.get(`/queue/${queueId}`);
 				setQueue(prevState => {
-					return { ...prevState, ...data };
+					return {
+						...prevState,
+						...data,
+						schedules: data.schedules || [],
+						outOfHoursMessage: data.outOfHoursMessage || "",
+					};
 				});
 			} catch (err) {
 				toastError(err);
@@ -90,11 +98,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		})();
 
 		return () => {
-			setQueue({
-				name: "",
-				color: "",
-				greetingMessage: "",
-			});
+			setQueue(initialState);
 		};
 	}, [queueId, open]);
 
@@ -119,7 +123,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 
 	return (
 		<div className={classes.root}>
-			<Dialog open={open} onClose={handleClose} scroll="paper">
+			<Dialog open={open} onClose={handleClose} scroll="paper" maxWidth="sm" fullWidth>
 				<DialogTitle>
 					{queueId
 						? `${i18n.t("queueModal.title.edit")}`
@@ -136,7 +140,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 						}, 400);
 					}}
 				>
-					{({ touched, errors, isSubmitting, values }) => (
+					{({ touched, errors, isSubmitting, values, setFieldValue }) => (
 						<Form>
 							<DialogContent dividers>
 								<Field
@@ -212,6 +216,25 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										variant="outlined"
 										margin="dense"
 									/>
+								</div>
+								<div style={{ marginTop: 16 }}>
+									<QueueScheduleEditor
+										value={values.schedules}
+										onChange={schedules => setFieldValue("schedules", schedules)}
+									/>
+									{values.schedules.length > 0 && (
+										<Field
+											as={TextField}
+											id="queue-out-of-hours"
+											label={i18n.t("queueModal.hours.outOfHoursMessage")}
+											multiline
+											rows={3}
+											fullWidth
+											name="outOfHoursMessage"
+											variant="outlined"
+											margin="dense"
+										/>
+									)}
 								</div>
 							</DialogContent>
 							<DialogActions>

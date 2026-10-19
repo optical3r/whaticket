@@ -19,11 +19,15 @@ import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import MarkdownWrapper from "../MarkdownWrapper";
+import TagChips from "../TagChips";
 import { Tooltip } from "@material-ui/core";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
 
 const useStyles = makeStyles(theme => ({
+	ticketTags: {
+		marginTop: theme.spacing(0.5),
+	},
 	ticket: {
 		position: "relative",
 	},
@@ -227,6 +231,7 @@ const TicketListItem = ({ ticket }) => {
 						</span>
 					}
 					secondary={
+						<>
 						<span className={classes.contactNameWrapper}>
 							<Typography
 								className={classes.contactLastMessage}
@@ -251,6 +256,8 @@ const TicketListItem = ({ ticket }) => {
 								</span>
 							)}
 						</span>
+						<TagChips tags={ticket.tags} className={classes.ticketTags} />
+						</>
 					}
 				/>
 				{ticket.status === "pending" && (

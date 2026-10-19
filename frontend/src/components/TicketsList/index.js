@@ -151,8 +151,15 @@ const reducer = (state, action) => {
 };
 
 	const TicketsList = (props) => {
-		const { status, searchParam, showAll, selectedQueueIds, updateCount, style } =
-			props;
+		const {
+			status,
+			searchParam,
+			showAll,
+			selectedQueueIds,
+			selectedTagIds = [],
+			updateCount,
+			style,
+		} = props;
 	const classes = useStyles();
 	const [pageNumber, setPageNumber] = useState(1);
 	const [ticketsList, dispatch] = useReducer(reducer, []);
@@ -161,7 +168,7 @@ const reducer = (state, action) => {
 	useEffect(() => {
 		dispatch({ type: "RESET" });
 		setPageNumber(1);
-	}, [status, searchParam, dispatch, showAll, selectedQueueIds]);
+	}, [status, searchParam, dispatch, showAll, selectedQueueIds, selectedTagIds]);
 
 	const { tickets, hasMore, loading } = useTickets({
 		pageNumber,
@@ -169,6 +176,7 @@ const reducer = (state, action) => {
 		status,
 		showAll,
 		queueIds: JSON.stringify(selectedQueueIds),
+		tagIds: selectedTagIds.length ? JSON.stringify(selectedTagIds) : undefined,
 	});
 
 	useEffect(() => {
@@ -184,7 +192,9 @@ const reducer = (state, action) => {
 
 		const shouldUpdateTicket = ticket => !searchParam &&
 			(!ticket.userId || ticket.userId === user?.id || showAll) &&
-			(!ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1);
+			(!ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1) &&
+			(selectedTagIds.length === 0 ||
+				(ticket.tags || []).some(tag => selectedTagIds.includes(tag.id)));
 
 		const notBelongsToUserQueues = ticket =>
 			ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;

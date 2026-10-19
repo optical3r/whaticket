@@ -227,8 +227,11 @@ const UserModal = ({ open, onClose, userId }) => {
 														id="profile-selection"
 														required
 													>
-														<MenuItem value="admin">Admin</MenuItem>
-														<MenuItem value="user">User</MenuItem>
+														{["admin", "supervisor", "user"].map(profile => (
+															<MenuItem key={profile} value={profile}>
+																{i18n.t(`userModal.profiles.${profile}`)}
+															</MenuItem>
+														))}
 													</Field>
 												</>
 											)}

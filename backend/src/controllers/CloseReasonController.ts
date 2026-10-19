@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 
+import { isSettingEnabled } from "../helpers/CompanySettings";
+
 import {
   DeleteCloseReasonService,
   ListCloseReasonsService,
@@ -7,9 +9,14 @@ import {
 } from "../services/CloseReasonServices/CloseReasonServices";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const reasons = await ListCloseReasonsService(req.user.companyId);
+  const { companyId } = req.user;
+  const reasons = await ListCloseReasonsService(companyId);
+  // Agents can't read the settings, so they learn here if a reason is needed.
+  const required =
+    reasons.length > 0 &&
+    (await isSettingEnabled(companyId, "closeReasonRequired"));
 
-  return res.status(200).json(reasons);
+  return res.status(200).json({ reasons, required });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
