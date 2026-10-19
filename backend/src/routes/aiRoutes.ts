@@ -20,6 +20,8 @@ const aiRequestLimit = rateLimit({
 
 aiRoutes.get("/ai/settings", isAuth, AiController.showSettings);
 aiRoutes.put("/ai/settings", isAuth, isAdmin, AiController.updateSettings);
+aiRoutes.put("/ai/key", isAuth, isAdmin, aiRequestLimit, AiController.saveKey);
+aiRoutes.delete("/ai/key", isAuth, isAdmin, AiController.removeKey);
 
 aiRoutes.get("/ai/knowledge", isAuth, isAdmin, AiController.listKnowledge);
 aiRoutes.post("/ai/knowledge", isAuth, isAdmin, AiController.storeKnowledge);

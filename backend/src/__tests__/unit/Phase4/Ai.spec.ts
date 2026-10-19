@@ -4,7 +4,12 @@ import faker from "faker";
 
 import AppError from "../../../errors/AppError";
 import { getAiSettings, updateAiSettings } from "../../../helpers/AiSettings";
-import { resetAiClient } from "../../../libs/ai";
+import {
+  getUsageSummary,
+  resetAiClient,
+  saveCompanyKey
+} from "../../../libs/ai";
+import Setting from "../../../models/Setting";
 import {
   closeQueue,
   defineJob,
@@ -64,6 +69,10 @@ interface FakeReply {
   text?: string;
   stopReason?: string;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CLIENT_KEY = "sk-ant-api03-client-key-0000000000000000wxyz";
+const BAD_KEY = "sk-ant-api03-revoked-key-000000000000000000000";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requests: { headers: http.IncomingHttpHeaders; body: any }[] = [];
@@ -130,6 +139,23 @@ describe("Phase 4: AI", () => {
         raw += chunk;
       });
       req.on("end", () => {
+        // Key check before saving a company key: a free model lookup.
+        if (req.method === "GET" && req.url?.startsWith("/v1/models/")) {
+          const valid = req.headers["x-api-key"] !== BAD_KEY;
+          res.statusCode = valid ? 200 : 401;
+          res.setHeader("content-type", "application/json");
+          res.end(
+            JSON.stringify(
+              valid
+                ? { type: "model", id: "claude-opus-5-5" }
+                : {
+                    type: "error",
+                    error: { type: "authentication_error", message: "bad" }
+                  }
+            )
+          );
+          return;
+        }
         requests.push({ headers: req.headers, body: JSON.parse(raw) });
         const next = replies.shift() || { text: "ok" };
         res.setHeader("content-type", "application/json");
@@ -290,6 +316,100 @@ describe("Phase 4: AI", () => {
         }),
         "ERR_AI_REFUSED"
       );
+    });
+  });
+
+  describe("client's own API key", () => {
+    beforeEach(async () => {
+      await Plan.update(
+        { aiKeySource: "company", aiMonthlyRequests: 0 },
+        { where: { id: 1 } }
+      );
+    });
+
+    afterEach(async () => {
+      await Plan.update({ aiKeySource: "platform" }, { where: { id: 1 } });
+    });
+
+    const rewrite = () =>
+      RewriteTextService({
+        text: "oi",
+        mode: "formal",
+        companyId: 1,
+        userId: 1
+      });
+
+    it("asks for the company key and never uses the platform key", async () => {
+      await expectAppError(rewrite(), "ERR_AI_KEY_MISSING");
+
+      // Without a platform key the client's key still works.
+      delete process.env.ANTHROPIC_API_KEY;
+      await expect(saveCompanyKey(1, CLIENT_KEY)).resolves.toBe("wxyz");
+      await expect(rewrite()).resolves.toBe("ok");
+
+      expect(requests[0].headers["x-api-key"]).toBe(CLIENT_KEY);
+      const [usage] = await AiUsage.findAll({ where: { companyId: 1 } });
+      expect(usage.keySource).toBe("company");
+    });
+
+    it("rejects malformed or revoked keys and stores keys encrypted", async () => {
+      await expectAppError(saveCompanyKey(1, "abc"), "ERR_AI_INVALID_KEY");
+      await expectAppError(saveCompanyKey(1, BAD_KEY), "ERR_AI_INVALID_KEY");
+
+      await saveCompanyKey(1, CLIENT_KEY);
+      const stored = await Setting.findOne({
+        where: { companyId: 1, key: "ai.apiKey" }
+      });
+      expect(stored?.value).toBeTruthy();
+      expect(stored?.value).not.toContain("client-key");
+
+      const general = await ListSettingsService(1);
+      expect(general.some(setting => setting.key.startsWith("ai."))).toBe(
+        false
+      );
+    });
+
+    it("has no monthly limit and reports the company's own consumption", async () => {
+      await saveCompanyKey(1, CLIENT_KEY);
+      // Paid by the platform before the plan changed: not the client's.
+      await AiUsage.create({
+        companyId: 1,
+        feature: "rewrite",
+        keySource: "platform",
+        model: "claude-opus-5-5",
+        inputTokens: 999,
+        outputTokens: 999
+      });
+      await rewrite();
+      await rewrite();
+      reply({ text: "Sugestão" });
+      const { ticket } = await createConversation();
+      await customerSays(ticket, "Oi");
+      await SuggestReplyService({
+        ticketId: ticket.id,
+        companyId: 1,
+        userId: 1
+      });
+
+      const summary = await getUsageSummary(1);
+      expect(summary).toMatchObject({
+        requests: 3,
+        inputTokens: 300,
+        outputTokens: 60
+      });
+      expect(
+        summary.byFeature.find(row => row.feature === "rewrite")
+      ).toMatchObject({ requests: 2 });
+    });
+
+    it("keeps the virtual assistant off until the company enters a key", async () => {
+      await updateAiSettings(1, { assistantEnabled: true });
+      const { ticket } = await createConversation();
+      await customerSays(ticket, "Oi");
+
+      await expect(ScheduleAssistantReply(ticket)).resolves.toBe(false);
+      await saveCompanyKey(1, CLIENT_KEY);
+      await expect(ScheduleAssistantReply(ticket)).resolves.toBe(true);
     });
   });
 

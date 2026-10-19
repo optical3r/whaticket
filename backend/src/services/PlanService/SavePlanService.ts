@@ -10,6 +10,7 @@ interface PlanData {
   connections: number;
   queues: number;
   aiEnabled?: boolean;
+  aiKeySource?: string;
   aiMonthlyRequests?: number;
 }
 
@@ -31,6 +32,10 @@ const schema = Yup.object().shape({
     .min(0, "ERR_PLAN_INVALID_LIMIT")
     .required("ERR_PLAN_INVALID_LIMIT"),
   aiEnabled: Yup.boolean(),
+  aiKeySource: Yup.mixed().oneOf(
+    ["platform", "company", undefined],
+    "ERR_PLAN_INVALID_AI_KEY_SOURCE"
+  ),
   aiMonthlyRequests: Yup.number()
     .integer("ERR_PLAN_INVALID_LIMIT")
     .min(0, "ERR_PLAN_INVALID_LIMIT")
@@ -42,8 +47,15 @@ const SavePlanService = async (
   planData: PlanData,
   planId?: number | string
 ): Promise<Plan> => {
-  const { name, users, connections, queues, aiEnabled, aiMonthlyRequests } =
-    planData;
+  const {
+    name,
+    users,
+    connections,
+    queues,
+    aiEnabled,
+    aiKeySource,
+    aiMonthlyRequests
+  } = planData;
 
   try {
     await schema.validate({
@@ -52,6 +64,7 @@ const SavePlanService = async (
       connections,
       queues,
       aiEnabled,
+      aiKeySource,
       aiMonthlyRequests
     });
   } catch (err) {
@@ -75,6 +88,7 @@ const SavePlanService = async (
     queues: Number(queues),
     // AI fields are kept as they are when a client does not send them.
     ...(typeof aiEnabled === "boolean" ? { aiEnabled } : {}),
+    ...(aiKeySource ? { aiKeySource } : {}),
     ...(aiMonthlyRequests !== undefined && aiMonthlyRequests !== null
       ? { aiMonthlyRequests: Number(aiMonthlyRequests) }
       : {})

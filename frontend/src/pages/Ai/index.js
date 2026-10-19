@@ -54,6 +54,12 @@ const useStyles = makeStyles()(theme => ({
 	mono: {
 		fontFamily: theme.typography.monoFontFamily,
 	},
+	keyStatus: {
+		marginBottom: theme.spacing(1),
+	},
+	usageTable: {
+		marginTop: theme.spacing(2),
+	},
 	usageHelp: {
 		marginTop: theme.spacing(1),
 		color: theme.palette.text.secondary,
@@ -61,6 +67,7 @@ const useStyles = makeStyles()(theme => ({
 	actions: {
 		display: "flex",
 		justifyContent: "flex-end",
+		gap: theme.spacing(1),
 		marginTop: theme.spacing(2),
 	},
 	knowledgeHeader: {
@@ -87,6 +94,9 @@ const Ai = () => {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [selected, setSelected] = useState(null);
 	const [toDelete, setToDelete] = useState(null);
+	const [keyInput, setKeyInput] = useState("");
+	const [savingKey, setSavingKey] = useState(false);
+	const [confirmRemoveKey, setConfirmRemoveKey] = useState(false);
 
 	useEffect(() => {
 		void (async () => {
@@ -156,9 +166,37 @@ const Ai = () => {
 		}
 	};
 
-	const { used, limit } = status.usage;
-	const planAllows = status.planEnabled && limit > 0;
+	const saveKey = async e => {
+		e.preventDefault();
+		setSavingKey(true);
+		try {
+			const { data } = await api.put("/ai/key", { apiKey: keyInput.trim() });
+			setStatus(prev => ({ ...prev, configured: true, keyHint: data.keyHint, available: true }));
+			setKeyInput("");
+			clearAiStatus();
+			toast.success(i18n.t("ai.key.saved"));
+		} catch (err) {
+			toastError(err);
+		}
+		setSavingKey(false);
+	};
+
+	const removeKey = async () => {
+		try {
+			await api.delete("/ai/key");
+			setStatus(prev => ({ ...prev, configured: false, keyHint: null, available: false }));
+			clearAiStatus();
+			toast.success(i18n.t("ai.key.removed"));
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const { used, limit, inputTokens, outputTokens, byFeature } = status.usage;
+	const clientKey = status.keySource === "company";
+	const planAllows = status.planEnabled && (clientKey || limit > 0);
 	const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 100;
+	const number = value => Number(value || 0).toLocaleString(i18n.language === "en" ? "en-US" : "pt-BR");
 
 	return (
 		<div className={classes.root}>
@@ -176,23 +214,73 @@ const Ai = () => {
 			>
 				{i18n.t("ai.knowledge.confirmDeleteMessage")}
 			</ConfirmationModal>
+			<ConfirmationModal
+				title={i18n.t("ai.key.confirmRemove")}
+				open={confirmRemoveKey}
+				onClose={() => setConfirmRemoveKey(false)}
+				onConfirm={removeKey}
+			>
+				{i18n.t("ai.key.confirmRemoveMessage")}
+			</ConfirmationModal>
 
 			<Container maxWidth="md">
 				<Typography variant="h5" component="h1" gutterBottom>
 					{i18n.t("ai.title")}
 				</Typography>
 
+				{planAllows && clientKey && (
+					<Paper className={classes.paper} variant="outlined" component="form" onSubmit={saveKey}>
+						<Typography variant="h6" component="h2" className={classes.sectionTitle}>
+							{i18n.t("ai.key.title")}
+						</Typography>
+						<Typography variant="body2" className={classes.help}>
+							{i18n.t("ai.key.help")}
+						</Typography>
+						{status.configured ? (
+							<Alert severity="success" className={classes.keyStatus}>
+								{i18n.t("ai.key.savedHint")} <span className={classes.mono}>sk-ant-…{status.keyHint}</span>
+							</Alert>
+						) : (
+							<Alert severity="warning" className={classes.keyStatus}>
+								{i18n.t("ai.key.missing")}
+							</Alert>
+						)}
+						<TextField
+							id="ai-api-key"
+							type="password"
+							autoComplete="off"
+							label={status.configured ? i18n.t("ai.key.replace") : i18n.t("ai.key.label")}
+							placeholder="sk-ant-..."
+							value={keyInput}
+							onChange={e => setKeyInput(e.target.value)}
+							inputProps={{ maxLength: 300 }}
+							variant="outlined"
+							margin="dense"
+							fullWidth
+							required
+						/>
+						<div className={classes.actions}>
+							{status.configured && (
+								<Button variant="outlined" onClick={() => setConfirmRemoveKey(true)} disabled={savingKey}>
+									{i18n.t("ai.key.remove")}
+								</Button>
+							)}
+							<Button type="submit" variant="contained" color="primary" disabled={savingKey || !keyInput.trim()}>
+								{savingKey ? i18n.t("ai.key.checking") : i18n.t("ai.key.save")}
+							</Button>
+						</div>
+					</Paper>
+				)}
+
 				<Paper className={classes.paper} variant="outlined">
 					<Typography variant="h6" component="h2" className={classes.sectionTitle}>
 						{i18n.t("ai.usage.title")}
 					</Typography>
-					{!status.configured && (
+					{!planAllows && <Alert severity="info">{i18n.t("ai.usage.notInPlan")}</Alert>}
+					{planAllows && !clientKey && !status.configured && (
 						<Alert severity="warning">{i18n.t("ai.usage.notConfigured")}</Alert>
 					)}
-					{status.configured && !planAllows && (
-						<Alert severity="info">{i18n.t("ai.usage.notInPlan")}</Alert>
-					)}
-					{status.configured && planAllows && (
+					{planAllows && (
 						<>
 							<FormControlLabel
 								control={
@@ -210,16 +298,48 @@ const Ai = () => {
 							<div className={classes.usageLabel}>
 								<Typography variant="body2">{i18n.t("ai.usage.requests")}</Typography>
 								<Typography variant="body2" className={classes.mono}>
-									{used} {i18n.t("settings.company.of")} {limit}
+									{clientKey
+										? number(used)
+										: `${number(used)} ${i18n.t("settings.company.of")} ${number(limit)}`}
 								</Typography>
 							</div>
-							<LinearProgress
-								variant="determinate"
-								value={percent}
-								aria-label={`${i18n.t("ai.usage.requests")}: ${used} ${i18n.t("settings.company.of")} ${limit}`}
-							/>
+							{!clientKey && (
+								<LinearProgress
+									variant="determinate"
+									value={percent}
+									aria-label={`${i18n.t("ai.usage.requests")}: ${used} ${i18n.t("settings.company.of")} ${limit}`}
+								/>
+							)}
+							<div className={classes.usageLabel}>
+								<Typography variant="body2">{i18n.t("ai.usage.tokens")}</Typography>
+								<Typography variant="body2" className={classes.mono}>
+									{i18n.t("ai.usage.tokensValue", { input: number(inputTokens), output: number(outputTokens) })}
+								</Typography>
+							</div>
+							{byFeature.length > 0 && (
+								<Table size="small" className={classes.usageTable}>
+									<TableHead>
+										<TableRow>
+											<TableCell>{i18n.t("ai.usage.table.feature")}</TableCell>
+											<TableCell align="right">{i18n.t("ai.usage.table.requests")}</TableCell>
+											<TableCell align="right">{i18n.t("ai.usage.table.input")}</TableCell>
+											<TableCell align="right">{i18n.t("ai.usage.table.output")}</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{byFeature.map(row => (
+											<TableRow key={row.feature}>
+												<TableCell>{i18n.t(`ai.usage.features.${row.feature}`)}</TableCell>
+												<TableCell align="right" className={classes.mono}>{number(row.requests)}</TableCell>
+												<TableCell align="right" className={classes.mono}>{number(row.inputTokens)}</TableCell>
+												<TableCell align="right" className={classes.mono}>{number(row.outputTokens)}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							)}
 							<Typography variant="body2" className={classes.usageHelp}>
-								{i18n.t("ai.usage.help")}{" "}
+								{clientKey ? i18n.t("ai.usage.helpClientKey") : i18n.t("ai.usage.help")}{" "}
 								<span className={classes.mono}>{status.model}</span>
 							</Typography>
 						</>
@@ -239,7 +359,7 @@ const Ai = () => {
 								color="primary"
 								checked={values.assistantEnabled}
 								onChange={e => change("assistantEnabled", e.target.checked)}
-								disabled={!planAllows || !values.enabled}
+								disabled={!planAllows || !status.configured || !values.enabled}
 							/>
 						}
 						label={i18n.t("ai.assistant.enabled")}

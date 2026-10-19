@@ -7,6 +7,10 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 
@@ -20,6 +24,7 @@ const emptyPlan = {
 	connections: 1,
 	queues: 5,
 	aiEnabled: false,
+	aiKeySource: "platform",
 	aiMonthlyRequests: 1000,
 };
 
@@ -47,6 +52,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			connections: Number(values.connections),
 			queues: Number(values.queues),
 			aiEnabled: values.aiEnabled,
+			aiKeySource: values.aiKeySource,
 			aiMonthlyRequests: Number(values.aiMonthlyRequests),
 		};
 		try {
@@ -111,7 +117,28 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 						}
 						label={i18n.t("planModal.form.aiEnabled")}
 					/>
-					{numberField("aiMonthlyRequests", !values.aiEnabled)}
+					{values.aiEnabled && (
+						<FormControl component="fieldset" margin="dense" fullWidth>
+							<FormLabel component="legend">{i18n.t("planModal.form.aiKeySource")}</FormLabel>
+							<RadioGroup
+								name="aiKeySource"
+								value={values.aiKeySource}
+								onChange={e => setValues(prev => ({ ...prev, aiKeySource: e.target.value }))}
+							>
+								<FormControlLabel
+									value="platform"
+									control={<Radio color="primary" />}
+									label={i18n.t("planModal.form.aiKeyPlatform")}
+								/>
+								<FormControlLabel
+									value="company"
+									control={<Radio color="primary" />}
+									label={i18n.t("planModal.form.aiKeyCompany")}
+								/>
+							</RadioGroup>
+						</FormControl>
+					)}
+					{values.aiEnabled && values.aiKeySource === "platform" && numberField("aiMonthlyRequests")}
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={onClose} variant="outlined" disabled={saving}>

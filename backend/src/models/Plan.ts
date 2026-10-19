@@ -43,7 +43,15 @@ class Plan extends Model<Plan> {
   @Column
   aiEnabled: boolean;
 
-  // AI requests allowed per month for each company on the plan.
+  // Whose Anthropic key pays: "platform" (Cerqueira Labs) or "company"
+  // (each company enters its own key).
+  @AllowNull(false)
+  @Default("platform")
+  @Column
+  aiKeySource: string;
+
+  // AI requests allowed per month for each company on the plan. Only for
+  // plans that use the platform key.
   @AllowNull(false)
   @Default(1000)
   @Column

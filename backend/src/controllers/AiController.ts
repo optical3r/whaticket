@@ -1,7 +1,17 @@
 import { Request, Response } from "express";
 
 import { getAiSettings, updateAiSettings } from "../helpers/AiSettings";
-import { aiModel, getMonthlyUsage, isAiConfigured } from "../libs/ai";
+import {
+  aiModel,
+  getAiAccess,
+  getCompanyKey,
+  getPlanAi,
+  getUsageSummary,
+  isAiConfigured,
+  removeCompanyKey,
+  saveCompanyKey
+} from "../libs/ai";
+import AppError from "../errors/AppError";
 import {
   RewriteTextService,
   SuggestReplyService,
@@ -20,19 +30,27 @@ export const showSettings = async (
   res: Response
 ): Promise<Response> => {
   const { companyId } = req.user;
-  const [settings, usage] = await Promise.all([
+  const [settings, plan, usage, key, access] = await Promise.all([
     getAiSettings(companyId),
-    getMonthlyUsage(companyId)
+    getPlanAi(companyId),
+    getUsageSummary(companyId),
+    getCompanyKey(companyId),
+    getAiAccess(companyId, { ignoreLimit: true })
   ]);
-
-  const { planEnabled, ...counts } = usage;
 
   return res.status(200).json({
     ...settings,
-    configured: isAiConfigured(),
-    planEnabled,
+    // Whether the AI buttons should show; a used-up limit still shows them
+    // so the agent learns why a request fails.
+    available: access.allowed,
+    unavailableReason: access.reason || null,
+    planEnabled: plan.planEnabled,
+    keySource: plan.keySource,
+    configured:
+      plan.keySource === "company" ? Boolean(key.key) : isAiConfigured(),
+    keyHint: plan.keySource === "company" ? key.hint : null,
     model: aiModel(),
-    usage: counts
+    usage: { ...usage, used: usage.requests, limit: plan.limit }
   });
 };
 
@@ -130,4 +148,30 @@ export const rewrite = async (
   });
 
   return res.status(200).json({ text });
+};
+
+const assertCompanyKeyPlan = async (companyId: number): Promise<void> => {
+  const plan = await getPlanAi(companyId);
+  if (!plan.planEnabled || plan.keySource !== "company") {
+    throw new AppError("ERR_AI_KEY_NOT_ALLOWED", 403);
+  }
+};
+
+export const saveKey = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  await assertCompanyKeyPlan(req.user.companyId);
+  const keyHint = await saveCompanyKey(req.user.companyId, req.body.apiKey);
+
+  return res.status(200).json({ keyHint });
+};
+
+export const removeKey = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  await removeCompanyKey(req.user.companyId);
+
+  return res.status(200).json({ message: "Key removed" });
 };

@@ -179,21 +179,28 @@ A IA usa a API do Claude, da Anthropic. Para ligar, crie uma chave em https://pl
 
 | Variável | Uso |
 |---|---|
-| `ANTHROPIC_API_KEY` | Chave da API. Vazia = IA desligada. |
+| `ANTHROPIC_API_KEY` | Chave da Cerqueira Labs, usada pelos planos com chave da plataforma. |
+| `DATA_ENCRYPTION_KEY` | Criptografa as chaves que os clientes cadastram (`openssl rand -hex 32`). Vazia = derivada do `JWT_SECRET`. Se mudar, os clientes precisam cadastrar a chave de novo. |
 | `AI_MODEL` | Modelo usado (padrão `claude-opus-5-5`). |
 | `AI_ASSISTANT_DELAY_MS` | Espera antes de o assistente responder, para juntar mensagens enviadas em sequência (padrão 8000). |
 
-A IA só funciona quando as três condições valem:
+A IA só funciona quando estas condições valem:
 
-1. **Instalação**: `ANTHROPIC_API_KEY` preenchida.
-2. **Plano**: o superadmin marca **Módulo de IA liberado** no plano, em **Plataforma → Planos**. Planos novos começam sem IA. Na atualização, só o plano 1 ("Interno") vem liberado.
-3. **Empresa**: o administrador deixa ligada a opção **Usar IA nesta empresa**, em **Administração → Inteligência artificial** (ligada por padrão). Desligada, os botões de IA somem para todos da empresa e o assistente virtual para de responder.
+1. **Plano**: o superadmin marca **Módulo de IA liberado** no plano, em **Plataforma → Planos**. Planos novos começam sem IA. Na atualização, só o plano 1 ("Interno") vem liberado.
+2. **Chave**: no mesmo plano, o superadmin escolhe de quem é a chave da API:
+   - **Da Cerqueira Labs**: usa `ANTHROPIC_API_KEY` da instalação. O consumo é custo da plataforma, controlado pelo limite de **solicitações de IA por mês** de cada empresa.
+   - **Do cliente**: o administrador de cada empresa cadastra a própria chave da Anthropic em **Administração → Inteligência artificial**. O consumo é cobrado na conta do cliente e não há limite mensal. Sem chave cadastrada, a IA fica desligada na empresa.
+3. **Empresa**: o administrador deixa ligada a opção **Usar IA nesta empresa** (ligada por padrão). Desligada, os botões de IA somem para todos da empresa e o assistente virtual para de responder.
 
-Os custos ficam na conta da chave configurada, que pertence à instalação e não a cada cliente. Para controlar o gasto:
+A chave do cliente é verificada com a Anthropic antes de ser salva, fica criptografada no banco (AES-256-GCM) e nunca volta para o navegador: a tela mostra só os 4 últimos caracteres. Se a Anthropic recusar a chave depois (revogada ou sem crédito), a IA avisa o atendente e o assistente transfere a conversa para a equipe.
 
-- Cada plano define as **solicitações de IA por mês** de cada empresa. Sugestões, resumos, revisões e respostas do assistente contam igualmente.
+Na mesma tela, a empresa vê o consumo do mês feito com a chave que o plano usa: solicitações e tokens de entrada e saída, no total e por recurso. Para quem usa a própria chave, o valor exato fica no painel da Anthropic.
+
+Para controlar o gasto da plataforma:
+
+- Sugestões, resumos, revisões e respostas do assistente contam igualmente no limite mensal.
 - Cada usuário pode fazer até 20 solicitações por minuto.
-- Cada solicitação fica registrada na tabela `AiUsages`, com tokens de entrada e saída, para conferir o custo por empresa.
+- Cada solicitação fica registrada na tabela `AiUsages`, com tokens de entrada e saída e de quem era a chave (`keySource`), para separar o custo da plataforma do custo de cada cliente.
 
 **Para o atendente**: no campo de mensagem, o botão de IA sugere uma resposta, resume a conversa (o resumo pode ser salvo como nota) e reescreve o rascunho (corrigir, mais formal, mais cordial, mais curto). Nada é enviado ao cliente sem o atendente revisar.
 

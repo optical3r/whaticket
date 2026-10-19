@@ -35,6 +35,11 @@ class AiUsage extends Model<AiUsage> {
   @Column
   outputTokens: number;
 
+  // "platform" or "company": whose key paid for the request.
+  @AllowNull(false)
+  @Column
+  keySource: string;
+
   @Column
   ticketId: number;
 

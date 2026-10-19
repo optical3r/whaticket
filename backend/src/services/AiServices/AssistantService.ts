@@ -4,7 +4,7 @@ import { subHours } from "date-fns";
 import { buildTranscript } from "../../helpers/AiTranscript";
 import { getAiSettings, AiSettings } from "../../helpers/AiSettings";
 import { isWithinBusinessHours } from "../../helpers/BusinessHours";
-import { generateJson, getMonthlyUsage, isAiConfigured } from "../../libs/ai";
+import { generateJson, getAiAccess } from "../../libs/ai";
 import { defineJob, enqueue } from "../../libs/queue";
 import { companyRoom, getIO } from "../../libs/socket";
 import Company from "../../models/Company";
@@ -71,8 +71,7 @@ const canAnswer = async (ticket: Ticket): Promise<boolean> => {
     ticket.status !== "pending" ||
     ticket.userId ||
     ticket.isGroup ||
-    ticket.aiHandoffAt ||
-    !isAiConfigured()
+    ticket.aiHandoffAt
   ) {
     return false;
   }
@@ -83,12 +82,11 @@ const canAnswer = async (ticket: Ticket): Promise<boolean> => {
     return false;
   }
 
-  const settings = await getAiSettings(ticket.companyId);
-  if (!settings.enabled || !settings.assistantEnabled) return false;
+  if (!(await getAiSettings(ticket.companyId)).assistantEnabled) return false;
 
   // A used-up monthly limit still answers once: the failed request hands
   // the conversation over, so the customer is not left waiting.
-  return (await getMonthlyUsage(ticket.companyId)).planEnabled;
+  return (await getAiAccess(ticket.companyId, { ignoreLimit: true })).allowed;
 };
 
 const emitTicket = async (ticket: Ticket): Promise<void> => {
