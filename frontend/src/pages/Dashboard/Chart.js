@@ -85,7 +85,7 @@ const Chart = () => {
 							Tickets
 						</Label>
 					</YAxis>
-					<Bar dataKey="amount" fill={theme.palette.primary.main} />
+					<Bar dataKey="amount" fill={theme.palette.chart[0]} />
 				</BarChart>
 			</ResponsiveContainer>
 		</React.Fragment>

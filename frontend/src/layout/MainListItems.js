@@ -36,7 +36,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1, 1.25),
   },
   navItemActive: {
-    color: theme.palette.primary.main,
+    color: theme.palette.text.link,
     backgroundColor: theme.palette.tintedBackground,
     "&::before": {
       content: '""',
@@ -49,7 +49,7 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: theme.palette.primary.main,
     },
     "& $navIcon": {
-      color: theme.palette.primary.main,
+      color: theme.palette.text.link,
     },
     "& $navText": {
       fontWeight: 500,

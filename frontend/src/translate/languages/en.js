@@ -69,6 +69,8 @@ const messages = {
           qrcode: "QR CODE",
           newQr: "New QR CODE",
           connecting: "Connectiing",
+          edit: "Edit connection",
+          delete: "Delete connection",
         },
         toolTips: {
           disconnected: {
@@ -297,6 +299,9 @@ const messages = {
           darkMode: "Dark mode",
         },
       },
+      languageSelector: {
+        label: "Language",
+      },
       notifications: {
         noTickets: "No notifications.",
       },
@@ -442,6 +447,8 @@ const messages = {
         ERR_OTHER_OPEN_TICKET:
           "There's already an open ticket for this contact.",
         ERR_SESSION_EXPIRED: "Session expired. Please login.",
+        ERR_TOO_MANY_REQUESTS:
+          "Too many attempts. Wait a few minutes and try again.",
         ERR_USER_CREATION_DISABLED:
           "User creation was disabled by administrator.",
         ERR_NO_PERMISSION: "You don't have permission to access this resource.",

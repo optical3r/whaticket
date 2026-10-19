@@ -25,7 +25,7 @@ const messages = {
         },
         buttons: {
           submit: "Entrar",
-          register: "Não tem um conta? Cadastre-se!",
+          register: "Não tem uma conta? Cadastre-se!",
         },
       },
       auth: {
@@ -70,6 +70,8 @@ const messages = {
           qrcode: "QR CODE",
           newQr: "Novo QR CODE",
           connecting: "Conectando",
+          edit: "Editar conexão",
+          delete: "Excluir conexão",
         },
         toolTips: {
           disconnected: {
@@ -300,6 +302,9 @@ const messages = {
           darkMode: "Modo escuro",
         },
       },
+      languageSelector: {
+        label: "Idioma",
+      },
       notifications: {
         noTickets: "Nenhuma notificação.",
       },
@@ -446,6 +451,8 @@ const messages = {
         ERR_DELETE_WAPP_MSG: "Não foi possível excluir a mensagem do WhatsApp.",
         ERR_OTHER_OPEN_TICKET: "Já existe um tíquete aberto para este contato.",
         ERR_SESSION_EXPIRED: "Sessão expirada. Por favor entre.",
+        ERR_TOO_MANY_REQUESTS:
+          "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
         ERR_USER_CREATION_DISABLED:
           "A criação do usuário foi desabilitada pelo administrador.",
         ERR_NO_PERMISSION: "Você não tem permissão para acessar este recurso.",

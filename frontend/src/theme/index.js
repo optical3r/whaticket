@@ -10,6 +10,20 @@ const borderRadius = {
   pill: "999px",
 };
 
+const fonts = {
+  body: '"Inter", "Helvetica", "Arial", sans-serif',
+  brand: '"Sora", "Inter", "Helvetica", "Arial", sans-serif',
+  mono: '"IBM Plex Mono", "SFMono-Regular", "Consolas", monospace',
+};
+
+const headings = ["h1", "h2", "h3", "h4", "h5", "h6"].reduce(
+  (styles, variant) => ({
+    ...styles,
+    [variant]: { fontFamily: fonts.brand, fontWeight: 600 },
+  }),
+  {}
+);
+
 const createAppTheme = (type) => {
   const colors = palette[type];
   const isDark = type === "dark";
@@ -25,6 +39,11 @@ const createAppTheme = (type) => {
     },
 
     typography: {
+      fontFamily: fonts.body,
+      brandFontFamily: fonts.brand,
+      monoFontFamily: fonts.mono,
+      ...headings,
+      button: { fontWeight: 600 },
       sectionLabel: {
         fontSize: "12px",
         fontWeight: 700,
@@ -61,14 +80,34 @@ const createAppTheme = (type) => {
     },
 
     overrides: {
+      MuiCssBaseline: {
+        "@global": {
+          "*:focus-visible": {
+            outline: `2px solid ${colors.focusRing}`,
+            outlineOffset: 2,
+          },
+          a: {
+            color: colors.text.link,
+          },
+        },
+      },
       MuiButton: {
         root: {
-          borderRadius: 32,
-          fontSize: "13px",
+          borderRadius: borderRadius.input,
+          fontSize: "14px",
+          fontWeight: 600,
           textTransform: "none",
         },
         outlined: {
           backgroundColor: colors.cards.background,
+          borderColor: colors.border.strong,
+        },
+      },
+      // Primary-colored text uses the link token so it keeps AA contrast
+      // on both themes; action-primary is reserved for filled controls.
+      MuiTypography: {
+        colorPrimary: {
+          color: colors.text.link,
         },
       },
       MuiOutlinedInput: {
@@ -84,7 +123,7 @@ const createAppTheme = (type) => {
       },
       MuiDialogTitle: {
         root: {
-          color: colors.primary.main,
+          color: colors.text.primary,
         },
       },
       MuiPaper: {

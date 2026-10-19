@@ -5,6 +5,7 @@ import {
   Drawer,
   AppBar,
   Toolbar,
+  Typography,
   List,
   IconButton,
   useMediaQuery,
@@ -17,11 +18,12 @@ import Brightness7Icon from "@material-ui/icons/Brightness7";
 import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
 import SidebarUserMenu from "../components/SidebarUserMenu";
+import LanguageSelector from "../components/LanguageSelector";
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
 import { i18n } from "../translate/i18n";
 import { useThemeContext } from "../context/DarkMode";
-import logo from "../assets/whaticket-logo-white.png";
+import brand from "../brand";
 
 const drawerWidth = 280;
 const drawerCollapsedWidth = 92;
@@ -47,7 +49,14 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.common.white,
   },
   logo: {
-    height: 30,
+    height: 28,
+    marginRight: theme.spacing(1.5),
+  },
+  brandName: {
+    color: theme.palette.common.white,
+    fontFamily: theme.typography.brandFontFamily,
+    fontWeight: 600,
+    fontSize: 18,
   },
   grow: {
     flexGrow: 1,
@@ -175,8 +184,13 @@ const LoggedInLayout = ({ children }) => {
           >
             {drawerOpen ? <MenuOpenIcon /> : <MenuIcon />}
           </IconButton>
-          <img src={logo} alt="Whaticket" className={classes.logo} />
+          <img src={brand.logos.symbol} alt="" className={classes.logo} />
+          <Typography component="span" className={classes.brandName}>
+            {brand.name}
+          </Typography>
           <div className={classes.grow} />
+
+          <LanguageSelector className={classes.headerIcon} />
 
           <IconButton
             aria-label={i18n.t("mainDrawer.appBar.darkMode")}

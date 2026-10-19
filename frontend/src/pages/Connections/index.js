@@ -40,6 +40,8 @@ import QrcodeModal from "../../components/QrcodeModal";
 import { i18n } from "../../translate/i18n";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import toastError from "../../errors/toastError";
+import { AuthContext } from "../../context/Auth/AuthContext";
+import { Can } from "../../components/Can";
 
 const useStyles = makeStyles(theme => ({
 	mainPaper: {
@@ -96,6 +98,7 @@ const Connections = () => {
 	const classes = useStyles();
 
 	const { whatsApps, loading } = useContext(WhatsAppsContext);
+	const { user } = useContext(AuthContext);
 	const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
 	const [qrModalOpen, setQrModalOpen] = useState(false);
 	const [selectedWhatsApp, setSelectedWhatsApp] = useState(null);
@@ -312,13 +315,19 @@ const Connections = () => {
 			<MainHeader>
 				<Title>{i18n.t("connections.title")}</Title>
 				<MainHeaderButtonsWrapper>
-					<Button
-						variant="contained"
-						color="primary"
-						onClick={handleOpenWhatsAppModal}
-					>
-						{i18n.t("connections.buttons.add")}
-					</Button>
+					<Can
+						role={user.profile}
+						perform="connections-page:manageConnections"
+						yes={() => (
+							<Button
+								variant="contained"
+								color="primary"
+								onClick={handleOpenWhatsAppModal}
+							>
+								{i18n.t("connections.buttons.add")}
+							</Button>
+						)}
+					/>
 				</MainHeaderButtonsWrapper>
 			</MainHeader>
 			<Paper className={classes.mainPaper} variant="outlined">
@@ -383,21 +392,31 @@ const Connections = () => {
 												)}
 											</TableCell>
 											<TableCell align="center">
-												<IconButton
-													size="small"
-													onClick={() => handleEditWhatsApp(whatsApp)}
-												>
-													<Edit />
-												</IconButton>
+												<Can
+													role={user.profile}
+													perform="connections-page:manageConnections"
+													yes={() => (
+														<>
+															<IconButton
+																size="small"
+																aria-label={i18n.t("connections.buttons.edit")}
+																onClick={() => handleEditWhatsApp(whatsApp)}
+															>
+																<Edit />
+															</IconButton>
 
-												<IconButton
-													size="small"
-													onClick={e => {
-														handleOpenConfirmationModal("delete", whatsApp.id);
-													}}
-												>
-													<DeleteOutline />
-												</IconButton>
+															<IconButton
+																size="small"
+																aria-label={i18n.t("connections.buttons.delete")}
+																onClick={() => {
+																	handleOpenConfirmationModal("delete", whatsApp.id);
+																}}
+															>
+																<DeleteOutline />
+															</IconButton>
+														</>
+													)}
+												/>
 											</TableCell>
 										</TableRow>
 									))}

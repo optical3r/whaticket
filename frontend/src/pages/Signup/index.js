@@ -27,8 +27,8 @@ import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
-import logoBlack from "../../assets/whaticket-logo-black.png";
-import logoWhite from "../../assets/whaticket-logo-white.png";
+import { getLogoFor } from "../../brand";
+import LanguageSelector from "../../components/LanguageSelector";
 
 // const Copyright = () => {
 // 	return (
@@ -44,6 +44,11 @@ import logoWhite from "../../assets/whaticket-logo-white.png";
 // };
 
 const useStyles = makeStyles(theme => ({
+	languageSelector: {
+		position: "absolute",
+		top: theme.spacing(2),
+		right: theme.spacing(2),
+	},
 	paper: {
 		marginTop: theme.spacing(8),
 		display: "flex",
@@ -94,13 +99,16 @@ const SignUp = () => {
 		}
 	};
 
-	const logo = theme.palette.type === "dark" ? logoWhite : logoBlack;
+	const logo = getLogoFor(theme.palette.type);
 
 	return (
 		<Container component="main" maxWidth="xs">
 			<CssBaseline />
+			<div className={classes.languageSelector}>
+				<LanguageSelector />
+			</div>
 			<div className={classes.paper}>
-				<img src={logo} alt="Whaticket" className={classes.logo} />
+				<img src={logo} alt="Cerqueira Labs" className={classes.logo} />
 				<Typography component="h1" variant="h5">
 					{i18n.t("signup.title")}
 				</Typography>
