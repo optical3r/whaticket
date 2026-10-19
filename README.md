@@ -28,12 +28,17 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Webhooks** para enviar eventos (ticket criado, encerrado, avaliado, mensagem recebida e enviada) para outros sistemas.
 - **IA no atendimento** (Claude, da Anthropic): sugestão de resposta, resumo da conversa e revisão do texto do atendente.
 - **Assistente virtual**: responde os clientes que aguardam na fila usando a base de conhecimento da empresa e transfere para a equipe quando necessário.
+- **Kanban**: os tickets abertos e aguardando em colunas de etapas definidas pela empresa, movidos arrastando.
+- **Campanhas**: envio em massa para contatos filtrados por etiqueta, com intervalo aleatório, janela de horário, pausa e relatório. O contato que responde SAIR deixa de receber.
+- **API oficial do WhatsApp** (Cloud API da Meta) como alternativa ao QR Code, com templates e a janela de 24 horas.
+- **Fluxos de atendimento**: menus, perguntas e transferência para a fila certa, montados em um editor com simulador e escolhidos por conexão.
+- **Aplicativo instalável** (PWA) no celular e no computador, com aviso de nova mensagem.
 - **Dashboard**: volume de tickets do dia.
 - **API**: envio de mensagens por `POST /api/messages/send`, autenticado pelo token da empresa (em **Configurações**).
 - **Idiomas**: português (Brasil), o padrão, e inglês. A troca fica no ícone de idioma da barra superior e da tela de login.
 - **Temas**: claro (padrão) e escuro, seguindo o design system Cerqueira Labs.
 
-O roteiro de evolução (API oficial do WhatsApp e campanhas) está no plano de implementação aprovado.
+As cinco fases do plano de implementação aprovado estão entregues.
 
 ## Empresas, planos e superadmin
 
@@ -41,7 +46,8 @@ O roteiro de evolução (API oficial do WhatsApp e campanhas) está no plano de 
 - Não existe cadastro público: cada empresa é criada pelo superadmin, junto com o seu primeiro administrador.
 - Ao suspender uma empresa, os usuários dela perdem o acesso e as conexões do WhatsApp são desligadas. Os dados e o login do WhatsApp ficam guardados, e reativar a empresa religa as conexões.
 - Ao atualizar uma instalação anterior, todos os dados existentes vão para a empresa 1 ("Cerqueira Labs", plano "Interno"), e o administrador mais antigo vira superadmin.
-- Cada conexão tem um canal (`qrcode` hoje). A estrutura para a API oficial está descrita em [docs/whatsapp-cloud-api.md](docs/whatsapp-cloud-api.md).
+- Cada conexão tem um canal: `qrcode` (WhatsApp no celular) ou `cloudapi` (API oficial da Meta). Veja [API oficial do WhatsApp](#api-oficial-do-whatsapp).
+- O plano define também se a empresa pode usar **campanhas** (**Campanhas liberadas**). Na atualização, só o plano 1 ("Interno") vem liberado.
 
 ## Arquitetura
 
@@ -180,7 +186,7 @@ A IA usa a API do Claude, da Anthropic. Para ligar, crie uma chave em https://pl
 | Variável | Uso |
 |---|---|
 | `ANTHROPIC_API_KEY` | Chave da Cerqueira Labs, usada pelos planos com chave da plataforma. |
-| `DATA_ENCRYPTION_KEY` | Criptografa as chaves que os clientes cadastram (`openssl rand -hex 32`). Vazia = derivada do `JWT_SECRET`. Se mudar, os clientes precisam cadastrar a chave de novo. |
+| `DATA_ENCRYPTION_KEY` | Criptografa as chaves que os clientes cadastram e os tokens da API oficial (`openssl rand -hex 32`). Vazia = derivada do `JWT_SECRET`. Se mudar, chaves e tokens precisam ser cadastrados de novo. |
 | `AI_MODEL` | Modelo usado (padrão `claude-opus-5-5`). |
 | `AI_ASSISTANT_DELAY_MS` | Espera antes de o assistente responder, para juntar mensagens enviadas em sequência (padrão 8000). |
 
@@ -212,6 +218,70 @@ Para controlar o gasto da plataforma:
 - para quando alguém aceita o ticket ou responde ao cliente pelo celular, e volta a valer quando o ticket é encerrado e reaberto.
 
 Quando o modelo recusa um pedido por política de uso, a API tenta de novo em um modelo alternativo recomendado pela Anthropic (`fallbacks: "default"`).
+
+## Aplicativo no celular e no computador (PWA)
+
+O sistema pode ser instalado como aplicativo: no Chrome ou Edge, pelo ícone de instalar na barra de endereço; no iPhone, em **Compartilhar → Adicionar à Tela de Início**. O nome do aplicativo vem de `BRAND_NAME`.
+
+- Sem internet, abre uma tela avisando que está sem conexão, em vez de uma página de erro.
+- Com a permissão do navegador, avisa nova mensagem e conexão caída mesmo com a aba em segundo plano. Tocar no aviso abre o ticket.
+- A instalação exige HTTPS (ou `localhost`).
+
+## Kanban
+
+Em **Kanban**, os tickets aguardando e abertos aparecem em colunas. Supervisores e administradores criam, renomeiam, colorem e reordenam as etapas (por exemplo: Novo, Proposta enviada, Aguardando pagamento). A primeira coluna, **Sem etapa**, recebe os tickets que ainda não foram classificados.
+
+- Arrastar um cartão muda a etapa do ticket para todos, em tempo real.
+- Cada pessoa vê os mesmos tickets que vê na lista: o atendente vê os seus e os aguardando das suas filas; supervisor e administrador veem todos.
+- A etapa é só uma classificação: não muda o status, a fila nem o responsável.
+
+## Campanhas
+
+Em **Administração → Campanhas** (administrador e supervisor, quando o plano libera), a empresa envia uma mensagem para os contatos de uma ou mais etiquetas.
+
+- Público: até 5.000 contatos por campanha. Grupos e contatos que pediram para sair ficam de fora.
+- A mensagem aceita `{{name}}` e `{{firstName}}`.
+- Entre um envio e outro há uma espera aleatória (padrão de 20 a 60 segundos, mínimo 5) e os envios só acontecem na janela de horário escolhida, no fuso da empresa.
+- A campanha pode ser agendada, pausada, retomada e cancelada. Se o servidor reiniciar, ela continua de onde parou.
+- O relatório mostra, contato a contato, quem recebeu, quem ficou de fora (por exemplo, por ter pedido para sair) e as falhas com o motivo.
+- Se o contato responder SAIR, PARAR, STOP, DESCADASTRAR ou CANCELAR em até 30 dias depois de receber uma campanha, ele recebe uma confirmação e sai de todas as campanhas da empresa.
+- As mensagens enviadas ficam no histórico do contato, em um ticket encerrado, sem ocupar a fila. Se o cliente responder, o atendimento segue o caminho normal.
+
+> **Risco**: envio em massa por QR Code pode levar ao bloqueio do número pelo WhatsApp. Use só com contatos que pediram para receber, mantenha os intervalos e evite listas compradas. Por enquanto, campanhas só saem por conexões de QR Code; pela API oficial, a Meta exige templates aprovados para esse tipo de envio.
+
+## API oficial do WhatsApp
+
+Além do QR Code, uma conexão pode usar a API oficial da Meta (WhatsApp Cloud API). O passo a passo para criar o app na Meta está em [docs/whatsapp-cloud-api.md](docs/whatsapp-cloud-api.md). Resumo:
+
+1. Em **Conexões → Adicionar WhatsApp**, escolha **API oficial da Meta** e informe o ID do número de telefone, o ID da conta do WhatsApp Business, o token de acesso e a chave secreta do app. O sistema confere os dados com a Meta antes de salvar.
+2. Abra a conexão de novo para copiar a **URL de callback** e o **token de verificação**, e cadastre os dois no app da Meta, assinando o campo `messages`.
+3. O token e a chave secreta ficam criptografados no banco (com `DATA_ENCRYPTION_KEY`) e nunca voltam para o navegador.
+
+Como funciona:
+
+- Cada mensagem recebida tem a assinatura `X-Hub-Signature-256` conferida com a chave secreta do app. Sem assinatura válida, o evento é descartado.
+- **Janela de 24 horas**: a Meta só permite texto livre até 24 horas depois da última mensagem do cliente. Fora dela, o ticket mostra um aviso e o botão **Enviar template**, que lista os templates aprovados da conta.
+- Texto, imagem, áudio, vídeo e documento chegam e saem normalmente; figurinhas e localização chegam. As confirmações de entregue e lido também.
+- A Meta cobra por conversa, direto na conta do cliente na Meta.
+- `WHATSAPP_CLOUD_API_URL` troca o endereço da Graph API (padrão `https://graph.facebook.com/v21.0`), útil para testes.
+
+## Fluxos de atendimento
+
+Em **Administração → Fluxos**, o administrador monta a conversa automática que acontece antes da equipe, e em **Conexões** escolhe o fluxo de cada conexão. Cada etapa é de um tipo:
+
+| Etapa | O que faz |
+|---|---|
+| Mensagem | Envia um texto e segue para a próxima etapa. |
+| Menu de opções | Envia opções numeradas. O cliente responde com o número ou com o texto da opção. |
+| Pergunta | Faz uma pergunta e guarda a resposta em um campo do contato (por exemplo, "Pedido"). |
+| Enviar para fila | Coloca o ticket na fila escolhida, com mensagem opcional. O fluxo termina. |
+| Encerrar atendimento | Encerra o ticket, com mensagem opcional. O fluxo termina. |
+
+- O fluxo roda em tickets novos, aguardando e sem atendente. Enquanto ele roda, o menu de filas, o assistente virtual e a mensagem de fora do horário ficam de fora.
+- Depois de 3 respostas inválidas em um menu, ou quando uma etapa não tem próxima, o fluxo termina e o ticket fica aguardando a equipe. Se alguém aceitar o ticket no meio, o fluxo para.
+- O fluxo roda de novo só quando o ticket é encerrado e o cliente volta a escrever.
+- O editor confere cada etapa antes de salvar e recusa mensagens que apontam umas para as outras sem esperar resposta. O **Simulador**, ao lado, mostra a conversa como o cliente verá, sem enviar nada.
+- Os textos aceitam `{{name}}` e `{{firstName}}`.
 
 ## Segurança
 
