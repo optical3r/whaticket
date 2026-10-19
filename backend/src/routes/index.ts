@@ -13,9 +13,11 @@ import quickAnswerRoutes from "./quickAnswerRoutes";
 import apiRoutes from "./apiRoutes";
 import companyRoutes from "./companyRoutes";
 import catalogRoutes from "./catalogRoutes";
+import healthRoutes from "./healthRoutes";
 
 const routes = Router();
 
+routes.use(healthRoutes);
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
 routes.use(settingRoutes);

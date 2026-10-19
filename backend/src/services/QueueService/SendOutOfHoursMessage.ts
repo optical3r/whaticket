@@ -6,7 +6,7 @@ import Company from "../../models/Company";
 import Contact from "../../models/Contact";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
-import { whatsappProvider } from "../../providers/WhatsApp";
+import SendAutomaticMessage from "../WbotServices/SendAutomaticMessage";
 import { logger } from "../../utils/logger";
 
 // The customer gets the message at most once in this window per ticket.
@@ -45,13 +45,13 @@ const SendOutOfHoursMessage = async (
   }
 
   try {
-    // \u200e marks automatic messages (they don't count as agent replies).
-    await whatsappProvider.sendMessage(
+    // Marked first, so a slow send is never repeated by the next message.
+    await ticket.update({ outOfHoursNotifiedAt: now });
+    await SendAutomaticMessage(
       ticket.whatsappId,
       `${contact.number}@c.us`,
-      `\u200e${formatBody(queue.outOfHoursMessage, contact)}`
+      formatBody(queue.outOfHoursMessage, contact)
     );
-    await ticket.update({ outOfHoursNotifiedAt: now });
     return true;
   } catch (err) {
     logger.error({ info: "Error sending out-of-hours message", err });

@@ -9,7 +9,7 @@ import {
 import Contact from "../../models/Contact";
 import Ticket from "../../models/Ticket";
 import TicketRating from "../../models/TicketRating";
-import { whatsappProvider } from "../../providers/WhatsApp";
+import SendAutomaticMessage from "../WbotServices/SendAutomaticMessage";
 import { logger } from "../../utils/logger";
 import { DispatchWebhookEvent } from "../WebhookServices/WebhookServices";
 
@@ -44,11 +44,10 @@ export const SendRatingRequest = async (
 
   try {
     const message = await getCompanySetting(ticket.companyId, "csatMessage");
-    // \u200e marks automatic messages (they don't count as agent replies).
-    await whatsappProvider.sendMessage(
+    await SendAutomaticMessage(
       ticket.whatsappId,
       chatIdFor(ticket, ticket.contact),
-      `\u200e${formatBody(message, ticket.contact)}`
+      formatBody(message, ticket.contact)
     );
   } catch (err) {
     logger.error({ info: "Error sending rating request", err });
@@ -108,10 +107,10 @@ export const RegisterRatingAnswer = async (
       pending.companyId,
       "csatThanksMessage"
     );
-    await whatsappProvider.sendMessage(
+    await SendAutomaticMessage(
       pending.ticket.whatsappId,
       chatIdFor(pending.ticket, contact),
-      `\u200e${formatBody(thanks, contact)}`
+      formatBody(thanks, contact)
     );
   } catch (err) {
     logger.error({ info: "Error sending rating thanks", err });

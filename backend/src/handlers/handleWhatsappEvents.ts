@@ -1,6 +1,3 @@
-import { join } from "path";
-import { promisify } from "util";
-import { writeFile } from "fs";
 import * as Sentry from "@sentry/node";
 
 import { companyRoom, getIO } from "../libs/socket";
@@ -26,8 +23,7 @@ import {
 
 import { whatsappProvider } from "../providers/WhatsApp/whatsappProvider";
 import { MessageType, MessageAck } from "../providers/WhatsApp/types";
-
-const writeFileAsync = promisify(writeFile);
+import { saveMedia } from "../libs/storage";
 
 export interface ContactPayload {
   name: string;
@@ -100,11 +96,14 @@ const saveMediaFile = async (mediaPayload: MediaPayload): Promise<string> => {
     filename = `${baseName}.${randomId}.${extension}`;
   }
 
+  // Names come from the sender's device: keep only safe characters.
+  filename = filename.replace(/[^\w.\- ()]/g, "_").replace(/^\.+/, "_");
+
   try {
-    await writeFileAsync(
-      join(__dirname, "..", "..", "public", filename),
-      mediaPayload.data,
-      "base64"
+    await saveMedia(
+      filename,
+      Buffer.from(mediaPayload.data, "base64"),
+      mediaPayload.mimetype
     );
   } catch (err) {
     Sentry.captureException(err);

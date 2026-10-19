@@ -5,6 +5,7 @@ import AppError from "../../errors/AppError";
 import { isAllowedUrl, safePost } from "../../helpers/SafeHttpRequest";
 import Webhook from "../../models/Webhook";
 import { logger } from "../../utils/logger";
+import { defineJob, enqueue } from "../../libs/queue";
 
 export const WEBHOOK_EVENTS = [
   "ticket.created",
@@ -107,19 +108,20 @@ export const DeleteWebhookService = async (
 export const signPayload = (secret: string, body: string): string =>
   `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
 
-// Sends one event and records the outcome on the webhook.
-export const deliverWebhook = async (
-  webhook: Webhook,
+export const buildWebhookBody = (
+  companyId: number,
   event: WebhookEvent,
   data: unknown
-): Promise<Webhook> => {
-  const body = JSON.stringify({
-    event,
-    companyId: webhook.companyId,
-    sentAt: new Date().toISOString(),
-    data
-  });
+): string =>
+  JSON.stringify({ event, companyId, sentAt: new Date().toISOString(), data });
 
+// Posts an already built body and records the outcome on the webhook.
+// Returns whether the endpoint accepted it (2xx).
+const postWebhook = async (
+  webhook: Webhook,
+  event: WebhookEvent,
+  body: string
+): Promise<boolean> => {
   try {
     const { status } = await safePost(webhook.url, body, {
       "Content-Type": "application/json",
@@ -127,21 +129,65 @@ export const deliverWebhook = async (
       "X-Webhook-Event": event,
       "X-Webhook-Signature": signPayload(webhook.secret, body)
     });
+    const ok = status >= 200 && status < 300;
     await webhook.update({
       lastStatus: status,
-      lastError: status >= 200 && status < 300 ? null : `HTTP ${status}`,
+      lastError: ok ? null : `HTTP ${status}`,
       lastSentAt: new Date()
     });
+    return ok;
   } catch (err) {
     await webhook.update({
       lastStatus: null,
       lastError: String((err as Error).message || err).slice(0, 500),
       lastSentAt: new Date()
     });
+    return false;
   }
+};
 
+// Sends one event right away (used by the test button).
+export const deliverWebhook = async (
+  webhook: Webhook,
+  event: WebhookEvent,
+  data: unknown
+): Promise<Webhook> => {
+  await postWebhook(
+    webhook,
+    event,
+    buildWebhookBody(webhook.companyId, event, data)
+  );
   return webhook;
 };
+
+interface WebhookJob {
+  webhookId: number;
+  event: WebhookEvent;
+  body: string;
+}
+
+// Blocked addresses and invalid URLs will never succeed; no point retrying.
+const isPermanentError = (error: string | null): boolean =>
+  Boolean(
+    error &&
+      (error.includes("ERR_WEBHOOK_BLOCKED_ADDRESS") ||
+        error.includes("ERR_WEBHOOK_INVALID_URL"))
+  );
+
+// With Redis, a failed delivery is retried 5 times (15s, 30s, 1min, 2min).
+defineJob<WebhookJob>(
+  "webhook.deliver",
+  async ({ webhookId, event, body }) => {
+    const webhook = await Webhook.findByPk(webhookId);
+    if (!webhook || !webhook.active) return;
+
+    const ok = await postWebhook(webhook, event, body);
+    if (!ok && !isPermanentError(webhook.lastError)) {
+      throw new Error(webhook.lastError || "Webhook delivery failed");
+    }
+  },
+  { attempts: 5, backoff: { type: "exponential", delay: 15000 } }
+);
 
 export const TestWebhookService = async (
   companyId: number,
@@ -158,19 +204,26 @@ export const TestWebhookService = async (
   });
 };
 
-// Fire and forget: a slow or broken endpoint never delays the conversation.
+// Never delays the conversation: each delivery is a background job.
 export const DispatchWebhookEvent = (
   companyId: number,
   event: WebhookEvent,
   data: unknown
 ): void => {
   Webhook.findAll({ where: { companyId, active: true } })
-    .then(webhooks =>
-      Promise.all(
+    .then(webhooks => {
+      const body = buildWebhookBody(companyId, event, data);
+      return Promise.all(
         webhooks
           .filter(webhook => webhook.events.includes(event))
-          .map(webhook => deliverWebhook(webhook, event, data))
-      )
-    )
+          .map(webhook =>
+            enqueue<WebhookJob>("webhook.deliver", {
+              webhookId: webhook.id,
+              event,
+              body
+            })
+          )
+      );
+    })
     .catch(err => logger.error({ info: "Error dispatching webhook", err }));
 };

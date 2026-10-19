@@ -1,6 +1,7 @@
 import gracefulShutdown from "http-graceful-shutdown";
 import app from "./app";
 import { initIO } from "./libs/socket";
+import { closeQueue, startWorker } from "./libs/queue";
 import { logger } from "./utils/logger";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
 
@@ -9,8 +10,11 @@ const server = app.listen(process.env.PORT, () => {
 });
 
 initIO(server);
+startWorker();
 StartAllWhatsAppsSessions();
-gracefulShutdown(server);
+gracefulShutdown(server, {
+  onShutdown: () => closeQueue()
+});
 
 process.on("uncaughtException", err => {
   logger.error({ info: "Global uncaught exception", err });

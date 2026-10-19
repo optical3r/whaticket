@@ -31,8 +31,11 @@ tar -czf "${TARGET}/sessions.tar.gz" \
   --ignore-failed-read \
   backend/.wwebjs_auth backend/.zapo_auth 2>/dev/null || true
 
-# Media received and sent through the tickets.
-tar -czf "${TARGET}/media.tar.gz" backend/public
+# Media received and sent through the tickets. With STORAGE_DRIVER=s3 the
+# files live in the bucket: use the provider's versioning or replication.
+if [ "${STORAGE_DRIVER:-local}" = "local" ]; then
+  tar -czf "${TARGET}/media.tar.gz" backend/public
+fi
 
 echo "[backup] files in ${TARGET}:"
 ls -lh "${TARGET}"
