@@ -6,6 +6,7 @@ import Whatsapp from "../../models/Whatsapp";
 import ShowWhatsAppService from "./ShowWhatsAppService";
 import AssociateWhatsappQueue from "./AssociateWhatsappQueue";
 import { assertQueuesInCompany } from "../../helpers/AssertCompanyOwnership";
+import { assertFlowInCompany } from "../FlowServices/FlowServices";
 
 interface WhatsappData {
   name?: string;
@@ -15,6 +16,7 @@ interface WhatsappData {
   greetingMessage?: string;
   farewellMessage?: string;
   queueIds?: number[];
+  flowId?: number | string | null;
 }
 
 interface Request {
@@ -46,7 +48,8 @@ const UpdateWhatsAppService = async ({
     session,
     greetingMessage,
     farewellMessage,
-    queueIds
+    queueIds,
+    flowId
   } = whatsappData;
 
   try {
@@ -80,7 +83,11 @@ const UpdateWhatsAppService = async ({
     session,
     greetingMessage,
     farewellMessage,
-    isDefault
+    isDefault,
+    // Only changed when sent; null removes the flow.
+    ...(flowId !== undefined
+      ? { flowId: await assertFlowInCompany(flowId, companyId) }
+      : {})
   });
 
   // Only touch the queues when they were sent (a QR code reset sends none).

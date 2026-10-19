@@ -23,6 +23,7 @@ import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -260,6 +261,12 @@ const MainListItems = (props) => {
                     to="/queues"
                     primary={i18n.t("mainDrawer.listItems.queues")}
                     icon={<AccountTreeOutlinedIcon />}
+                    collapsed={collapsed}
+                  />
+                  <ListItemLink
+                    to="/flows"
+                    primary={i18n.t("mainDrawer.listItems.flows")}
+                    icon={<AltRouteOutlinedIcon />}
                     collapsed={collapsed}
                   />
                 </>

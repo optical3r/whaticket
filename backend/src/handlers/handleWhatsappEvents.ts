@@ -19,6 +19,7 @@ import SendOutOfHoursMessage from "../services/QueueService/SendOutOfHoursMessag
 import { ScheduleAssistantReply } from "../services/AiServices/AssistantService";
 import { isCampaignMessage } from "../services/CampaignServices/CampaignDispatcher";
 import { HandleOptOut } from "../services/CampaignServices/OptOutService";
+import { RunFlow } from "../services/FlowServices/FlowEngine";
 import {
   FindPendingRating,
   RegisterRatingAnswer
@@ -360,7 +361,19 @@ export const handleMessage = async (
 
     await processVcardMessage(processedMessage, companyId);
 
+    // A connection with a flow uses it instead of the queue menu.
+    const flowHandled =
+      !processedMessage.fromMe &&
+      !contextPayload.groupContact &&
+      (await RunFlow({
+        ticket,
+        whatsapp,
+        contact,
+        body: processedMessage.body
+      }));
+
     if (
+      !whatsapp.flowId &&
       !ticket.queue &&
       !contextPayload.groupContact &&
       !processedMessage.fromMe &&
@@ -375,7 +388,11 @@ export const handleMessage = async (
       );
     }
 
-    if (!processedMessage.fromMe && !contextPayload.groupContact) {
+    if (
+      !processedMessage.fromMe &&
+      !contextPayload.groupContact &&
+      !flowHandled
+    ) {
       // The queue may have just been chosen above.
       await ticket.reload();
       // The virtual assistant tells the customer about business hours itself.

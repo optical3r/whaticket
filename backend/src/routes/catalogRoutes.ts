@@ -7,6 +7,7 @@ import * as CloseReasonController from "../controllers/CloseReasonController";
 import * as ReportController from "../controllers/ReportController";
 import * as WebhookController from "../controllers/WebhookController";
 import * as KanbanController from "../controllers/KanbanController";
+import * as FlowController from "../controllers/FlowController";
 import isAdmin from "../middleware/isAdmin";
 
 const catalogRoutes = Router();
@@ -108,5 +109,12 @@ catalogRoutes.put(
   isAuth,
   KanbanController.moveTicket
 );
+
+// Flows change how every new conversation starts: admins only.
+catalogRoutes.get("/flows", isAuth, isAdmin, FlowController.index);
+catalogRoutes.get("/flows/:flowId", isAuth, isAdmin, FlowController.show);
+catalogRoutes.post("/flows", isAuth, isAdmin, FlowController.store);
+catalogRoutes.put("/flows/:flowId", isAuth, isAdmin, FlowController.update);
+catalogRoutes.delete("/flows/:flowId", isAuth, isAdmin, FlowController.remove);
 
 export default catalogRoutes;

@@ -17,6 +17,7 @@ import {
 import Company from "./Company";
 import Queue from "./Queue";
 import Ticket from "./Ticket";
+import Flow from "./Flow";
 import WhatsappQueue from "./WhatsappQueue";
 
 @Table
@@ -39,6 +40,12 @@ class Whatsapp extends Model<Whatsapp> {
   @Default("qrcode")
   @Column
   channel: string;
+
+  // When set, new conversations go through this flow instead of the
+  // queue menu.
+  @ForeignKey(() => Flow)
+  @Column(DataType.INTEGER)
+  flowId: number | null;
 
   @Column
   status: string;

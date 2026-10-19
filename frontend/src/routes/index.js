@@ -21,6 +21,8 @@ import Webhooks from "../pages/Webhooks/";
 import Ai from "../pages/Ai/";
 import Kanban from "../pages/Kanban/";
 import Campaigns from "../pages/Campaigns/";
+import Flows from "../pages/Flows/";
+import FlowEditor from "../pages/FlowEditor/";
 import { AuthProvider } from "../context/Auth/AuthContext";
 import { WhatsAppsProvider } from "../context/WhatsApp/WhatsAppsContext";
 import { ThemeProvider } from "../context/DarkMode";
@@ -52,6 +54,8 @@ const Routes = () => {
                   <Route exact path="/ai" component={Ai} isPrivate />
                   <Route exact path="/kanban" component={Kanban} isPrivate />
                   <Route exact path="/campaigns" component={Campaigns} isPrivate />
+                  <Route exact path="/flows" component={Flows} isPrivate />
+                  <Route exact path="/flows/:flowId" component={FlowEditor} isPrivate />
                 </LoggedInLayout>
               </WhatsAppsProvider>
             </Switch>

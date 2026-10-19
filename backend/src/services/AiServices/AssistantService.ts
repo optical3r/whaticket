@@ -71,7 +71,9 @@ const canAnswer = async (ticket: Ticket): Promise<boolean> => {
     ticket.status !== "pending" ||
     ticket.userId ||
     ticket.isGroup ||
-    ticket.aiHandoffAt
+    ticket.aiHandoffAt ||
+    // A flow is waiting for the customer's answer.
+    ticket.flowStepId
   ) {
     return false;
   }

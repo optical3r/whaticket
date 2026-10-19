@@ -25,6 +25,7 @@ interface WhatsappData {
   isDefault?: boolean;
   channel?: string;
   cloud?: CloudApiInput;
+  flowId?: number | null;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -42,7 +43,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     farewellMessage,
     queueIds,
     channel,
-    cloud
+    cloud,
+    flowId
   }: WhatsappData = req.body;
   const { companyId } = req.user;
 
@@ -55,7 +57,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     farewellMessage,
     queueIds,
     channel,
-    cloud
+    cloud,
+    flowId
   });
 
   StartWhatsAppSession(whatsapp);

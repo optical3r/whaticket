@@ -24,6 +24,7 @@ import {
 	IconButton,
 	InputAdornment,
 	Typography,
+	MenuItem,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
@@ -85,6 +86,7 @@ const initialState = {
 	farewellMessage: "",
 	isDefault: false,
 	channel: "qrcode",
+	flowId: "",
 	cloud: { phoneNumberId: "", wabaId: "", accessToken: "", appSecret: "" },
 };
 
@@ -94,6 +96,15 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 	// Webhook details of a saved Cloud API connection (admins only).
 	const [cloudInfo, setCloudInfo] = useState(null);
 	const [selectedQueueIds, setSelectedQueueIds] = useState([]);
+	const [flows, setFlows] = useState([]);
+
+	useEffect(() => {
+		if (!open) return;
+		api
+			.get("/flows")
+			.then(({ data }) => setFlows(data))
+			.catch(() => setFlows([]));
+	}, [open]);
 
 	useEffect(() => {
 		const fetchSession = async () => {
@@ -106,6 +117,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 					...initialState,
 					...data,
 					channel: data.channel || "qrcode",
+					flowId: data.flowId || "",
 					cloud: {
 						...initialState.cloud,
 						phoneNumberId: data.cloud?.phoneNumberId || "",
@@ -125,7 +137,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 
 	const handleSaveWhatsApp = async values => {
 		const { cloud, ...rest } = values;
-		const whatsappData = { ...rest, queueIds: selectedQueueIds };
+		const whatsappData = { ...rest, flowId: rest.flowId || null, queueIds: selectedQueueIds };
 		if (values.channel === "cloudapi") {
 			whatsappData.cloud = Object.fromEntries(
 				Object.entries(cloud).filter(([, value]) => String(value).trim())
@@ -364,6 +376,23 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 									selectedQueueIds={selectedQueueIds}
 									onChange={selectedIds => setSelectedQueueIds(selectedIds)}
 								/>
+								<Field
+									as={TextField}
+									select
+									fullWidth
+									name="flowId"
+									label={i18n.t("whatsappModal.form.flow")}
+									helperText={i18n.t("whatsappModal.form.flowHelp")}
+									variant="outlined"
+									margin="dense"
+								>
+									<MenuItem value="">{i18n.t("whatsappModal.form.noFlow")}</MenuItem>
+									{flows.map(flow => (
+										<MenuItem key={flow.id} value={flow.id}>
+											{flow.name}
+										</MenuItem>
+									))}
+								</Field>
 							</DialogContent>
 							<DialogActions>
 								<Button

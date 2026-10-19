@@ -10,6 +10,7 @@ import {
   CloudApiInput,
   saveCloudCredentials
 } from "../../helpers/CloudApiCredentials";
+import { assertFlowInCompany } from "../FlowServices/FlowServices";
 import {
   availableChannels,
   WhatsappChannel
@@ -24,6 +25,7 @@ interface Request {
   isDefault?: boolean;
   channel?: string;
   cloud?: CloudApiInput;
+  flowId?: number | string | null;
   companyId: number;
 }
 
@@ -41,6 +43,7 @@ const CreateWhatsAppService = async ({
   isDefault = false,
   channel = "qrcode",
   cloud,
+  flowId,
   companyId
 }: Request): Promise<Response> => {
   if (!availableChannels.includes(channel as WhatsappChannel)) {
@@ -80,6 +83,7 @@ const CreateWhatsAppService = async ({
 
   await CheckCompanyLimit(companyId, "connections");
   await assertQueuesInCompany(queueIds, companyId);
+  const checkedFlowId = await assertFlowInCompany(flowId, companyId);
 
   const whatsappFound = await Whatsapp.findOne({ where: { companyId } });
 
@@ -108,6 +112,7 @@ const CreateWhatsAppService = async ({
       farewellMessage,
       isDefault,
       channel,
+      flowId: checkedFlowId,
       companyId
     },
     { include: ["queues"] }

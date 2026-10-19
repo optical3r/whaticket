@@ -83,7 +83,11 @@ const UpdateTicketService = async ({
           closedAt: new Date(),
           closeReasonId: closeReasonId || null,
           aiHandoffAt: null,
-          aiReplies: 0
+          aiReplies: 0,
+          flowId: null,
+          flowStepId: null,
+          flowAttempts: 0,
+          flowFinishedAt: null
         }
       : {}),
     ...(isReopening ? { closedAt: null, closeReasonId: null } : {})

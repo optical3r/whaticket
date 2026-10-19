@@ -106,6 +106,21 @@ class Ticket extends Model<Ticket> {
   @Column(DataType.DATE)
   outOfHoursNotifiedAt: Date | null;
 
+  // Position in the connection's flow: the step waiting for an answer,
+  // wrong answers so far and when the flow ended for this ticket.
+  @Column(DataType.INTEGER)
+  flowId: number | null;
+
+  @Column(DataType.STRING)
+  flowStepId: string | null;
+
+  @Default(0)
+  @Column
+  flowAttempts: number;
+
+  @Column(DataType.DATE)
+  flowFinishedAt: Date | null;
+
   // Last message from the customer; the Cloud API allows free text only
   // within 24 hours of it.
   @Column(DataType.DATE)

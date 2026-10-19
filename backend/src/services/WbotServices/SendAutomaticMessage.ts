@@ -31,3 +31,44 @@ const SendAutomaticMessage = (
   });
 
 export default SendAutomaticMessage;
+
+interface AutomaticSequenceJob {
+  whatsappId: number;
+  chatId: string;
+  bodies: string[];
+}
+
+// Several messages that must arrive in order (a flow step and its menu).
+// Each job sends the first one and only then queues the rest, so a retry
+// never repeats a message and they never overtake each other.
+defineJob<AutomaticSequenceJob>(
+  "whatsapp.automaticSequence",
+  async ({ whatsappId, chatId, bodies }) => {
+    const [first, ...rest] = bodies;
+    if (first) {
+      await whatsappProvider.sendMessage(whatsappId, chatId, `\u200e${first}`);
+    }
+    if (rest.length > 0) {
+      await enqueue<AutomaticSequenceJob>("whatsapp.automaticSequence", {
+        whatsappId,
+        chatId,
+        bodies: rest
+      });
+    }
+  },
+  { attempts: 3, backoff: { type: "exponential", delay: 30000 } }
+);
+
+export const SendAutomaticMessages = async (
+  whatsappId: number,
+  chatId: string,
+  bodies: string[]
+): Promise<void> => {
+  const texts = bodies.filter(body => body.trim());
+  if (texts.length === 0) return;
+  await enqueue<AutomaticSequenceJob>("whatsapp.automaticSequence", {
+    whatsappId,
+    chatId,
+    bodies: texts
+  });
+};
