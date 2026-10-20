@@ -13,6 +13,8 @@ interface PlanData {
   campaignsEnabled?: boolean;
   aiKeySource?: string;
   aiMonthlyRequests?: number;
+  transcriptionEnabled?: boolean;
+  transcriptionMonthlyMinutes?: number;
 }
 
 const schema = Yup.object().shape({
@@ -41,7 +43,12 @@ const schema = Yup.object().shape({
   aiMonthlyRequests: Yup.number()
     .integer("ERR_PLAN_INVALID_LIMIT")
     .min(0, "ERR_PLAN_INVALID_LIMIT")
-    .max(10000000, "ERR_PLAN_INVALID_LIMIT")
+    .max(10000000, "ERR_PLAN_INVALID_LIMIT"),
+  transcriptionEnabled: Yup.boolean(),
+  transcriptionMonthlyMinutes: Yup.number()
+    .integer("ERR_PLAN_INVALID_LIMIT")
+    .min(0, "ERR_PLAN_INVALID_LIMIT")
+    .max(1000000, "ERR_PLAN_INVALID_LIMIT")
 });
 
 // Creates a plan, or updates it when planId is given.
@@ -57,7 +64,9 @@ const SavePlanService = async (
     aiEnabled,
     campaignsEnabled,
     aiKeySource,
-    aiMonthlyRequests
+    aiMonthlyRequests,
+    transcriptionEnabled,
+    transcriptionMonthlyMinutes
   } = planData;
 
   try {
@@ -69,7 +78,9 @@ const SavePlanService = async (
       aiEnabled,
       campaignsEnabled,
       aiKeySource,
-      aiMonthlyRequests
+      aiMonthlyRequests,
+      transcriptionEnabled,
+      transcriptionMonthlyMinutes
     });
   } catch (err) {
     throw new AppError(err.message);
@@ -96,6 +107,13 @@ const SavePlanService = async (
     ...(aiKeySource ? { aiKeySource } : {}),
     ...(aiMonthlyRequests !== undefined && aiMonthlyRequests !== null
       ? { aiMonthlyRequests: Number(aiMonthlyRequests) }
+      : {}),
+    ...(typeof transcriptionEnabled === "boolean"
+      ? { transcriptionEnabled }
+      : {}),
+    ...(transcriptionMonthlyMinutes !== undefined &&
+    transcriptionMonthlyMinutes !== null
+      ? { transcriptionMonthlyMinutes: Number(transcriptionMonthlyMinutes) }
       : {})
   };
 

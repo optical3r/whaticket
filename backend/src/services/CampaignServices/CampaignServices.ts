@@ -10,6 +10,7 @@ import ContactTag from "../../models/ContactTag";
 import Plan from "../../models/Plan";
 import Tag from "../../models/Tag";
 import Whatsapp from "../../models/Whatsapp";
+import { listTemplates } from "../../providers/WhatsApp/Implementations/cloudapi";
 import { ScheduleCampaign } from "./CampaignDispatcher";
 
 export const MAX_AUDIENCE = 5000;
@@ -26,6 +27,8 @@ export interface CampaignData {
   windowStart?: string;
   windowEnd?: string;
   includeOptOut?: boolean;
+  // Official connections: an approved template and one value per {{n}}.
+  template?: { name?: unknown; language?: unknown; params?: unknown } | null;
 }
 
 const schema = Yup.object().shape({
@@ -33,19 +36,16 @@ const schema = Yup.object().shape({
     .trim()
     .required("ERR_CAMPAIGN_INVALID_NAME")
     .max(80, "ERR_CAMPAIGN_INVALID_NAME"),
-  message: Yup.string()
-    .trim()
-    .required("ERR_CAMPAIGN_EMPTY_MESSAGE")
-    .max(4000, "ERR_CAMPAIGN_MESSAGE_TOO_LONG"),
+  message: Yup.string().trim().max(4000, "ERR_CAMPAIGN_MESSAGE_TOO_LONG"),
   whatsappId: Yup.number().required("ERR_CAMPAIGN_INVALID_CONNECTION"),
-  // Short pauses between sends get numbers blocked: 5 seconds at least.
+  // QR Code connections need 5 seconds at least (checked below).
   minDelaySeconds: Yup.number()
     .integer("ERR_CAMPAIGN_INVALID_DELAY")
-    .min(5, "ERR_CAMPAIGN_INVALID_DELAY")
+    .min(1, "ERR_CAMPAIGN_INVALID_DELAY")
     .max(600, "ERR_CAMPAIGN_INVALID_DELAY"),
   maxDelaySeconds: Yup.number()
     .integer("ERR_CAMPAIGN_INVALID_DELAY")
-    .min(5, "ERR_CAMPAIGN_INVALID_DELAY")
+    .min(1, "ERR_CAMPAIGN_INVALID_DELAY")
     .max(600, "ERR_CAMPAIGN_INVALID_DELAY"),
   windowStart: Yup.string().matches(TIME, "ERR_CAMPAIGN_INVALID_WINDOW"),
   windowEnd: Yup.string().matches(TIME, "ERR_CAMPAIGN_INVALID_WINDOW"),
@@ -121,6 +121,51 @@ export const CountAudienceService = async (
     where: await audienceQuery(companyId, await validTagIds(companyId, tagIds))
   });
 
+// Free text, with pauses long enough to keep the number from being blocked.
+const qrcodeContent = (data: CampaignData, minDelay: number) => {
+  const message = (data.message || "").trim();
+  if (!message) throw new AppError("ERR_CAMPAIGN_EMPTY_MESSAGE");
+  if (minDelay < 5) throw new AppError("ERR_CAMPAIGN_INVALID_DELAY");
+  return {
+    message,
+    includeOptOut: data.includeOptOut !== false,
+    templateName: null,
+    templateLanguage: null,
+    templateParams: []
+  };
+};
+
+// Meta only accepts approved templates for messages the customer did not
+// ask for. Values may use {{name}} and {{firstName}}, filled per contact.
+const templateContent = async (
+  whatsappId: number,
+  input: CampaignData["template"]
+) => {
+  const templates = await listTemplates(whatsappId);
+  const template = templates.find(
+    item => item.name === input?.name && item.language === input?.language
+  );
+  if (!template) throw new AppError("ERR_CLOUD_TEMPLATE_NOT_FOUND", 404);
+
+  const params = Array.isArray(input?.params)
+    ? input?.params.map(value => String(value).trim())
+    : [];
+  if (
+    params.length !== template.params ||
+    params.some(value => !value || value.length > 1000)
+  ) {
+    throw new AppError("ERR_CLOUD_TEMPLATE_PARAMS");
+  }
+  return {
+    message: template.body,
+    // The opt-out line cannot be added to a template; SAIR still works.
+    includeOptOut: false,
+    templateName: template.name,
+    templateLanguage: template.language,
+    templateParams: params
+  };
+};
+
 const validate = async (
   companyId: number,
   data: CampaignData
@@ -148,10 +193,10 @@ const validate = async (
   if (!whatsapp) {
     throw new AppError("ERR_CAMPAIGN_INVALID_CONNECTION");
   }
-  // Cloud API numbers need approved templates for bulk messages.
-  if (whatsapp.channel === "cloudapi") {
-    throw new AppError("ERR_CAMPAIGN_QRCODE_ONLY");
-  }
+  const content =
+    whatsapp.channel === "cloudapi"
+      ? await templateContent(whatsapp.id, data.template)
+      : qrcodeContent(data, minDelay);
 
   let scheduledAt: Date | null = null;
   if (data.scheduledAt) {
@@ -163,15 +208,14 @@ const validate = async (
 
   return {
     name: data.name.trim(),
-    message: data.message.trim(),
+    ...content,
     whatsappId: whatsapp.id,
     tagIds: await validTagIds(companyId, data.tagIds),
     scheduledAt,
     minDelaySeconds: minDelay,
     maxDelaySeconds: maxDelay,
     windowStart,
-    windowEnd,
-    includeOptOut: data.includeOptOut !== false
+    windowEnd
   };
 };
 

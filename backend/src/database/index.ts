@@ -26,6 +26,8 @@ import Campaign from "../models/Campaign";
 import CampaignContact from "../models/CampaignContact";
 import CloudApiCredential from "../models/CloudApiCredential";
 import Flow from "../models/Flow";
+import PlatformSetting from "../models/PlatformSetting";
+import TranscriptionUsage from "../models/TranscriptionUsage";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -60,7 +62,9 @@ const models = [
   Campaign,
   CampaignContact,
   CloudApiCredential,
-  Flow
+  Flow,
+  PlatformSetting,
+  TranscriptionUsage
 ];
 
 sequelize.addModels(models);

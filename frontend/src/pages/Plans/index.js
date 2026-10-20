@@ -29,7 +29,21 @@ const useStyles = makeStyles()(theme => ({
 	},
 }));
 
-const limitColumns = ["users", "connections", "queues", "campaignsEnabled", "aiMonthlyRequests"];
+const limitColumns = [
+	"users",
+	"connections",
+	"queues",
+	"campaignsEnabled",
+	"aiMonthlyRequests",
+	"transcriptionMonthlyMinutes",
+];
+
+const transcriptionLabel = plan =>
+	!plan.transcriptionEnabled
+		? i18n.t("plans.transcriptionOff")
+		: plan.transcriptionMonthlyMinutes > 0
+		? i18n.t("plans.transcriptionMinutes", { count: plan.transcriptionMonthlyMinutes })
+		: i18n.t("plans.transcriptionUnlimited");
 
 const Plans = () => {
 	const { classes } = useStyles();
@@ -116,7 +130,9 @@ const Plans = () => {
 										className={classes.mono}
 										data-label={i18n.t(`plans.table.${column}`)}
 									>
-										{column === "campaignsEnabled"
+										{column === "transcriptionMonthlyMinutes"
+											? transcriptionLabel(plan)
+											: column === "campaignsEnabled"
 											? i18n.t(plan.campaignsEnabled ? "plans.yes" : "plans.no")
 											: column !== "aiMonthlyRequests"
 											? plan[column]

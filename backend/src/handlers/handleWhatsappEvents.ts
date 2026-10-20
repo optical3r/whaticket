@@ -28,6 +28,7 @@ import {
 import { whatsappProvider } from "../providers/WhatsApp/whatsappProvider";
 import { MessageType, MessageAck } from "../providers/WhatsApp/types";
 import { saveMedia } from "../libs/storage";
+import { QueueTranscription } from "../services/TranscriptionServices/TranscriptionService";
 
 export interface ContactPayload {
   name: string;
@@ -357,7 +358,11 @@ export const handleMessage = async (
       ...(processedMessage.fromMe ? {} : { lastInboundAt: new Date() })
     });
 
-    await CreateMessageService({ messageData });
+    const created = await CreateMessageService({ messageData });
+    // Voice notes from the customer get transcribed, when the plan allows.
+    await QueueTranscription(created, companyId).catch(err =>
+      logger.error({ info: "Could not queue transcription", err })
+    );
 
     await processVcardMessage(processedMessage, companyId);
 

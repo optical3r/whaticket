@@ -8,6 +8,7 @@ import Contact from "../../../models/Contact";
 import Plan from "../../../models/Plan";
 import Whatsapp from "../../../models/Whatsapp";
 import { whatsappProvider } from "../../../providers/WhatsApp";
+import { sendTemplate as sendTemplate_ } from "../../../providers/WhatsApp/Implementations/cloudapi";
 import {
   CAMPAIGN_MARK,
   RunCampaignStep,
@@ -49,7 +50,21 @@ jest.mock("../../../providers/WhatsApp", () => ({
   whatsappProvider: { sendMessage: jest.fn().mockResolvedValue({}) }
 }));
 
+jest.mock("../../../providers/WhatsApp/Implementations/cloudapi", () => ({
+  listTemplates: jest.fn().mockResolvedValue([
+    {
+      name: "novidades",
+      language: "pt_BR",
+      category: "MARKETING",
+      body: "Olá, {{1}}! Chegou a coleção {{2}}.",
+      params: 2
+    }
+  ]),
+  sendTemplate: jest.fn().mockResolvedValue({})
+}));
+
 const sendMessage = whatsappProvider.sendMessage as jest.Mock;
+const sendTemplate = sendTemplate_ as jest.Mock;
 const queued = enqueue as jest.Mock;
 
 const expectAppError = async (promise: Promise<unknown>, message: string) => {
@@ -143,6 +158,70 @@ describe("Phase 5: campaigns", () => {
     await expectAppError(
       SaveCampaignService(1, baseData(foreign.id)),
       "ERR_CAMPAIGN_INVALID_CONNECTION"
+    );
+  });
+
+  it("sends an approved template, with values per contact, on official connections", async () => {
+    const ana = await createContact("Ana Souza");
+    const whatsapp = await Whatsapp.create({
+      name: faker.random.uuid(),
+      status: "CONNECTED",
+      channel: "cloudapi",
+      companyId: 1
+    });
+    const data = {
+      ...baseData(whatsapp.id),
+      message: "",
+      minDelaySeconds: 1,
+      maxDelaySeconds: 2
+    };
+    await expectAppError(
+      SaveCampaignService(1, data),
+      "ERR_CLOUD_TEMPLATE_NOT_FOUND"
+    );
+    await expectAppError(
+      SaveCampaignService(1, {
+        ...data,
+        template: { name: "novidades", language: "pt_BR", params: ["x"] }
+      }),
+      "ERR_CLOUD_TEMPLATE_PARAMS"
+    );
+
+    const campaign = await SaveCampaignService(1, {
+      ...data,
+      template: {
+        name: "novidades",
+        language: "pt_BR",
+        params: ["{{firstName}}", "Verão"]
+      }
+    });
+    expect(campaign.message).toBe("Olá, {{1}}! Chegou a coleção {{2}}.");
+    expect(campaign.includeOptOut).toBe(false);
+
+    await StartCampaignService(1, campaign.id);
+    await RunCampaignStep({
+      campaignId: campaign.id,
+      token: await lastToken(campaign.id)
+    });
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(sendTemplate).toHaveBeenCalledTimes(1);
+    const [sessionId, to, template, body] = sendTemplate.mock.calls[0];
+    expect(sessionId).toBe(whatsapp.id);
+    expect(to).toBe(`${ana.number}@c.us`);
+    expect(template).toEqual({
+      name: "novidades",
+      language: "pt_BR",
+      bodyParams: ["Ana", "Verão"]
+    });
+    expect(body).toBe(`${CAMPAIGN_MARK}Olá, Ana! Chegou a coleção Verão.`);
+
+    // QR Code connections still need 5 seconds between sends.
+    await expectAppError(
+      SaveCampaignService(1, {
+        ...baseData((await connected()).id),
+        minDelaySeconds: 1
+      }),
+      "ERR_CAMPAIGN_INVALID_DELAY"
     );
   });
 

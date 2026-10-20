@@ -17,11 +17,12 @@ export const nextStepId = steps => {
 	return `s${used.length ? Math.max(...used) + 1 : 1}`;
 };
 
-export const newStep = (steps, type = "message") => withType({ id: nextStepId(steps), text: "" }, type);
+export const newStep = (steps, type = "message", position) =>
+	withType({ id: nextStepId(steps), text: "", position }, type);
 
 // Keeps only the fields the new type uses.
 export const withType = (step, type) => {
-	const base = { id: step.id, type, text: step.text || "" };
+	const base = { id: step.id, type, text: step.text || "", ...(step.position ? { position: step.position } : {}) };
 	switch (type) {
 		case "message":
 			return { ...base, next: step.next || null };
@@ -153,3 +154,52 @@ export const answerSimulation = (definition, state, body, t) => {
 	const answers = { ...state.answers, [step.field || "Resposta"]: body };
 	return walk(definition, step.next, { ...state, answers }, t);
 };
+
+// Steps this one leads to, in the order of its exits.
+export const targetsOf = step => {
+	if (step.type === "menu") return step.options.map(option => option.next).filter(Boolean);
+	if (step.type === "message" || step.type === "question") return step.next ? [step.next] : [];
+	return [];
+};
+
+export const COLUMN_WIDTH = 340;
+export const ROW_HEIGHT = 220;
+
+// Places steps in columns by distance from the start; steps nobody reaches
+// go in a last column. Used for flows saved before the board existed and by
+// the "organize" button.
+export const autoLayout = definition => {
+	const byId = new Map(definition.steps.map(step => [step.id, step]));
+	const level = new Map();
+	const queue = byId.has(definition.startId) ? [definition.startId] : [];
+	if (queue.length) level.set(definition.startId, 0);
+	while (queue.length) {
+		const id = queue.shift();
+		targetsOf(byId.get(id)).forEach(target => {
+			if (byId.has(target) && !level.has(target)) {
+				level.set(target, level.get(id) + 1);
+				queue.push(target);
+			}
+		});
+	}
+	const lastColumn = level.size ? Math.max(...level.values()) + 1 : 0;
+	const rows = new Map();
+	const positions = {};
+	definition.steps.forEach(step => {
+		const column = level.has(step.id) ? level.get(step.id) : lastColumn;
+		const row = rows.get(column) || 0;
+		rows.set(column, row + 1);
+		positions[step.id] = { x: column * COLUMN_WIDTH, y: row * ROW_HEIGHT };
+	});
+	return positions;
+};
+
+// What the simulator needs: everything but where the steps sit on the board.
+export const withoutPositions = definition => ({
+	startId: definition.startId,
+	steps: definition.steps.map(step => {
+		const copy = { ...step };
+		delete copy.position;
+		return copy;
+	}),
+});

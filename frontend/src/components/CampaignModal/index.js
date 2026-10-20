@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 
 import { makeStyles } from "tss-react/mui";
 import { useTheme } from "@mui/material/styles";
+import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -61,17 +62,31 @@ const emptyCampaign = {
 	windowStart: "08:00",
 	windowEnd: "20:00",
 	includeOptOut: true,
+	templateKey: "",
+	templateParams: [],
 };
 
 const SAMPLE_NAME = "Maria Souza";
 const OPT_OUT_LINE = "Para não receber mais mensagens como esta, responda SAIR.";
 
-const renderPreview = (message, includeOptOut) => {
-	const filled = message
+const fillName = text =>
+	text
 		.replace(/\{\{\s*firstName\s*\}\}/g, SAMPLE_NAME.split(" ")[0])
 		.replace(/\{\{\s*name\s*\}\}/g, SAMPLE_NAME);
+
+const renderPreview = (message, includeOptOut) => {
+	const filled = fillName(message);
 	return includeOptOut ? `${filled}\n\n${OPT_OUT_LINE}` : filled;
 };
+
+// The template body with each {{n}} replaced by its value for the sample contact.
+const renderTemplate = (template, params) =>
+	params.reduce(
+		(text, value, index) => text.split(`{{${index + 1}}}`).join(fillName(value) || `{{${index + 1}}}`),
+		template.body
+	);
+
+const templateKey = (name, language) => (name ? `${name}|${language}` : "");
 
 const CampaignModal = ({ open, onClose, campaign }) => {
 	const { classes } = useStyles();
@@ -81,11 +96,15 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 	const [values, setValues] = useState(emptyCampaign);
 	const [audience, setAudience] = useState(null);
 	const [saving, setSaving] = useState(false);
+	const [templates, setTemplates] = useState([]);
+	const [loadingTemplates, setLoadingTemplates] = useState(false);
 
-	// Campaigns send through QR Code connections for now.
-	const connections = useMemo(
-		() => whatsApps.filter(whatsApp => (whatsApp.channel || "qrcode") === "qrcode"),
-		[whatsApps]
+	const connections = whatsApps;
+	const isCloud =
+		whatsApps.find(whatsApp => whatsApp.id === Number(values.whatsappId))?.channel === "cloudapi";
+	const template = useMemo(
+		() => templates.find(item => templateKey(item.name, item.language) === values.templateKey),
+		[templates, values.templateKey]
 	);
 
 	useEffect(() => {
@@ -96,6 +115,8 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 						...emptyCampaign,
 						...campaign,
 						whatsappId: campaign.whatsappId || "",
+						templateKey: templateKey(campaign.templateName, campaign.templateLanguage),
+						templateParams: campaign.templateParams || [],
 						scheduledAt: campaign.scheduledAt
 							? format(parseISO(campaign.scheduledAt), "yyyy-MM-dd'T'HH:mm")
 							: "",
@@ -119,14 +140,54 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 		};
 	}, [open, values.tagIds]);
 
+	// Official connections send approved templates, listed from Meta.
+	useEffect(() => {
+		if (!open || !isCloud) {
+			setTemplates([]);
+			return undefined;
+		}
+		let active = true;
+		setLoadingTemplates(true);
+		api
+			.get(`/whatsapp/${values.whatsappId}/templates`)
+			.then(({ data }) => active && setTemplates(data))
+			.catch(err => {
+				if (active) setTemplates([]);
+				toastError(err);
+			})
+			.finally(() => active && setLoadingTemplates(false));
+		return () => {
+			active = false;
+		};
+	}, [open, isCloud, values.whatsappId]);
+
 	const change = (key, value) => setValues(prev => ({ ...prev, [key]: value }));
+
+	const chooseTemplate = key => {
+		const chosen = templates.find(item => templateKey(item.name, item.language) === key);
+		setValues(prev => ({
+			...prev,
+			templateKey: key,
+			templateParams: Array(chosen ? chosen.params : 0).fill(""),
+		}));
+	};
+
+	const changeParam = (index, value) =>
+		setValues(prev => ({
+			...prev,
+			templateParams: prev.templateParams.map((item, position) => (position === index ? value : item)),
+		}));
 
 	const handleSubmit = async e => {
 		e.preventDefault();
 		setSaving(true);
 		const payload = {
 			name: values.name,
-			message: values.message,
+			message: isCloud ? "" : values.message,
+			template:
+				isCloud && template
+					? { name: template.name, language: template.language, params: values.templateParams }
+					: null,
 			whatsappId: Number(values.whatsappId),
 			tagIds: values.tagIds,
 			scheduledAt: values.scheduledAt ? new Date(values.scheduledAt).toISOString() : null,
@@ -181,7 +242,9 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 						>
 							{connections.map(whatsApp => (
 								<MenuItem key={whatsApp.id} value={whatsApp.id}>
-									{whatsApp.name}
+									{whatsApp.channel === "cloudapi"
+										? `${whatsApp.name} (${i18n.t("campaignModal.officialApi")})`
+										: whatsApp.name}
 								</MenuItem>
 							))}
 						</TextField>
@@ -223,43 +286,112 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 							: i18n.t("campaignModal.audienceCount", { count: audience })}
 					</Typography>
 
-					<TextField
-						id="campaign-message"
-						label={i18n.t("campaignModal.message")}
-						// The variables have i18next's own syntax, so they go in after
-						// the translation.
-						helperText={i18n
-							.t("campaignModal.messageHelp")
-							.replace("%NAME%", "{{name}}")
-							.replace("%FIRST_NAME%", "{{firstName}}")}
-						value={values.message}
-						onChange={e => change("message", e.target.value)}
-						inputProps={{ maxLength: 4000 }}
-						variant="outlined"
-						margin="dense"
-						fullWidth
-						required
-						multiline
-						minRows={4}
-					/>
-					<FormControlLabel
-						control={
-							<Switch
-								color="primary"
-								checked={values.includeOptOut}
-								onChange={e => change("includeOptOut", e.target.checked)}
-							/>
-						}
-						label={i18n.t("campaignModal.includeOptOut")}
-					/>
-					{values.message.trim() && (
+					{isCloud ? (
 						<>
-							<Typography variant="body2" color="textSecondary">
-								{i18n.t("campaignModal.preview", { name: SAMPLE_NAME })}
-							</Typography>
-							<Typography variant="body2" className={classes.preview}>
-								{renderPreview(values.message, values.includeOptOut)}
-							</Typography>
+							<Alert severity="info" sx={{ my: 1 }}>
+								{i18n.t("campaignModal.cloudHelp")}
+							</Alert>
+							<TextField
+								id="campaign-template"
+								select
+								label={i18n.t("campaignModal.template")}
+								value={template ? values.templateKey : ""}
+								onChange={e => chooseTemplate(e.target.value)}
+								helperText={
+									loadingTemplates
+										? i18n.t("campaignModal.loadingTemplates")
+										: templates.length === 0
+										? i18n.t("cloudTemplate.empty")
+										: " "
+								}
+								variant="outlined"
+								margin="dense"
+								fullWidth
+								required
+							>
+								{templates.map(item => (
+									<MenuItem key={templateKey(item.name, item.language)} value={templateKey(item.name, item.language)}>
+										{`${item.name} (${item.language})`}
+									</MenuItem>
+								))}
+							</TextField>
+							{template &&
+								values.templateParams.map((value, index) => (
+									<TextField
+										// The template defines a fixed list of variables.
+										// eslint-disable-next-line react/no-array-index-key
+										key={index}
+										id={`campaign-template-param-${index + 1}`}
+										label={i18n.t("cloudTemplate.param", { number: index + 1 })}
+										helperText={
+											index === 0
+												? i18n
+														.t("campaignModal.paramHelp")
+														.replace("%NAME%", "{{name}}")
+														.replace("%FIRST_NAME%", "{{firstName}}")
+												: " "
+										}
+										value={value}
+										onChange={e => changeParam(index, e.target.value)}
+										inputProps={{ maxLength: 1000 }}
+										variant="outlined"
+										margin="dense"
+										fullWidth
+										required
+									/>
+								))}
+							{template && (
+								<>
+									<Typography variant="body2" color="textSecondary">
+										{i18n.t("campaignModal.preview", { name: SAMPLE_NAME })}
+									</Typography>
+									<Typography variant="body2" className={classes.preview}>
+										{renderTemplate(template, values.templateParams)}
+									</Typography>
+								</>
+							)}
+						</>
+					) : (
+						<>
+							<TextField
+								id="campaign-message"
+								label={i18n.t("campaignModal.message")}
+								// The variables have i18next's own syntax, so they go in after
+								// the translation.
+								helperText={i18n
+									.t("campaignModal.messageHelp")
+									.replace("%NAME%", "{{name}}")
+									.replace("%FIRST_NAME%", "{{firstName}}")}
+								value={values.message}
+								onChange={e => change("message", e.target.value)}
+								inputProps={{ maxLength: 4000 }}
+								variant="outlined"
+								margin="dense"
+								fullWidth
+								required
+								multiline
+								minRows={4}
+							/>
+							<FormControlLabel
+								control={
+									<Switch
+										color="primary"
+										checked={values.includeOptOut}
+										onChange={e => change("includeOptOut", e.target.checked)}
+									/>
+								}
+								label={i18n.t("campaignModal.includeOptOut")}
+							/>
+							{values.message.trim() && (
+								<>
+									<Typography variant="body2" color="textSecondary">
+										{i18n.t("campaignModal.preview", { name: SAMPLE_NAME })}
+									</Typography>
+									<Typography variant="body2" className={classes.preview}>
+										{renderPreview(values.message, values.includeOptOut)}
+									</Typography>
+								</>
+							)}
 						</>
 					)}
 
@@ -305,7 +437,7 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 							label={i18n.t("campaignModal.minDelay")}
 							value={values.minDelaySeconds}
 							onChange={e => change("minDelaySeconds", e.target.value)}
-							inputProps={{ min: 5, max: 600, step: 1 }}
+							inputProps={{ min: isCloud ? 1 : 5, max: 600, step: 1 }}
 							variant="outlined"
 							margin="dense"
 							required
@@ -317,7 +449,7 @@ const CampaignModal = ({ open, onClose, campaign }) => {
 							helperText={i18n.t("campaignModal.delayHelp")}
 							value={values.maxDelaySeconds}
 							onChange={e => change("maxDelaySeconds", e.target.value)}
-							inputProps={{ min: 5, max: 600, step: 1 }}
+							inputProps={{ min: isCloud ? 1 : 5, max: 600, step: 1 }}
 							variant="outlined"
 							margin="dense"
 							required

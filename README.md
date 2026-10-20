@@ -28,10 +28,11 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Webhooks** para enviar eventos (ticket criado, encerrado, avaliado, mensagem recebida e enviada) para outros sistemas.
 - **IA no atendimento** (Claude, da Anthropic): sugestão de resposta, resumo da conversa e revisão do texto do atendente.
 - **Assistente virtual**: responde os clientes que aguardam na fila usando a base de conhecimento da empresa e transfere para a equipe quando necessário.
+- **Transcrição de áudio**: os áudios que o cliente envia viram texto na conversa, para o atendente e para a IA. É um módulo liberado por plano, com custo da Cerqueira Labs.
 - **Kanban**: os tickets abertos e aguardando em colunas de etapas definidas pela empresa, movidos arrastando.
-- **Campanhas**: envio em massa para contatos filtrados por etiqueta, com intervalo aleatório, janela de horário, pausa e relatório. O contato que responde SAIR deixa de receber.
+- **Campanhas**: envio em massa para contatos filtrados por etiqueta, com intervalo aleatório, janela de horário, pausa e relatório, por QR Code ou pela API oficial (com modelos aprovados). O contato que responde SAIR deixa de receber.
 - **API oficial do WhatsApp** (Cloud API da Meta) como alternativa ao QR Code, com templates e a janela de 24 horas.
-- **Fluxos de atendimento**: menus, perguntas e transferência para a fila certa, montados em um editor com simulador e escolhidos por conexão.
+- **Fluxos de atendimento**: menus, perguntas e transferência para a fila certa, montados num quadro visual (ou em lista) com simulador e escolhidos por conexão.
 - **Aplicativo instalável** (PWA) no celular e no computador, com aviso de nova mensagem.
 - **Dashboard**: volume de tickets do dia.
 - **API**: envio de mensagens por `POST /api/messages/send`, autenticado pelo token da empresa (em **Configurações**).
@@ -241,13 +242,15 @@ Em **Administração → Campanhas** (administrador e supervisor, quando o plano
 
 - Público: até 5.000 contatos por campanha. Grupos e contatos que pediram para sair ficam de fora.
 - A mensagem aceita `{{name}}` e `{{firstName}}`.
-- Entre um envio e outro há uma espera aleatória (padrão de 20 a 60 segundos, mínimo 5) e os envios só acontecem na janela de horário escolhida, no fuso da empresa.
+- Entre um envio e outro há uma espera aleatória (padrão de 20 a 60 segundos; mínimo de 5 no QR Code e de 1 na API oficial) e os envios só acontecem na janela de horário escolhida, no fuso da empresa.
 - A campanha pode ser agendada, pausada, retomada e cancelada. Se o servidor reiniciar, ela continua de onde parou.
 - O relatório mostra, contato a contato, quem recebeu, quem ficou de fora (por exemplo, por ter pedido para sair) e as falhas com o motivo.
 - Se o contato responder SAIR, PARAR, STOP, DESCADASTRAR ou CANCELAR em até 30 dias depois de receber uma campanha, ele recebe uma confirmação e sai de todas as campanhas da empresa.
 - As mensagens enviadas ficam no histórico do contato, em um ticket encerrado, sem ocupar a fila. Se o cliente responder, o atendimento segue o caminho normal.
 
-> **Risco**: envio em massa por QR Code pode levar ao bloqueio do número pelo WhatsApp. Use só com contatos que pediram para receber, mantenha os intervalos e evite listas compradas. Por enquanto, campanhas só saem por conexões de QR Code; pela API oficial, a Meta exige templates aprovados para esse tipo de envio.
+**Pela API oficial**: ao escolher uma conexão da API oficial, a campanha envia um modelo (template) aprovado pela Meta em vez de texto livre. A tela lista os modelos aprovados da conta, pede um valor para cada variável (`{{1}}`, `{{2}}`...) e mostra a prévia. Os valores aceitam `{{name}}` e `{{firstName}}`, preenchidos com o nome de cada contato (sem nome, vai "cliente"). A linha "responda SAIR" não pode ser acrescentada a um modelo: escreva a instrução no próprio modelo. A Meta cobra cada conversa iniciada, na conta do cliente.
+
+> **Risco**: envio em massa por QR Code pode levar ao bloqueio do número pelo WhatsApp. Use só com contatos que pediram para receber, mantenha os intervalos e evite listas compradas. Pela API oficial, a Meta também pode limitar ou bloquear números com muitas denúncias.
 
 ## API oficial do WhatsApp
 
@@ -267,7 +270,14 @@ Como funciona:
 
 ## Fluxos de atendimento
 
-Em **Administração → Fluxos**, o administrador monta a conversa automática que acontece antes da equipe, e em **Conexões** escolhe o fluxo de cada conexão. Cada etapa é de um tipo:
+Em **Administração → Fluxos**, o administrador monta a conversa automática que acontece antes da equipe, e em **Conexões** escolhe o fluxo de cada conexão.
+
+O editor tem dois modos, com o mesmo resultado:
+
+- **Quadro**: cada etapa é um cartão. Arraste para organizar, puxe uma ligação do ponto à direita de uma etapa (ou de cada opção de um menu) até a etapa seguinte, e selecione uma ligação ou etapa e aperte Delete para removê-la. Clicar numa etapa abre os campos dela no painel ao lado; **Organizar** arruma as etapas em colunas a partir da inicial. A posição de cada etapa é salva com o fluxo.
+- **Lista**: as mesmas etapas, uma embaixo da outra, com a próxima etapa escolhida em listas. Funciona só com o teclado.
+
+Cada etapa é de um tipo:
 
 | Etapa | O que faz |
 |---|---|
@@ -282,6 +292,22 @@ Em **Administração → Fluxos**, o administrador monta a conversa automática 
 - O fluxo roda de novo só quando o ticket é encerrado e o cliente volta a escrever.
 - O editor confere cada etapa antes de salvar e recusa mensagens que apontam umas para as outras sem esperar resposta. O **Simulador**, ao lado, mostra a conversa como o cliente verá, sem enviar nada.
 - Os textos aceitam `{{name}}` e `{{firstName}}`.
+
+## Transcrição de áudio
+
+A IA do Claude não recebe áudio, então os áudios dos clientes são transcritos pela OpenAI (modelo `gpt-transcribe`). O custo é da Cerqueira Labs.
+
+1. **Chave**: o superadmin cadastra a chave da API da OpenAI em **Plataforma → Transcrição de áudio**. Ela é conferida com a OpenAI antes de ser salva, fica criptografada no banco (com `DATA_ENCRYPTION_KEY`) e nunca volta para o navegador. Sem chave na tela, vale `OPENAI_API_KEY` do `.env`.
+2. **Plano**: em **Plataforma → Planos**, marque **Transcrição de áudio liberada** e defina os **minutos por mês** de cada empresa (0 = sem limite). Na atualização, só o plano 1 ("Interno") vem liberado.
+
+Como funciona:
+
+- Todo áudio que um cliente envia (QR Code ou API oficial) é transcrito em segundo plano. Na conversa, aparece "Transcrevendo o áudio…" e depois o texto embaixo do player.
+- Áudios dos atendentes não são transcritos.
+- O resumo, a sugestão de resposta e o assistente virtual leem a transcrição como fala do cliente. O assistente espera a transcrição terminar antes de responder.
+- Quando a empresa chega ao limite de minutos do mês, os áudios param de ser transcritos até o mês seguinte.
+- A tela de transcrição mostra, por empresa, quantos áudios e minutos foram transcritos no mês. Cada uso também fica na tabela `TranscriptionUsages`.
+- `TRANSCRIPTION_MODEL` e `TRANSCRIPTION_LANGUAGE` (padrão `pt`) trocam o modelo e o idioma.
 
 ## Segurança
 

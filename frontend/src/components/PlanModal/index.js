@@ -27,6 +27,8 @@ const emptyPlan = {
 	campaignsEnabled: false,
 	aiKeySource: "platform",
 	aiMonthlyRequests: 1000,
+	transcriptionEnabled: false,
+	transcriptionMonthlyMinutes: 600,
 };
 
 const PlanModal = ({ open, onClose, plan, onSaved }) => {
@@ -56,6 +58,8 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			campaignsEnabled: values.campaignsEnabled,
 			aiKeySource: values.aiKeySource,
 			aiMonthlyRequests: Number(values.aiMonthlyRequests),
+			transcriptionEnabled: values.transcriptionEnabled,
+			transcriptionMonthlyMinutes: Number(values.transcriptionMonthlyMinutes),
 		};
 		try {
 			const { data } = plan
@@ -79,8 +83,12 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			label={i18n.t(`planModal.form.${name}`)}
 			value={values[name]}
 			onChange={handleChange}
-			inputProps={{ min: name === "queues" || name === "aiMonthlyRequests" ? 0 : 1, step: 1 }}
-			helperText={name === "aiMonthlyRequests" ? i18n.t("planModal.form.aiMonthlyRequestsHelp") : undefined}
+			inputProps={{ min: ["queues", "aiMonthlyRequests", "transcriptionMonthlyMinutes"].includes(name) ? 0 : 1, step: 1 }}
+			helperText={
+				["aiMonthlyRequests", "transcriptionMonthlyMinutes"].includes(name)
+					? i18n.t(`planModal.form.${name}Help`)
+					: undefined
+			}
 			variant="outlined"
 			margin="dense"
 			fullWidth
@@ -151,6 +159,17 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 						</FormControl>
 					)}
 					{values.aiEnabled && values.aiKeySource === "platform" && numberField("aiMonthlyRequests")}
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.transcriptionEnabled}
+								onChange={e => setValues(prev => ({ ...prev, transcriptionEnabled: e.target.checked }))}
+							/>
+						}
+						label={i18n.t("planModal.form.transcriptionEnabled")}
+					/>
+					{values.transcriptionEnabled && numberField("transcriptionMonthlyMinutes")}
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={onClose} variant="outlined" disabled={saving}>
