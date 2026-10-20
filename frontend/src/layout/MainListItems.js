@@ -24,6 +24,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
+import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -353,6 +354,12 @@ const MainListItems = (props) => {
             to="/plans"
             primary={i18n.t("mainDrawer.listItems.plans")}
             icon={<LocalOfferOutlinedIcon />}
+            collapsed={collapsed}
+          />
+          <ListItemLink
+            to="/transcription"
+            primary={i18n.t("mainDrawer.listItems.transcription")}
+            icon={<GraphicEqOutlinedIcon />}
             collapsed={collapsed}
           />
         </>

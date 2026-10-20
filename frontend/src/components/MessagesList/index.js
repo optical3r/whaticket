@@ -26,6 +26,7 @@ import whatsBackgroundDark from "../../assets/wa-background-dark.png";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import Audio from "../Audio";
+import { i18n } from "../../translate/i18n";
 
 const useStyles = makeStyles()((theme) => ({
   messagesListWrapper: {
@@ -189,6 +190,24 @@ const useStyles = makeStyles()((theme) => ({
     fontWeight: 500,
   },
 
+  transcription: {
+    maxWidth: 330,
+    margin: "6px 6px 0",
+    padding: "6px 10px",
+    borderRadius: 8,
+    backgroundColor: theme.palette.tintedBackground,
+    color: theme.palette.text.primary,
+    fontSize: 14,
+    lineHeight: 1.45,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+  },
+  transcriptionLabel: {
+    display: "block",
+    fontSize: 12,
+    fontWeight: 600,
+    color: theme.palette.text.secondary,
+  },
   textContentItem: {
     overflowWrap: "break-word",
     padding: "3px 80px 6px 6px",
@@ -419,6 +438,35 @@ const MessagesList = ({ ticketId, isGroup }) => {
     setAnchorEl(null);
   };
 
+  // Voice notes from the customer, transcribed in the background.
+  const renderTranscription = (message) => {
+    if (message.transcriptionStatus === "pending") {
+      return (
+        <div className={classes.transcription} role="status">
+          {i18n.t("messagesList.transcription.pending")}
+        </div>
+      );
+    }
+    if (message.transcriptionStatus === "done" && message.transcription) {
+      return (
+        <div className={classes.transcription}>
+          <span className={classes.transcriptionLabel}>
+            {i18n.t("messagesList.transcription.label")}
+          </span>
+          {message.transcription}
+        </div>
+      );
+    }
+    if (message.transcriptionStatus === "failed") {
+      return (
+        <div className={classes.transcription}>
+          {i18n.t("messagesList.transcription.failed")}
+        </div>
+      );
+    }
+    return null;
+  };
+
   const checkMessageMedia = (message) => {
     if (message.mediaType === "location" && message.body.split('|').length >= 2) {
       let locationParts = message.body.split('|')
@@ -621,6 +669,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
                 {(message.mediaUrl || message.mediaType === "location" || message.mediaType === "vcard"
                   //|| message.mediaType === "multi_vcard" 
                 ) && checkMessageMedia(message)}
+                {message.mediaType === "audio" && renderTranscription(message)}
                 <div className={classes.textContentItem}>
                   {message.quotedMsg && renderQuotedMessage(message)}
                   <MarkdownWrapper>{message.body}</MarkdownWrapper>

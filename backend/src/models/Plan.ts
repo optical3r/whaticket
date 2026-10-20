@@ -63,6 +63,18 @@ class Plan extends Model<Plan> {
   @Column
   aiMonthlyRequests: number;
 
+  // Voice notes transcribed with the platform's OpenAI key.
+  @AllowNull(false)
+  @Default(false)
+  @Column
+  transcriptionEnabled: boolean;
+
+  // Minutes of audio a month for each company on the plan; 0 = no limit.
+  @AllowNull(false)
+  @Default(600)
+  @Column
+  transcriptionMonthlyMinutes: number;
+
   @CreatedAt
   createdAt: Date;
 

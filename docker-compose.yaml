@@ -30,6 +30,9 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - AI_MODEL=${AI_MODEL:-claude-opus-5-5}
       - DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TRANSCRIPTION_MODEL=${TRANSCRIPTION_MODEL:-gpt-transcribe}
+      - TRANSCRIPTION_LANGUAGE=${TRANSCRIPTION_LANGUAGE:-pt}
       - WHATSAPP_CLOUD_API_URL=${WHATSAPP_CLOUD_API_URL:-https://graph.facebook.com/v21.0}
       - BACKEND_URL=${BACKEND_URL:-http://localhost}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}

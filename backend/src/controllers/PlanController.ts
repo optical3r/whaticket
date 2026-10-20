@@ -20,7 +20,9 @@ const planFields = (body: Record<string, unknown>) => {
     aiEnabled,
     campaignsEnabled,
     aiKeySource,
-    aiMonthlyRequests
+    aiMonthlyRequests,
+    transcriptionEnabled,
+    transcriptionMonthlyMinutes
   } = body;
   return {
     name,
@@ -30,7 +32,9 @@ const planFields = (body: Record<string, unknown>) => {
     aiEnabled,
     campaignsEnabled,
     aiKeySource,
-    aiMonthlyRequests
+    aiMonthlyRequests,
+    transcriptionEnabled,
+    transcriptionMonthlyMinutes
   } as Parameters<typeof SavePlanService>[0];
 };
 

@@ -31,6 +31,11 @@ const describe = (message: Message): string => {
   const label = MEDIA_LABELS[message.mediaType];
   if (!label) return body;
 
+  // Transcribed voice notes count as what the customer said.
+  if (message.transcriptionStatus === "done" && message.transcription) {
+    return `[áudio transcrito]: ${message.transcription}`;
+  }
+
   // Media without a caption keeps the file name as body.
   const filename = message.getDataValue("mediaUrl") as string | null;
   const caption = body && body !== filename ? `: ${body}` : "";

@@ -49,6 +49,14 @@ class Message extends Model<Message> {
   mediaType: string;
 
   @Default(false)
+  // Text of a voice note, written by the transcription job.
+  @Column(DataType.TEXT)
+  transcription: string | null;
+
+  // pending, done or failed; null when the message is not transcribed.
+  @Column(DataType.STRING)
+  transcriptionStatus: string | null;
+
   @Column
   isDeleted: boolean;
 

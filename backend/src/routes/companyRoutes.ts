@@ -4,6 +4,7 @@ import isSuper from "../middleware/isSuper";
 
 import * as CompanyController from "../controllers/CompanyController";
 import * as PlanController from "../controllers/PlanController";
+import * as TranscriptionController from "../controllers/TranscriptionController";
 
 const companyRoutes = Router();
 
@@ -26,5 +27,24 @@ companyRoutes.get("/plans", isAuth, isSuper, PlanController.index);
 companyRoutes.post("/plans", isAuth, isSuper, PlanController.store);
 companyRoutes.put("/plans/:planId", isAuth, isSuper, PlanController.update);
 companyRoutes.delete("/plans/:planId", isAuth, isSuper, PlanController.remove);
+
+companyRoutes.get(
+  "/platform/transcription",
+  isAuth,
+  isSuper,
+  TranscriptionController.show
+);
+companyRoutes.put(
+  "/platform/transcription/key",
+  isAuth,
+  isSuper,
+  TranscriptionController.saveKey
+);
+companyRoutes.delete(
+  "/platform/transcription/key",
+  isAuth,
+  isSuper,
+  TranscriptionController.removeKey
+);
 
 export default companyRoutes;
