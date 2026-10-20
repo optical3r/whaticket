@@ -3,6 +3,11 @@ import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import ShowUserService from "./ShowUserService";
+import { PROFILES } from "../../middleware/hasProfile";
+import {
+  assertQueuesInCompany,
+  assertWhatsappInCompany
+} from "../../helpers/AssertCompanyOwnership";
 
 interface UserData {
   email?: string;
@@ -16,6 +21,7 @@ interface UserData {
 interface Request {
   userData: UserData;
   userId: string | number;
+  companyId: number;
 }
 
 interface Response {
@@ -27,14 +33,15 @@ interface Response {
 
 const UpdateUserService = async ({
   userData,
-  userId
+  userId,
+  companyId
 }: Request): Promise<Response | undefined> => {
-  const user = await ShowUserService(userId);
+  const user = await ShowUserService(userId, companyId);
 
   const schema = Yup.object().shape({
     name: Yup.string().min(2),
     email: Yup.string().email(),
-    profile: Yup.string(),
+    profile: Yup.string().oneOf(PROFILES, "ERR_INVALID_PROFILE"),
     password: Yup.string()
   });
 
@@ -52,6 +59,9 @@ const UpdateUserService = async ({
   } catch (err) {
     throw new AppError(err.message);
   }
+
+  await assertQueuesInCompany(queueIds, companyId);
+  await assertWhatsappInCompany(whatsappId, companyId);
 
   await user.update({
     email,

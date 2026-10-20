@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { emitToCompany } from "../libs/socket";
 import CreateQueueService from "../services/QueueService/CreateQueueService";
 import DeleteQueueService from "../services/QueueService/DeleteQueueService";
 import ListQueuesService from "../services/QueueService/ListQueuesService";
@@ -7,18 +7,22 @@ import ShowQueueService from "../services/QueueService/ShowQueueService";
 import UpdateQueueService from "../services/QueueService/UpdateQueueService";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const queues = await ListQueuesService();
+  const queues = await ListQueuesService(req.user.companyId);
 
   return res.status(200).json(queues);
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { name, color, greetingMessage } = req.body;
+  const { name, color, greetingMessage, schedules, outOfHoursMessage } =
+    req.body;
+  const { companyId } = req.user;
 
-  const queue = await CreateQueueService({ name, color, greetingMessage });
+  const queue = await CreateQueueService(
+    { name, color, greetingMessage, schedules, outOfHoursMessage },
+    companyId
+  );
 
-  const io = getIO();
-  io.emit("queue", {
+  emitToCompany(companyId, "queue", {
     action: "update",
     queue
   });
@@ -29,7 +33,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { queueId } = req.params;
 
-  const queue = await ShowQueueService(queueId);
+  const queue = await ShowQueueService(queueId, req.user.companyId);
 
   return res.status(200).json(queue);
 };
@@ -40,10 +44,17 @@ export const update = async (
 ): Promise<Response> => {
   const { queueId } = req.params;
 
-  const queue = await UpdateQueueService(queueId, req.body);
+  const { companyId } = req.user;
+  const { name, color, greetingMessage, schedules, outOfHoursMessage } =
+    req.body;
 
-  const io = getIO();
-  io.emit("queue", {
+  const queue = await UpdateQueueService(
+    queueId,
+    { name, color, greetingMessage, schedules, outOfHoursMessage },
+    companyId
+  );
+
+  emitToCompany(companyId, "queue", {
     action: "update",
     queue
   });
@@ -57,10 +68,10 @@ export const remove = async (
 ): Promise<Response> => {
   const { queueId } = req.params;
 
-  await DeleteQueueService(queueId);
+  const { companyId } = req.user;
+  await DeleteQueueService(queueId, companyId);
 
-  const io = getIO();
-  io.emit("queue", {
+  emitToCompany(companyId, "queue", {
     action: "delete",
     queueId: +queueId
   });

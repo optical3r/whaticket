@@ -2,16 +2,10 @@ import React, { useState, useEffect, useReducer, useRef } from "react";
 
 import { isSameDay, parseISO, format } from "date-fns";
 import openSocket from "../../services/socket-io";
-import clsx from "clsx";
 
-import { green } from "@material-ui/core/colors";
-import {
-  Button,
-  CircularProgress,
-  Divider,
-  IconButton,
-  makeStyles,
-} from "@material-ui/core";
+import { green } from "@mui/material/colors";
+import { Button, CircularProgress, Divider, IconButton } from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
 import {
   AccessTime,
   Block,
@@ -19,7 +13,7 @@ import {
   DoneAll,
   ExpandMore,
   GetApp,
-} from "@material-ui/icons";
+} from "@mui/icons-material";
 
 import MarkdownWrapper from "../MarkdownWrapper";
 import VcardPreview from "../VcardPreview";
@@ -33,7 +27,7 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import Audio from "../Audio";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   messagesListWrapper: {
     overflow: "hidden",
     position: "relative",
@@ -45,14 +39,14 @@ const useStyles = makeStyles((theme) => ({
   messagesList: {
     backgroundColor: theme.palette.background.chat,
     backgroundImage: `url(${
-      theme.palette.type === "dark" ? whatsBackgroundDark : whatsBackground
+      theme.palette.mode === "dark" ? whatsBackgroundDark : whatsBackground
     })`,
     display: "flex",
     flexDirection: "column",
     flexGrow: 1,
     padding: theme.spacing(1),
     overflowY: "scroll",
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       paddingBottom: "90px",
     },
     ...theme.scrollbarStyles,
@@ -72,7 +66,7 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 2,
     minWidth: 100,
     maxWidth: 450,
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       maxWidth: 250,
     },
     height: "auto",
@@ -129,7 +123,7 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 2,
     minWidth: 100,
     maxWidth: 450,
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       maxWidth: 250,
     },
     height: "auto",
@@ -318,7 +312,7 @@ const reducer = (state, action) => {
 };
 
 const MessagesList = ({ ticketId, isGroup }) => {
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
 
   const [messagesList, dispatch] = useReducer(reducer, []);
   const [pageNumber, setPageNumber] = useState(1);
@@ -579,12 +573,12 @@ const MessagesList = ({ ticketId, isGroup }) => {
   const renderQuotedMessage = (message) => {
     return (
       <div
-        className={clsx(classes.quotedContainerLeft, {
+        className={cx(classes.quotedContainerLeft, {
           [classes.quotedContainerRight]: message.fromMe,
         })}
       >
         <span
-          className={clsx(classes.quotedSideColorLeft, {
+          className={cx(classes.quotedSideColorLeft, {
             [classes.quotedSideColorRight]: message.quotedMsg?.fromMe,
           })}
         ></span>
@@ -657,7 +651,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
                   //|| message.mediaType === "multi_vcard" 
                 ) && checkMessageMedia(message)}
                 <div
-                  className={clsx(classes.textContentItem, {
+                  className={cx(classes.textContentItem, {
                     [classes.textContentItemDeleted]: message.isDeleted,
                   })}
                 >

@@ -3,6 +3,12 @@ import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import User from "../../models/User";
+import { PROFILES } from "../../middleware/hasProfile";
+import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
+import {
+  assertQueuesInCompany,
+  assertWhatsappInCompany
+} from "../../helpers/AssertCompanyOwnership";
 
 interface Request {
   email: string;
@@ -11,6 +17,7 @@ interface Request {
   queueIds?: number[];
   profile?: string;
   whatsappId?: number;
+  companyId: number;
 }
 
 interface Response {
@@ -26,7 +33,8 @@ const CreateUserService = async ({
   name,
   queueIds = [],
   profile = "admin",
-  whatsappId
+  whatsappId,
+  companyId
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string().required().min(2),
@@ -44,14 +52,19 @@ const CreateUserService = async ({
           return !emailExists;
         }
       ),
-    password: Yup.string().required().min(5)
+    password: Yup.string().required().min(5),
+    profile: Yup.string().oneOf(PROFILES, "ERR_INVALID_PROFILE")
   });
 
   try {
-    await schema.validate({ email, password, name });
+    await schema.validate({ email, password, name, profile });
   } catch (err) {
     throw new AppError(err.message);
   }
+
+  await CheckCompanyLimit(companyId, "users");
+  await assertQueuesInCompany(queueIds, companyId);
+  await assertWhatsappInCompany(whatsappId, companyId);
 
   const user = await User.create(
     {
@@ -59,7 +72,8 @@ const CreateUserService = async ({
       password,
       name,
       profile,
-      whatsappId: whatsappId ? whatsappId : null
+      whatsappId: whatsappId || null,
+      companyId
     },
     { include: ["queues", "whatsapp"] }
   );

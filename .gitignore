@@ -1,6 +1,10 @@
 .docker/data/
+.docker/redis/
 ssl/
 .env
 .wwebjs_auth
 .wwebjs_cache
 .idea
+# Backups created by scripts/backup.sh
+backups/
+dump.rdb

@@ -12,6 +12,7 @@ import {
 } from "sequelize-typescript";
 import Contact from "./Contact";
 import Ticket from "./Ticket";
+import { getSignedMediaPath } from "../helpers/MediaUrl";
 
 @Table
 class Message extends Model<Message> {
@@ -39,7 +40,7 @@ class Message extends Model<Message> {
     if (this.getDataValue("mediaUrl")) {
       return `${process.env.BACKEND_URL}:${
         process.env.PROXY_PORT
-      }/public/${this.getDataValue("mediaUrl")}`;
+      }/public/${getSignedMediaPath(this.getDataValue("mediaUrl") as string)}`;
     }
     return null;
   }

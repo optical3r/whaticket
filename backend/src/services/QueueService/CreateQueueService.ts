@@ -1,14 +1,21 @@
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import { QueueSchedule, isValidSchedule } from "../../helpers/BusinessHours";
+import CheckCompanyLimit from "../CompanyService/CheckCompanyLimit";
 
 interface QueueData {
   name: string;
   color: string;
   greetingMessage?: string;
+  schedules?: QueueSchedule[];
+  outOfHoursMessage?: string;
 }
 
-const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
+const CreateQueueService = async (
+  queueData: QueueData,
+  companyId: number
+): Promise<Queue> => {
   const { color, name } = queueData;
 
   const queueSchema = Yup.object().shape({
@@ -21,7 +28,7 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
         async value => {
           if (value) {
             const queueWithSameName = await Queue.findOne({
-              where: { name: value }
+              where: { name: value, companyId }
             });
 
             return !queueWithSameName;
@@ -44,7 +51,7 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
         async value => {
           if (value) {
             const queueWithSameColor = await Queue.findOne({
-              where: { color: value }
+              where: { color: value, companyId }
             });
             return !queueWithSameColor;
           }
@@ -53,13 +60,22 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
       )
   });
 
+  if (
+    queueData.schedules !== undefined &&
+    !isValidSchedule(queueData.schedules)
+  ) {
+    throw new AppError("ERR_QUEUE_INVALID_SCHEDULE");
+  }
+
   try {
     await queueSchema.validate({ color, name });
   } catch (err) {
     throw new AppError(err.message);
   }
 
-  const queue = await Queue.create(queueData);
+  await CheckCompanyLimit(companyId, "queues");
+
+  const queue = await Queue.create({ ...queueData, companyId });
 
   return queue;
 };

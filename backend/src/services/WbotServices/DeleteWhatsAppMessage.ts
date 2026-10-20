@@ -3,12 +3,16 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import { whatsappProvider } from "../../providers/WhatsApp";
 
-const DeleteWhatsAppMessage = async (messageId: string): Promise<Message> => {
+const DeleteWhatsAppMessage = async (
+  messageId: string,
+  companyId: number
+): Promise<Message> => {
   const message = await Message.findByPk(messageId, {
     include: [
       {
         model: Ticket,
         as: "ticket",
+        where: { companyId },
         include: ["contact"]
       }
     ]

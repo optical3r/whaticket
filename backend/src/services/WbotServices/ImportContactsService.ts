@@ -3,8 +3,11 @@ import { whatsappProvider } from "../../providers/WhatsApp";
 import Contact from "../../models/Contact";
 import { logger } from "../../utils/logger";
 
-const ImportContactsService = async (userId: number): Promise<void> => {
-  const defaultWhatsapp = await GetDefaultWhatsApp(userId);
+const ImportContactsService = async (
+  userId: number,
+  companyId: number
+): Promise<void> => {
+  const defaultWhatsapp = await GetDefaultWhatsApp(companyId, userId);
 
   let phoneContacts;
 
@@ -25,12 +28,12 @@ const ImportContactsService = async (userId: number): Promise<void> => {
         }
 
         const numberExists = await Contact.findOne({
-          where: { number }
+          where: { number, companyId }
         });
 
         if (numberExists) return null;
 
-        return Contact.create({ number, name });
+        return Contact.create({ number, name, companyId });
       })
     );
   }

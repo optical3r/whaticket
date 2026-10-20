@@ -1,4 +1,13 @@
-import { Op, fn, where, col, Filterable, Includeable } from "sequelize";
+import {
+  Op,
+  WhereOptions,
+  fn,
+  where,
+  col,
+  literal,
+  Filterable,
+  Includeable
+} from "sequelize";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
 
 import Ticket from "../../models/Ticket";
@@ -7,6 +16,7 @@ import Message from "../../models/Message";
 import Queue from "../../models/Queue";
 import ShowUserService from "../UserServices/ShowUserService";
 import Whatsapp from "../../models/Whatsapp";
+import Tag from "../../models/Tag";
 
 interface Request {
   searchParam?: string;
@@ -17,6 +27,8 @@ interface Request {
   userId: string;
   withUnreadMessages?: string;
   queueIds: number[];
+  tagIds?: number[];
+  companyId: number;
 }
 
 interface Response {
@@ -33,7 +45,9 @@ const ListTicketsService = async ({
   date,
   showAll,
   userId,
-  withUnreadMessages
+  withUnreadMessages,
+  tagIds = [],
+  companyId
 }: Request): Promise<Response> => {
   let whereCondition: Filterable["where"] = {
     [Op.or]: [{ userId }, { status: "pending" }],
@@ -56,6 +70,12 @@ const ListTicketsService = async ({
       model: Whatsapp,
       as: "whatsapp",
       attributes: ["name"]
+    },
+    {
+      model: Tag,
+      as: "tags",
+      attributes: ["id", "name", "color"],
+      through: { attributes: [] }
     }
   ];
 
@@ -122,7 +142,7 @@ const ListTicketsService = async ({
   }
 
   if (withUnreadMessages === "true") {
-    const user = await ShowUserService(userId);
+    const user = await ShowUserService(userId, companyId);
     const userQueueIds = user.queues.map(queue => queue.id);
 
     whereCondition = {
@@ -132,11 +152,27 @@ const ListTicketsService = async ({
     };
   }
 
+  // Tickets with any of the selected tags. A subquery keeps every tag of the
+  // matching tickets in the result, not only the filtered ones.
+  const safeTagIds = tagIds.map(Number).filter(Number.isInteger);
+  const tagFilter: WhereOptions = safeTagIds.length
+    ? {
+        id: {
+          [Op.in]: literal(
+            `(SELECT \`ticketId\` FROM \`TicketTags\` WHERE \`tagId\` IN (${safeTagIds.join(
+              ","
+            )}))`
+          )
+        }
+      }
+    : {};
+
   const limit = 40;
   const offset = limit * (+pageNumber - 1);
 
   const { count, rows: tickets } = await Ticket.findAndCountAll({
-    where: whereCondition,
+    // The company filter is applied last so no branch above can drop it.
+    where: { [Op.and]: [whereCondition, tagFilter, { companyId }] },
     include: includeCondition,
     distinct: true,
     limit,

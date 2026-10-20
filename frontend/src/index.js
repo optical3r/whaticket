@@ -1,22 +1,15 @@
 import React from "react";
-import ReactDOM from "react-dom";
-import CssBaseline from "@material-ui/core/CssBaseline";
+import { createRoot } from "react-dom/client";
 
 import App from "./App";
 
-ReactDOM.render(
-	<CssBaseline>
-		<App />
-	</CssBaseline>,
-	document.getElementById("root")
-);
+// CssBaseline is applied inside the theme provider (context/DarkMode).
+createRoot(document.getElementById("root")).render(<App />);
 
-// ReactDOM.render(
-// 	<React.StrictMode>
-// 		<CssBaseline>
-// 			<App />
-// 		</CssBaseline>,
-//   </React.StrictMode>
-
-// 	document.getElementById("root")
-// );
+// Installable app (PWA). Only in production builds: in development the
+// service worker would serve stale files.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

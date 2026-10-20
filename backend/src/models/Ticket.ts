@@ -9,8 +9,15 @@ import {
   BelongsTo,
   HasMany,
   AutoIncrement,
-  Default
+  Default,
+  BelongsToMany,
+  DataType
 } from "sequelize-typescript";
+import Company from "./Company";
+import Tag from "./Tag";
+import TicketTag from "./TicketTag";
+import CloseReason from "./CloseReason";
+import KanbanStage from "./KanbanStage";
 
 import Contact from "./Contact";
 import Message from "./Message";
@@ -37,6 +44,13 @@ class Ticket extends Model<Ticket> {
   @Default(false)
   @Column
   isGroup: boolean;
+
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;
@@ -74,6 +88,58 @@ class Ticket extends Model<Ticket> {
 
   @HasMany(() => Message)
   messages: Message[];
+
+  @BelongsToMany(() => Tag, () => TicketTag)
+  tags: Tag[];
+
+  @ForeignKey(() => CloseReason)
+  @Column
+  closeReasonId: number;
+
+  @BelongsTo(() => CloseReason)
+  closeReason: CloseReason;
+
+  @Column(DataType.DATE)
+  closedAt: Date | null;
+
+  // Last time the out-of-hours message was sent for this ticket.
+  @Column(DataType.DATE)
+  outOfHoursNotifiedAt: Date | null;
+
+  // Position in the connection's flow: the step waiting for an answer,
+  // wrong answers so far and when the flow ended for this ticket.
+  @Column(DataType.INTEGER)
+  flowId: number | null;
+
+  @Column(DataType.STRING)
+  flowStepId: string | null;
+
+  @Default(0)
+  @Column
+  flowAttempts: number;
+
+  @Column(DataType.DATE)
+  flowFinishedAt: Date | null;
+
+  // Last message from the customer; the Cloud API allows free text only
+  // within 24 hours of it.
+  @Column(DataType.DATE)
+  lastInboundAt: Date | null;
+
+  // Set when the virtual assistant handed the conversation to the team.
+  @Column(DataType.DATE)
+  aiHandoffAt: Date | null;
+
+  @Default(0)
+  @Column
+  aiReplies: number;
+
+  @ForeignKey(() => KanbanStage)
+  @Column(DataType.INTEGER)
+  kanbanStageId: number | null;
+
+  @BelongsTo(() => KanbanStage)
+  kanbanStage: KanbanStage;
 }
 
 export default Ticket;

@@ -11,9 +11,17 @@ import whatsappSessionRoutes from "./whatsappSessionRoutes";
 import queueRoutes from "./queueRoutes";
 import quickAnswerRoutes from "./quickAnswerRoutes";
 import apiRoutes from "./apiRoutes";
+import companyRoutes from "./companyRoutes";
+import catalogRoutes from "./catalogRoutes";
+import healthRoutes from "./healthRoutes";
+import aiRoutes from "./aiRoutes";
+import campaignRoutes from "./campaignRoutes";
+import cloudWebhookRoutes from "./cloudWebhookRoutes";
 
 const routes = Router();
 
+routes.use(healthRoutes);
+routes.use(cloudWebhookRoutes);
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
 routes.use(settingRoutes);
@@ -24,6 +32,10 @@ routes.use(messageRoutes);
 routes.use(whatsappSessionRoutes);
 routes.use(queueRoutes);
 routes.use(quickAnswerRoutes);
+routes.use(companyRoutes);
+routes.use(catalogRoutes);
+routes.use(aiRoutes);
+routes.use(campaignRoutes);
 routes.use("/api/messages", apiRoutes);
 
 export default routes;

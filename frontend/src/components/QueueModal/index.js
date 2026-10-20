@@ -4,25 +4,26 @@ import * as Yup from "yup";
 import { Formik, Form, Field } from "formik";
 import { toast } from "react-toastify";
 
-import { makeStyles } from "@material-ui/core/styles";
-import { green } from "@material-ui/core/colors";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import CircularProgress from "@material-ui/core/CircularProgress";
+import { makeStyles } from 'tss-react/mui';
+import { green } from "@mui/material/colors";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import CircularProgress from "@mui/material/CircularProgress";
 
 import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import ColorPicker from "../ColorPicker";
-import { IconButton, InputAdornment } from "@material-ui/core";
-import { Colorize } from "@material-ui/icons";
+import QueueScheduleEditor from "../QueueScheduleEditor";
+import { IconButton, InputAdornment } from "@mui/material";
+import { Colorize } from "@mui/icons-material";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	root: {
 		display: "flex",
 		flexWrap: "wrap",
@@ -64,12 +65,14 @@ const QueueSchema = Yup.object().shape({
 });
 
 const QueueModal = ({ open, onClose, queueId }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	const initialState = {
 		name: "",
 		color: "",
 		greetingMessage: "",
+		schedules: [],
+		outOfHoursMessage: "",
 	};
 
 	const [colorPickerModalOpen, setColorPickerModalOpen] = useState(false);
@@ -82,7 +85,12 @@ const QueueModal = ({ open, onClose, queueId }) => {
 			try {
 				const { data } = await api.get(`/queue/${queueId}`);
 				setQueue(prevState => {
-					return { ...prevState, ...data };
+					return {
+						...prevState,
+						...data,
+						schedules: data.schedules || [],
+						outOfHoursMessage: data.outOfHoursMessage || "",
+					};
 				});
 			} catch (err) {
 				toastError(err);
@@ -90,11 +98,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		})();
 
 		return () => {
-			setQueue({
-				name: "",
-				color: "",
-				greetingMessage: "",
-			});
+			setQueue(initialState);
 		};
 	}, [queueId, open]);
 
@@ -119,7 +123,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 
 	return (
 		<div className={classes.root}>
-			<Dialog open={open} onClose={handleClose} scroll="paper">
+			<Dialog open={open} onClose={handleClose} scroll="paper" maxWidth="sm" fullWidth>
 				<DialogTitle>
 					{queueId
 						? `${i18n.t("queueModal.title.edit")}`
@@ -136,7 +140,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 						}, 400);
 					}}
 				>
-					{({ touched, errors, isSubmitting, values }) => (
+					{({ touched, errors, isSubmitting, values, setFieldValue }) => (
 						<Form>
 							<DialogContent dividers>
 								<Field
@@ -212,6 +216,25 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										variant="outlined"
 										margin="dense"
 									/>
+								</div>
+								<div style={{ marginTop: 16 }}>
+									<QueueScheduleEditor
+										value={values.schedules}
+										onChange={schedules => setFieldValue("schedules", schedules)}
+									/>
+									{values.schedules.length > 0 && (
+										<Field
+											as={TextField}
+											id="queue-out-of-hours"
+											label={i18n.t("queueModal.hours.outOfHoursMessage")}
+											multiline
+											rows={3}
+											fullWidth
+											name="outOfHoursMessage"
+											variant="outlined"
+											margin="dense"
+										/>
+									)}
 								</div>
 							</DialogContent>
 							<DialogActions>

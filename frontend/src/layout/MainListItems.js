@@ -1,28 +1,36 @@
 import React, { useContext, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import clsx from "clsx";
-
-import { makeStyles } from "@material-ui/core/styles";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemText from "@material-ui/core/ListItemText";
-import ListSubheader from "@material-ui/core/ListSubheader";
-import Divider from "@material-ui/core/Divider";
-import DashboardOutlinedIcon from "@material-ui/icons/DashboardOutlined";
-import WhatsAppIcon from "@material-ui/icons/WhatsApp";
-import SyncAltIcon from "@material-ui/icons/SyncAlt";
-import SettingsOutlinedIcon from "@material-ui/icons/SettingsOutlined";
-import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
-import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
-import AccountTreeOutlinedIcon from "@material-ui/icons/AccountTreeOutlined";
-import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
+import { makeStyles } from 'tss-react/mui';
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import Divider from "@mui/material/Divider";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import SyncAltIcon from "@mui/icons-material/SyncAlt";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import QuestionAnswerOutlinedIcon from "@mui/icons-material/QuestionAnswerOutlined";
+import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
 import { AuthContext } from "../context/Auth/AuthContext";
 import { Can } from "../components/Can";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme, _params, classes) => ({
   navItem: {
     position: "relative",
     gap: theme.spacing(1.5),
@@ -36,7 +44,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1, 1.25),
   },
   navItemActive: {
-    color: theme.palette.primary.main,
+    color: theme.palette.text.link,
     backgroundColor: theme.palette.tintedBackground,
     "&::before": {
       content: '""',
@@ -48,10 +56,10 @@ const useStyles = makeStyles((theme) => ({
       borderRadius: theme.borderRadius.pill,
       backgroundColor: theme.palette.primary.main,
     },
-    "& $navIcon": {
-      color: theme.palette.primary.main,
+    [`& .${classes.navIcon}`]: {
+      color: theme.palette.text.link,
     },
-    "& $navText": {
+    [`& .${classes.navText}`]: {
       fontWeight: 500,
     },
   },
@@ -87,7 +95,7 @@ const useStyles = makeStyles((theme) => ({
 
 function ListItemLink(props) {
   const { icon, primary, to, collapsed, adornment } = props;
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
 
   const renderLink = React.useMemo(
     () =>
@@ -105,10 +113,9 @@ function ListItemLink(props) {
 
   return (
     <li>
-      <ListItem
-        button
+      <ListItemButton
         component={renderLink}
-        className={clsx(classes.navItem, collapsed && classes.navItemCollapsed)}
+        className={cx(classes.navItem, collapsed && classes.navItemCollapsed)}
       >
         {icon ? (
           <ListItemIcon className={classes.navIcon}>{icon}</ListItemIcon>
@@ -121,14 +128,14 @@ function ListItemLink(props) {
           />
         )}
         {adornment}
-      </ListItem>
+      </ListItemButton>
     </li>
   );
 }
 
 const MainListItems = (props) => {
   const { drawerClose, collapsed } = props;
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
   const { whatsApps } = useContext(WhatsAppsContext);
   const { user } = useContext(AuthContext);
   const [connectionWarning, setConnectionWarning] = useState(false);
@@ -171,7 +178,7 @@ const MainListItems = (props) => {
         adornment={
           connectionWarning && (
             <span
-              className={clsx(
+              className={cx(
                 classes.connectionDot,
                 collapsed && classes.connectionDotCollapsed
               )}
@@ -183,6 +190,12 @@ const MainListItems = (props) => {
         to="/tickets"
         primary={i18n.t("mainDrawer.listItems.tickets")}
         icon={<WhatsAppIcon />}
+        collapsed={collapsed}
+      />
+      <ListItemLink
+        to="/kanban"
+        primary={i18n.t("mainDrawer.listItems.kanban")}
+        icon={<ViewKanbanOutlinedIcon />}
         collapsed={collapsed}
       />
 
@@ -200,7 +213,7 @@ const MainListItems = (props) => {
       />
       <Can
         role={user.profile}
-        perform="drawer-admin-items:view"
+        perform="drawer-manager-items:view"
         yes={() => (
           <>
             <Divider className={classes.divider} />
@@ -209,27 +222,141 @@ const MainListItems = (props) => {
                 {i18n.t("mainDrawer.listItems.administration")}
               </ListSubheader>
             )}
-            <ListItemLink
-              to="/users"
-              primary={i18n.t("mainDrawer.listItems.users")}
-              icon={<PeopleAltOutlinedIcon />}
-              collapsed={collapsed}
+            <Can
+              role={user.profile}
+              perform="reports:view"
+              yes={() => (
+                <ListItemLink
+                  to="/reports"
+                  primary={i18n.t("mainDrawer.listItems.reports")}
+                  icon={<AssessmentOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
             />
-            <ListItemLink
-              to="/queues"
-              primary={i18n.t("mainDrawer.listItems.queues")}
-              icon={<AccountTreeOutlinedIcon />}
-              collapsed={collapsed}
+            <Can
+              role={user.profile}
+              perform="campaigns:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/campaigns"
+                  primary={i18n.t("mainDrawer.listItems.campaigns")}
+                  icon={<CampaignOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
             />
-            <ListItemLink
-              to="/settings"
-              primary={i18n.t("mainDrawer.listItems.settings")}
-              icon={<SettingsOutlinedIcon />}
-              collapsed={collapsed}
+            <Can
+              role={user.profile}
+              perform="drawer-admin-items:view"
+              yes={() => (
+                <>
+                  <ListItemLink
+                    to="/users"
+                    primary={i18n.t("mainDrawer.listItems.users")}
+                    icon={<PeopleAltOutlinedIcon />}
+                    collapsed={collapsed}
+                  />
+                  <ListItemLink
+                    to="/queues"
+                    primary={i18n.t("mainDrawer.listItems.queues")}
+                    icon={<AccountTreeOutlinedIcon />}
+                    collapsed={collapsed}
+                  />
+                  <ListItemLink
+                    to="/flows"
+                    primary={i18n.t("mainDrawer.listItems.flows")}
+                    icon={<AltRouteOutlinedIcon />}
+                    collapsed={collapsed}
+                  />
+                </>
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="tags:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/tags"
+                  primary={i18n.t("mainDrawer.listItems.tags")}
+                  icon={<LabelOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="closeReasons:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/closeReasons"
+                  primary={i18n.t("mainDrawer.listItems.closeReasons")}
+                  icon={<AssignmentTurnedInOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="webhooks:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/webhooks"
+                  primary={i18n.t("mainDrawer.listItems.webhooks")}
+                  icon={<SettingsEthernetIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="ai:manage"
+              yes={() => (
+                <ListItemLink
+                  to="/ai"
+                  primary={i18n.t("mainDrawer.listItems.ai")}
+                  icon={<AutoAwesomeOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
+            />
+            <Can
+              role={user.profile}
+              perform="drawer-admin-items:view"
+              yes={() => (
+                <ListItemLink
+                  to="/settings"
+                  primary={i18n.t("mainDrawer.listItems.settings")}
+                  icon={<SettingsOutlinedIcon />}
+                  collapsed={collapsed}
+                />
+              )}
             />
           </>
         )}
       />
+      {user.super && (
+        <>
+          <Divider className={classes.divider} />
+          {!collapsed && (
+            <ListSubheader disableSticky className={classes.sectionLabel}>
+              {i18n.t("mainDrawer.listItems.platform")}
+            </ListSubheader>
+          )}
+          <ListItemLink
+            to="/companies"
+            primary={i18n.t("mainDrawer.listItems.companies")}
+            icon={<BusinessOutlinedIcon />}
+            collapsed={collapsed}
+          />
+          <ListItemLink
+            to="/plans"
+            primary={i18n.t("mainDrawer.listItems.plans")}
+            icon={<LocalOfferOutlinedIcon />}
+            collapsed={collapsed}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -2,17 +2,21 @@ import { Op } from "sequelize";
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import { QueueSchedule, isValidSchedule } from "../../helpers/BusinessHours";
 import ShowQueueService from "./ShowQueueService";
 
 interface QueueData {
   name?: string;
   color?: string;
   greetingMessage?: string;
+  schedules?: QueueSchedule[];
+  outOfHoursMessage?: string;
 }
 
 const UpdateQueueService = async (
   queueId: number | string,
-  queueData: QueueData
+  queueData: QueueData,
+  companyId: number
 ): Promise<Queue> => {
   const { color, name } = queueData;
 
@@ -25,7 +29,7 @@ const UpdateQueueService = async (
         async value => {
           if (value) {
             const queueWithSameName = await Queue.findOne({
-              where: { name: value, id: { [Op.not]: queueId } }
+              where: { name: value, companyId, id: { [Op.not]: queueId } }
             });
 
             return !queueWithSameName;
@@ -48,7 +52,7 @@ const UpdateQueueService = async (
         async value => {
           if (value) {
             const queueWithSameColor = await Queue.findOne({
-              where: { color: value, id: { [Op.not]: queueId } }
+              where: { color: value, companyId, id: { [Op.not]: queueId } }
             });
             return !queueWithSameColor;
           }
@@ -57,15 +61,22 @@ const UpdateQueueService = async (
       )
   });
 
+  if (
+    queueData.schedules !== undefined &&
+    !isValidSchedule(queueData.schedules)
+  ) {
+    throw new AppError("ERR_QUEUE_INVALID_SCHEDULE");
+  }
+
   try {
     await queueSchema.validate({ color, name });
   } catch (err) {
     throw new AppError(err.message);
   }
 
-  const queue = await ShowQueueService(queueId);
+  const queue = await ShowQueueService(queueId, companyId);
 
-  await queue.update(queueData);
+  await queue.update({ ...queueData, companyId });
 
   return queue;
 };

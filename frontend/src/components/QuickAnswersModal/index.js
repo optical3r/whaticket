@@ -5,7 +5,6 @@ import { Formik, Form, Field } from "formik";
 import { toast } from "react-toastify";
 
 import {
-  makeStyles,
   Button,
   TextField,
   Dialog,
@@ -13,14 +12,15 @@ import {
   DialogContent,
   DialogTitle,
   CircularProgress,
-} from "@material-ui/core";
-import { green } from "@material-ui/core/colors";
+} from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import { green } from "@mui/material/colors";
 import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   root: {
     flexWrap: "wrap",
   },
@@ -64,7 +64,7 @@ const QuickAnswersModal = ({
   initialValues,
   onSave,
 }) => {
-  const classes = useStyles();
+  const { classes } = useStyles();
   const isMounted = useRef(true);
 
   const initialState = {

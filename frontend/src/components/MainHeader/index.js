@@ -1,8 +1,8 @@
 import React from "react";
 
-import { makeStyles } from "@material-ui/core/styles";
+import { makeStyles } from 'tss-react/mui';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	contactsHeader: {
 		display: "flex",
 		flexWrap: "wrap",
@@ -12,7 +12,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const MainHeader = ({ children }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	return <div className={classes.contactsHeader}>{children}</div>;
 };

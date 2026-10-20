@@ -4,7 +4,6 @@ import openSocket from "../../services/socket-io";
 import {
   Button,
   IconButton,
-  makeStyles,
   Paper,
   TableBody,
   TableCell,
@@ -12,9 +11,10 @@ import {
   TableRow,
   InputAdornment,
   TextField,
-} from "@material-ui/core";
-import { Edit, DeleteOutline } from "@material-ui/icons";
-import SearchIcon from "@material-ui/icons/Search";
+} from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import { Edit, DeleteOutline } from "@mui/icons-material";
+import SearchIcon from "@mui/icons-material/Search";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -74,7 +74,7 @@ const reducer = (state, action) => {
   }
 };
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   mainPaper: {
     flex: 1,
     padding: theme.spacing(1),
@@ -84,7 +84,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const QuickAnswers = () => {
-  const classes = useStyles();
+  const { classes } = useStyles();
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -211,6 +211,7 @@ const QuickAnswers = () => {
         <MainHeaderButtonsWrapper>
           <TextField
             placeholder={i18n.t("quickAnswers.searchPlaceholder")}
+            size="small"
             type="search"
             value={searchParam}
             onChange={handleSearch}

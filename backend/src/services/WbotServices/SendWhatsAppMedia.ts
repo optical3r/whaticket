@@ -4,6 +4,7 @@ import Ticket from "../../models/Ticket";
 import { whatsappProvider, ProviderMessage } from "../../providers/WhatsApp";
 
 import formatBody from "../../helpers/Mustache";
+import { assertCanSendFreeText } from "../../helpers/CloudWindow";
 
 interface Request {
   media: Express.Multer.File;
@@ -16,6 +17,8 @@ const SendWhatsAppMedia = async ({
   ticket,
   body
 }: Request): Promise<ProviderMessage> => {
+  await assertCanSendFreeText(ticket);
+
   try {
     if (!ticket.whatsappId) {
       throw new AppError("ERR_TICKET_NO_WHATSAPP");

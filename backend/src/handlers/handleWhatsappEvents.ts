@@ -1,9 +1,6 @@
-import { join } from "path";
-import { promisify } from "util";
-import { writeFile } from "fs";
 import * as Sentry from "@sentry/node";
 
-import { getIO } from "../libs/socket";
+import { companyRoom, getIO } from "../libs/socket";
 import { logger } from "../utils/logger";
 import { debounce } from "../helpers/Debounce";
 import formatBody from "../helpers/Mustache";
@@ -18,11 +15,19 @@ import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTi
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
+import SendOutOfHoursMessage from "../services/QueueService/SendOutOfHoursMessage";
+import { ScheduleAssistantReply } from "../services/AiServices/AssistantService";
+import { isCampaignMessage } from "../services/CampaignServices/CampaignDispatcher";
+import { HandleOptOut } from "../services/CampaignServices/OptOutService";
+import { RunFlow } from "../services/FlowServices/FlowEngine";
+import {
+  FindPendingRating,
+  RegisterRatingAnswer
+} from "../services/TicketServices/TicketRatingService";
 
 import { whatsappProvider } from "../providers/WhatsApp/whatsappProvider";
 import { MessageType, MessageAck } from "../providers/WhatsApp/types";
-
-const writeFileAsync = promisify(writeFile);
+import { saveMedia } from "../libs/storage";
 
 export interface ContactPayload {
   name: string;
@@ -95,11 +100,14 @@ const saveMediaFile = async (mediaPayload: MediaPayload): Promise<string> => {
     filename = `${baseName}.${randomId}.${extension}`;
   }
 
+  // Names come from the sender's device: keep only safe characters.
+  filename = filename.replace(/[^\w.\- ()]/g, "_").replace(/^\.+/, "_");
+
   try {
-    await writeFileAsync(
-      join(__dirname, "..", "..", "public", filename),
-      mediaPayload.data,
-      "base64"
+    await saveMedia(
+      filename,
+      Buffer.from(mediaPayload.data, "base64"),
+      mediaPayload.mimetype
     );
   } catch (err) {
     Sentry.captureException(err);
@@ -110,7 +118,8 @@ const saveMediaFile = async (mediaPayload: MediaPayload): Promise<string> => {
 };
 
 const processVcardMessage = async (
-  messagePayload: MessagePayload
+  messagePayload: MessagePayload,
+  companyId: number
 ): Promise<void> => {
   if (messagePayload.type !== "vcard") return;
 
@@ -135,7 +144,8 @@ const processVcardMessage = async (
       phoneNumbers.map(({ number }) =>
         CreateContactService({
           name: contactName,
-          number: number.replace(/\D/g, "")
+          number: number.replace(/\D/g, ""),
+          companyId
         })
       )
     );
@@ -150,12 +160,16 @@ const handleQueueLogic = async (
   ticket: Ticket,
   contactPayload: ContactPayload
 ): Promise<void> => {
-  const { queues, greetingMessage } = await ShowWhatsAppService(whatsappId);
+  const { queues, greetingMessage } = await ShowWhatsAppService(
+    whatsappId,
+    ticket.companyId
+  );
 
   if (queues.length === 1) {
     await UpdateTicketService({
       ticketData: { queueId: queues[0].id },
-      ticketId: ticket.id
+      ticketId: ticket.id,
+      companyId: ticket.companyId
     });
     return;
   }
@@ -166,7 +180,8 @@ const handleQueueLogic = async (
   if (choosenQueue) {
     await UpdateTicketService({
       ticketData: { queueId: choosenQueue.id },
-      ticketId: ticket.id
+      ticketId: ticket.id,
+      companyId: ticket.companyId
     });
 
     const body = formatBody(
@@ -223,7 +238,12 @@ export const handleMessage = async (
   try {
     const processedMessage = processLocationMessage(messagePayload);
 
+    // The connection decides which company the conversation belongs to.
+    const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
+    const { companyId } = whatsapp;
+
     const contact = await CreateOrUpdateContactService({
+      companyId,
       name: contactPayload.name,
       number: contactPayload.number,
       lid: contactPayload.lid,
@@ -234,6 +254,7 @@ export const handleMessage = async (
     let groupContact: Contact | undefined;
     if (contextPayload.groupContact) {
       groupContact = await CreateOrUpdateContactService({
+        companyId,
         name: contextPayload.groupContact.name,
         number: contextPayload.groupContact.number,
         lid: contextPayload.groupContact.lid,
@@ -242,7 +263,6 @@ export const handleMessage = async (
       });
     }
 
-    const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
     if (
       contextPayload.unreadMessages === 0 &&
       whatsapp.farewellMessage &&
@@ -251,11 +271,56 @@ export const handleMessage = async (
       return;
     }
 
+    // An answer to the satisfaction survey is stored in the closed ticket
+    // instead of reopening it.
+    if (!processedMessage.fromMe && !groupContact) {
+      const pendingRating = await FindPendingRating(
+        contact,
+        contextPayload.whatsappId
+      );
+      if (
+        pendingRating &&
+        (await RegisterRatingAnswer(
+          pendingRating,
+          processedMessage.body,
+          contact
+        ))
+      ) {
+        await CreateMessageService({
+          messageData: {
+            id: processedMessage.id,
+            ticketId: pendingRating.ticketId,
+            contactId: contact.id,
+            body: processedMessage.body,
+            fromMe: false,
+            read: true,
+            mediaType: processedMessage.type,
+            ack: processedMessage.ack !== undefined ? processedMessage.ack : 0
+          }
+        });
+        return;
+      }
+    }
+
+    // "SAIR" after a campaign: the contact stops receiving campaigns and
+    // the reply does not reopen a conversation.
+    if (
+      !processedMessage.fromMe &&
+      !groupContact &&
+      (await HandleOptOut(contact, contextPayload.whatsappId, processedMessage))
+    ) {
+      return;
+    }
+
     const ticket = await FindOrCreateTicketService(
       contact,
       contextPayload.whatsappId,
       contextPayload.unreadMessages,
-      groupContact
+      groupContact,
+      {
+        keepClosed:
+          processedMessage.fromMe && isCampaignMessage(processedMessage.body)
+      }
     );
 
     const messageData: any = {
@@ -287,13 +352,28 @@ export const handleMessage = async (
       lastMessageText = processedMessage.body || mediaPayload?.filename || "";
     }
 
-    await ticket.update({ lastMessage: lastMessageText });
+    await ticket.update({
+      lastMessage: lastMessageText,
+      ...(processedMessage.fromMe ? {} : { lastInboundAt: new Date() })
+    });
 
     await CreateMessageService({ messageData });
 
-    await processVcardMessage(processedMessage);
+    await processVcardMessage(processedMessage, companyId);
+
+    // A connection with a flow uses it instead of the queue menu.
+    const flowHandled =
+      !processedMessage.fromMe &&
+      !contextPayload.groupContact &&
+      (await RunFlow({
+        ticket,
+        whatsapp,
+        contact,
+        body: processedMessage.body
+      }));
 
     if (
+      !whatsapp.flowId &&
       !ticket.queue &&
       !contextPayload.groupContact &&
       !processedMessage.fromMe &&
@@ -306,6 +386,19 @@ export const handleMessage = async (
         ticket,
         contactPayload
       );
+    }
+
+    if (
+      !processedMessage.fromMe &&
+      !contextPayload.groupContact &&
+      !flowHandled
+    ) {
+      // The queue may have just been chosen above.
+      await ticket.reload();
+      // The virtual assistant tells the customer about business hours itself.
+      if (!(await ScheduleAssistantReply(ticket))) {
+        await SendOutOfHoursMessage(ticket, contact);
+      }
     }
   } catch (err) {
     Sentry.captureException(err);
@@ -332,6 +425,7 @@ export const handleMessageAck = async (
     const messageToUpdate = await Message.findByPk(messageId, {
       include: [
         "contact",
+        { model: Ticket, as: "ticket", attributes: ["id", "companyId"] },
         {
           model: Message,
           as: "quotedMsg",
@@ -346,7 +440,12 @@ export const handleMessageAck = async (
 
     await messageToUpdate.update({ ack });
 
-    io.to(messageToUpdate.ticketId.toString()).emit("appMessage", {
+    io.to(
+      companyRoom(
+        messageToUpdate.ticket.companyId,
+        messageToUpdate.ticketId.toString()
+      )
+    ).emit("appMessage", {
       action: "update",
       message: messageToUpdate
     });

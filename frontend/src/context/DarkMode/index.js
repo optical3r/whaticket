@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useMemo } from "react";
 import PropTypes from "prop-types";
-import { ThemeProvider as MUIThemeProvider } from "@material-ui/core/styles";
-import { CssBaseline } from "@material-ui/core";
+import { ThemeProvider as MUIThemeProvider } from "@mui/material/styles";
+import { CssBaseline } from "@mui/material";
 
 import createAppTheme from "../../theme";
 

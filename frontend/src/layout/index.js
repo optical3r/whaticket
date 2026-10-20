@@ -1,36 +1,31 @@
 import React, { useState, useContext, useEffect } from "react";
-import clsx from "clsx";
-import {
-  makeStyles,
-  Drawer,
-  AppBar,
-  Toolbar,
-  List,
-  IconButton,
-  useMediaQuery,
-} from "@material-ui/core";
-import MenuIcon from "@material-ui/icons/Menu";
-import MenuOpenIcon from "@material-ui/icons/MenuOpen";
-import Brightness4Icon from "@material-ui/icons/Brightness4";
-import Brightness7Icon from "@material-ui/icons/Brightness7";
+import { Drawer, AppBar, Toolbar, Typography, List, IconButton, useMediaQuery } from "@mui/material";
+import { makeStyles } from 'tss-react/mui';
+import MenuIcon from "@mui/icons-material/Menu";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 
 import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
 import SidebarUserMenu from "../components/SidebarUserMenu";
+import LanguageSelector from "../components/LanguageSelector";
+import ConnectionAlert from "../components/ConnectionAlert";
+import TermsModal from "../components/TermsModal";
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
 import { i18n } from "../translate/i18n";
 import { useThemeContext } from "../context/DarkMode";
-import logo from "../assets/whaticket-logo-white.png";
+import brand from "../brand";
 
 const drawerWidth = 280;
 const drawerCollapsedWidth = 92;
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   root: {
     display: "flex",
     height: "100vh",
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       height: "100dvh",
     },
   },
@@ -47,7 +42,14 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.common.white,
   },
   logo: {
-    height: 30,
+    height: 28,
+    marginRight: theme.spacing(1.5),
+  },
+  brandName: {
+    color: theme.palette.common.white,
+    fontFamily: theme.typography.brandFontFamily,
+    fontWeight: 600,
+    fontSize: 18,
   },
   grow: {
     flexGrow: 1,
@@ -75,7 +77,7 @@ const useStyles = makeStyles((theme) => ({
   drawerSurface: {
     padding: theme.spacing(2, 0, 2, 2),
     backgroundColor: "transparent",
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       pointerEvents: "none",
     },
   },
@@ -92,7 +94,7 @@ const useStyles = makeStyles((theme) => ({
     border: theme.border.divider,
     borderRadius: theme.borderRadius.medium,
     overflow: "hidden",
-    [theme.breakpoints.down("xs")]: {
+    [theme.breakpoints.down('sm')]: {
       pointerEvents: "auto",
     },
   },
@@ -116,9 +118,9 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const LoggedInLayout = ({ children }) => {
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
   const { loading } = useContext(AuthContext);
-  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("xs"), {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'), {
     noSsr: true,
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -145,7 +147,7 @@ const LoggedInLayout = ({ children }) => {
         variant={isMobile ? "temporary" : "permanent"}
         className={drawerOpen ? classes.drawerPaper : classes.drawerPaperClose}
         classes={{
-          paper: clsx(
+          paper: cx(
             classes.drawerPaper,
             !drawerOpen && classes.drawerPaperClose,
             classes.drawerSurface
@@ -172,17 +174,22 @@ const LoggedInLayout = ({ children }) => {
             aria-label="open drawer"
             onClick={() => setDrawerOpen(!drawerOpen)}
             className={classes.menuButton}
-          >
+            size="large">
             {drawerOpen ? <MenuOpenIcon /> : <MenuIcon />}
           </IconButton>
-          <img src={logo} alt="Whaticket" className={classes.logo} />
+          <img src={brand.logos.symbol} alt="" className={classes.logo} />
+          <Typography component="span" className={classes.brandName}>
+            {brand.name}
+          </Typography>
           <div className={classes.grow} />
+
+          <LanguageSelector className={classes.headerIcon} />
 
           <IconButton
             aria-label={i18n.t("mainDrawer.appBar.darkMode")}
             onClick={toggleTheme}
             className={classes.headerIcon}
-          >
+            size="large">
             {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
 
@@ -191,6 +198,8 @@ const LoggedInLayout = ({ children }) => {
       </AppBar>
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />
+        <ConnectionAlert />
+        <TermsModal />
         {children ? children : null}
       </main>
     </div>

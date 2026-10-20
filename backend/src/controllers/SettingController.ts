@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { getIO } from "../libs/socket";
+import { emitToCompany } from "../libs/socket";
 import AppError from "../errors/AppError";
 
 import UpdateSettingService from "../services/SettingServices/UpdateSettingService";
@@ -11,7 +11,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const settings = await ListSettingsService();
+  const settings = await ListSettingsService(req.user.companyId);
 
   return res.status(200).json(settings);
 };
@@ -25,14 +25,15 @@ export const update = async (
   }
   const { settingKey: key } = req.params;
   const { value } = req.body;
+  const { companyId } = req.user;
 
   const setting = await UpdateSettingService({
     key,
-    value
+    value,
+    companyId
   });
 
-  const io = getIO();
-  io.emit("settings", {
+  emitToCompany(companyId, "settings", {
     action: "update",
     setting
   });

@@ -3,22 +3,22 @@ import openSocket from "../../services/socket-io";
 import { toast } from "react-toastify";
 import { useHistory } from "react-router-dom";
 
-import { makeStyles } from "@material-ui/core/styles";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
-import Paper from "@material-ui/core/Paper";
-import Button from "@material-ui/core/Button";
-import Avatar from "@material-ui/core/Avatar";
-import WhatsAppIcon from "@material-ui/icons/WhatsApp";
-import SearchIcon from "@material-ui/icons/Search";
-import TextField from "@material-ui/core/TextField";
-import InputAdornment from "@material-ui/core/InputAdornment";
+import { makeStyles } from 'tss-react/mui';
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
+import Button from "@mui/material/Button";
+import Avatar from "@mui/material/Avatar";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import SearchIcon from "@mui/icons-material/Search";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 
-import IconButton from "@material-ui/core/IconButton";
-import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
-import EditIcon from "@material-ui/icons/Edit";
+import IconButton from "@mui/material/IconButton";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditIcon from "@mui/icons-material/Edit";
 
 import api from "../../services/api";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
@@ -32,6 +32,9 @@ import Title from "../../components/Title";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 import MainContainer from "../../components/MainContainer";
 import toastError from "../../errors/toastError";
+import TagChips from "../../components/TagChips";
+import useTags from "../../hooks/useTags";
+import MenuItem from "@mui/material/MenuItem";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 
@@ -79,7 +82,7 @@ const reducer = (state, action) => {
   }
 };
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   mainPaper: {
     flex: 1,
     padding: theme.spacing(1),
@@ -89,7 +92,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const Contacts = () => {
-  const classes = useStyles();
+  const { classes } = useStyles();
   const history = useHistory();
 
   const { user } = useContext(AuthContext);
@@ -103,11 +106,13 @@ const Contacts = () => {
   const [deletingContact, setDeletingContact] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [tagId, setTagId] = useState("");
+  const { tags } = useTags();
 
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
-  }, [searchParam]);
+  }, [searchParam, tagId]);
 
   useEffect(() => {
     setLoading(true);
@@ -115,7 +120,7 @@ const Contacts = () => {
       const fetchContacts = async () => {
         try {
           const { data } = await api.get("/contacts/", {
-            params: { searchParam, pageNumber },
+            params: { searchParam, pageNumber, tagId: tagId || undefined },
           });
           dispatch({ type: "LOAD_CONTACTS", payload: data.contacts });
           setHasMore(data.hasMore);
@@ -127,7 +132,7 @@ const Contacts = () => {
       void fetchContacts();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchParam, pageNumber]);
+  }, [searchParam, pageNumber, tagId]);
 
   useEffect(() => {
     const socket = openSocket();
@@ -246,8 +251,28 @@ const Contacts = () => {
       <MainHeader>
         <Title>{i18n.t("contacts.title")}</Title>
         <MainHeaderButtonsWrapper>
+          {tags.length > 0 && (
+            <TextField
+              id="contacts-tag-filter"
+              select
+              size="small"
+              variant="outlined"
+              label={i18n.t("tagSelector.filter")}
+              value={tagId}
+              onChange={(e) => setTagId(e.target.value)}
+              style={{ minWidth: 140 }}
+            >
+              <MenuItem value="">{i18n.t("reports.filters.all")}</MenuItem>
+              {tags.map((tag) => (
+                <MenuItem key={tag.id} value={tag.id}>
+                  {tag.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             placeholder={i18n.t("contacts.searchPlaceholder")}
+            size="small"
             type="search"
             value={searchParam}
             onChange={handleSearch}
@@ -303,7 +328,10 @@ const Contacts = () => {
                   <TableCell style={{ paddingRight: 0 }}>
                     {<Avatar src={contact.profilePicUrl} />}
                   </TableCell>
-                  <TableCell>{contact.name}</TableCell>
+                  <TableCell>
+                    {contact.name}
+                    <TagChips tags={contact.tags} />
+                  </TableCell>
                   <TableCell
                     align="center"
                     data-label={i18n.t("contacts.table.whatsapp")}

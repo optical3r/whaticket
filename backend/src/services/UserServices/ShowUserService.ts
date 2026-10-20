@@ -3,15 +3,21 @@ import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
 import Whatsapp from "../../models/Whatsapp";
 
-const ShowUserService = async (id: string | number): Promise<User> => {
-  const user = await User.findByPk(id, {
+const ShowUserService = async (
+  id: string | number,
+  companyId: number
+): Promise<User> => {
+  const user = await User.findOne({
+    where: { id, companyId },
     attributes: [
       "name",
       "id",
       "email",
       "profile",
       "tokenVersion",
-      "whatsappId"
+      "whatsappId",
+      "companyId",
+      "super"
     ],
     include: [
       { model: Queue, as: "queues", attributes: ["id", "name", "color"] },

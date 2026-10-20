@@ -7,10 +7,16 @@ import {
   PrimaryKey,
   AutoIncrement,
   AllowNull,
-  Unique,
   Default,
-  HasMany
+  HasMany,
+  ForeignKey,
+  BelongsTo,
+  BelongsToMany,
+  DataType
 } from "sequelize-typescript";
+import Company from "./Company";
+import Tag from "./Tag";
+import ContactTag from "./ContactTag";
 import ContactCustomField from "./ContactCustomField";
 import Ticket from "./Ticket";
 
@@ -24,11 +30,9 @@ class Contact extends Model<Contact> {
   @Column
   name: string;
 
-  @Unique
   @Column
   number: string;
 
-  @Unique
   @Column
   lid: string;
 
@@ -44,6 +48,17 @@ class Contact extends Model<Contact> {
   @Column
   isGroup: boolean;
 
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
+
+  // Set when the contact answered SAIR: no more campaigns.
+  @Column(DataType.DATE)
+  optOutAt: Date | null;
+
   @CreatedAt
   createdAt: Date;
 
@@ -55,6 +70,9 @@ class Contact extends Model<Contact> {
 
   @HasMany(() => ContactCustomField)
   extraInfo: ContactCustomField[];
+
+  @BelongsToMany(() => Tag, () => ContactTag)
+  tags: Tag[];
 }
 
 export default Contact;

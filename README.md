@@ -1,569 +1,340 @@
-<p align="center">
-  <a href="https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-logo" target="_blank">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="images/whaticket-logo-white.png">
-      <img src="images/whaticket-logo-black.png" width="300" alt="Whaticket">
-    </picture>
-  </a>
-</p>
+# Cerqueira Labs | Atendimento via WhatsApp
 
-<h1 align="center">Whaticket Open Source</h1>
+Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respondem pelo mesmo número, e cada conversa vira um ticket com fila, responsável e histórico.
 
-<p align="center">
-  <strong>The open-source WhatsApp ticketing system that Whaticket grew out of.</strong><br>
-  Several agents on one WhatsApp number. Every conversation becomes a ticket.
-</p>
+> O nome do produto ainda não foi decidido. Ele é configurado em um único lugar (`BRAND_NAME`) e pode ser trocado sem mexer no código.
 
-<p align="center">
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3956FF.svg"></a>
-  <a href="https://github.com/canove/whaticket/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/canove/whaticket?color=3956FF"></a>
-  <a href="https://discord.gg/Dp2tTZRYHg"><img alt="Discord" src="https://img.shields.io/discord/784109818247774249?logo=discord&logoColor=white&label=discord&color=3956FF"></a>
-  <a href="https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-badge"><img alt="Whaticket" src="https://img.shields.io/badge/whaticket.com-3956FF"></a>
-</p>
+## O que o sistema faz hoje
 
-<p align="center">
-  <b>English</b> · <a href="README.pt-br.md">Português</a> · <a href="README.es.md">Español</a>
-</p>
+- **Caixa de entrada compartilhada**: vários atendentes no mesmo número de WhatsApp.
+- **Várias conexões**: mais de um número conectado, tudo na mesma tela.
+- **Tickets**: pendente → aberto → resolvido, com atendente responsável e transferência entre atendentes e filas.
+- **Filas (departamentos)**: menu automático de opções e mensagem de saudação por fila.
+- **Respostas rápidas**: atalhos com `/` para as perguntas mais comuns.
+- **Mídia**: imagem, áudio (com gravação no navegador), vídeo, documentos, localização e contatos.
+- **Contatos**: cadastro, campos personalizados e importação dos contatos do celular.
+- **Multiempresa**: cada cliente é uma empresa com usuários, conexões, filas, contatos, tickets e token de API próprios. Uma empresa nunca vê os dados de outra.
+- **Planos e limites**: cada empresa tem um plano com limite de usuários, conexões e filas. O plano também define se o módulo de IA está liberado e quantas solicitações de IA cada empresa pode fazer por mês.
+- **Painel da plataforma** (superadmin da Cerqueira Labs): criar empresas e o primeiro administrador, trocar o plano, suspender e reativar.
+- **Termos de uso**: o administrador da empresa aceita os riscos da conexão por QR Code antes de criar a primeira conexão.
+- **Alerta de conexão caída**: banner e aviso no navegador quando uma conexão do WhatsApp para de funcionar.
+- **Perfis**: administrador, supervisor (vê todos os tickets, relatórios, etiquetas e motivos) e atendente.
+- **Etiquetas** em tickets e contatos, com filtro na lista de tickets e de contatos.
+- **Notas internas** no ticket, visíveis só para a equipe.
+- **Horário de atendimento por fila**, no fuso horário da empresa, com mensagem automática fora do horário.
+- **Motivo de encerramento**, opcional ou obrigatório.
+- **Pesquisa de satisfação** (nota de 1 a 5) enviada ao encerrar o ticket. A resposta fica registrada no ticket encerrado, sem reabri-lo.
+- **Relatórios**: tempo de primeira resposta, tempo de resolução, volume por dia, fila, atendente e motivo, satisfação média e exportação em CSV.
+- **Webhooks** para enviar eventos (ticket criado, encerrado, avaliado, mensagem recebida e enviada) para outros sistemas.
+- **IA no atendimento** (Claude, da Anthropic): sugestão de resposta, resumo da conversa e revisão do texto do atendente.
+- **Assistente virtual**: responde os clientes que aguardam na fila usando a base de conhecimento da empresa e transfere para a equipe quando necessário.
+- **Kanban**: os tickets abertos e aguardando em colunas de etapas definidas pela empresa, movidos arrastando.
+- **Campanhas**: envio em massa para contatos filtrados por etiqueta, com intervalo aleatório, janela de horário, pausa e relatório. O contato que responde SAIR deixa de receber.
+- **API oficial do WhatsApp** (Cloud API da Meta) como alternativa ao QR Code, com templates e a janela de 24 horas.
+- **Fluxos de atendimento**: menus, perguntas e transferência para a fila certa, montados em um editor com simulador e escolhidos por conexão.
+- **Aplicativo instalável** (PWA) no celular e no computador, com aviso de nova mensagem.
+- **Dashboard**: volume de tickets do dia.
+- **API**: envio de mensagens por `POST /api/messages/send`, autenticado pelo token da empresa (em **Configurações**).
+- **Idiomas**: português (Brasil), o padrão, e inglês. A troca fica no ícone de idioma da barra superior e da tela de login.
+- **Temas**: claro (padrão) e escuro, seguindo o design system Cerqueira Labs.
 
-<p align="center">
-  <a href="#what-is-this">What is this</a> ·
-  <a href="#open-source-vs-whaticket">Open Source vs Whaticket</a> ·
-  <a href="#screenshots">Screenshots</a> ·
-  <a href="#quick-start-with-docker">Quick start</a> ·
-  <a href="#configuration">Configuration</a> ·
-  <a href="#project-status">Project status</a>
-</p>
+As cinco fases do plano de implementação aprovado estão entregues.
 
----
+## Empresas, planos e superadmin
 
-## What is this
+- O administrador criado pelo seed é o **superadmin**. Ele vê o menu **Plataforma**, com as telas **Empresas** e **Planos**.
+- Não existe cadastro público: cada empresa é criada pelo superadmin, junto com o seu primeiro administrador.
+- Ao suspender uma empresa, os usuários dela perdem o acesso e as conexões do WhatsApp são desligadas. Os dados e o login do WhatsApp ficam guardados, e reativar a empresa religa as conexões.
+- Ao atualizar uma instalação anterior, todos os dados existentes vão para a empresa 1 ("Cerqueira Labs", plano "Interno"), e o administrador mais antigo vira superadmin.
+- Cada conexão tem um canal: `qrcode` (WhatsApp no celular) ou `cloudapi` (API oficial da Meta). Veja [API oficial do WhatsApp](#api-oficial-do-whatsapp).
+- O plano define também se a empresa pode usar **campanhas** (**Campanhas liberadas**). Na atualização, só o plano 1 ("Interno") vem liberado.
 
-In 2020 this repository was a weekend experiment: turn WhatsApp messages into support
-tickets so a whole team could answer from a single number. It became one of the most forked
-WhatsApp helpdesk projects on GitHub, and it grew into **[Whaticket](https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-intro)**, the commercial
-platform that today serves **4,500+ companies** across Latin America.
+## Arquitetura
 
-This repo is **Whaticket Open Source**: the original codebase, under an MIT license. You can
-self-host it, fork it and build on top of it. The code the company started from stays public.
+| Parte | Tecnologia |
+|---|---|
+| Backend | Node.js 22, TypeScript, Express, Sequelize, Socket.IO |
+| Banco | MariaDB 10.6 (ou MySQL 5.7+) |
+| Fila | Redis 7 com BullMQ (webhooks e mensagens automáticas) |
+| Mídias | Disco local ou bucket compatível com S3 (AWS S3, Cloudflare R2, MinIO) |
+| WhatsApp | Camada de provedores trocável em `backend/src/providers/WhatsApp`: `wwebjs` (padrão) e `zapo` |
+| Frontend | React 18, MUI 7 e Vite |
 
-**Backend**: Node.js + TypeScript + Express + Sequelize. It talks to WhatsApp through a
-pluggable provider layer ([whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js)
-or [zapo-js](https://github.com/vinikjkkj/zapo)) and stores everything in MySQL/MariaDB.
+> **Importante:** a conexão por QR Code usa clientes não oficiais do WhatsApp. O número pode ser bloqueado pelo WhatsApp. Informe isso aos clientes. A estrutura de provedores já está preparada para receber a API oficial (WhatsApp Cloud API).
 
-**Frontend**: a React + Material UI chat app built with Vite. It communicates with the
-backend over REST and WebSockets, in English, Portuguese and Spanish.
-
-> [!NOTE]
-> **Prefer not to run servers?** [Whaticket](https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-product-callout) is the managed
-> product built by the same team. It works with the official WhatsApp API and brings
-> Instagram, Facebook, TikTok, Telegram and web chat into one inbox, with AI chatbots,
-> campaigns and 24/7 support.
-> [14-day free trial, no credit card](https://whaticket.com/precios/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-trial).
-
-## Open Source vs Whaticket
-
-Both are built by the same team. The difference is how much infrastructure you want to run.
-
-| | **Whaticket Open Source** | **[Whaticket](https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-comparison-table)** |
-|---|:---:|:---:|
-| License / price | MIT, free forever | From US$49/month for 3 users |
-| Hosting, updates, backups | You run it | Managed for you |
-| WhatsApp via QR code | ✅ | ✅ |
-| Official WhatsApp Cloud API | ❌ | ✅ |
-| Multiple agents on one number | ✅ | ✅ |
-| Multiple WhatsApp connections | ✅ | ✅ |
-| Queues / departments | ✅ | ✅ |
-| Quick replies | ✅ | ✅ |
-| Media messages (image/audio/video/files) | ✅ | ✅ |
-| Instagram, Facebook, TikTok, Telegram, web chat | ❌ | ✅ |
-| Rule-based and AI chatbots (Wäbot) | ❌ | ✅ |
-| Bulk campaigns | ❌ | ✅ |
-| Analytics, CSAT and performance reports | Basic dashboard | ✅ |
-| Integrations (Zapier, Shopify, Slack, Google…) | ❌ | ✅ |
-| Mobile apps (iOS / Android) | ❌ | ✅ |
-| Support | Community, on [Discord](https://discord.gg/Dp2tTZRYHg) and issues | 24/7 over WhatsApp |
-
-The commercial plan starts at 3 users, which comes to about US$16 per user per month.
-
-## Screenshots
-
-<p align="center">
-  <img src="images/whaticket-queues.gif" width="720" alt="Ticket queues">
-</p>
-
-<table>
-  <tr>
-    <td width="50%"><img src="images/chat2.png" alt="Ticket conversation"></td>
-    <td width="50%"><img src="images/chat3.png" alt="Chat with contact"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Ticket conversation</sub></td>
-    <td align="center"><sub>Agent chat view</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="images/multiple-whatsapps2.png" alt="Multiple WhatsApp connections"></td>
-    <td width="50%"><img src="images/contacts1.png" alt="Contacts"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Multiple WhatsApp connections</sub></td>
-    <td align="center"><sub>Contact management</sub></td>
-  </tr>
-</table>
-
-## Features
-
-- 💬 **Shared inbox**: several agents answering from the same WhatsApp number
-- 📱 **Multiple connections**: link more than one WhatsApp account, receive it all in one place
-- 🎫 **Ticket lifecycle**: pending → open → resolved, with assignment per agent
-- 🏷️ **Queues**: route incoming conversations to the right department
-- ⚡ **Quick replies**: canned answers for the questions you get every day
-- 🖼️ **Media**: send and receive images, audio, video and documents
-- 👥 **Contacts**: start conversations with new contacts without touching the phone
-- 📊 **Dashboard**: ticket and agent activity at a glance
-- 🔌 **Pluggable WhatsApp provider**: `whatsapp-web.js` (Puppeteer) or `zapo` (WebSocket)
-- 🌍 **i18n**: English, Portuguese and Spanish out of the box
-
-### How tickets work
-
-Every new message on a connected WhatsApp number creates a **Ticket**. Tickets land in a
-queue on the *Tickets* page, where an agent **accepts** one, answers it, and eventually
-**resolves** it.
-
-Follow-up messages from the same contact attach to the first **open/pending** ticket found.
-If a contact writes again within 2 hours and has no pending or open ticket, the most recent
-**closed** ticket is reopened instead of a new one being created.
-
-## Requirements
-
-- **Node.js 14+** for the `wwebjs` provider, **Node.js 22+** for the `zapo` provider
-  (the backend CI and Dockerfile build on Node 22)
-- **MySQL 5.7+ or MariaDB 10.6+**
-- **Docker** (optional, but the fastest way to get a database up)
-- A Linux server if you are deploying to production. Ubuntu 20.04+ is what these
-  instructions assume.
-
-> [!WARNING]
-> The QR-code providers used here are **unofficial** WhatsApp clients. WhatsApp does not
-> allow bots or unofficial clients on their platform, and numbers connected this way can be
-> blocked. The supported alternative is the official WhatsApp Cloud API, which
-> [Whaticket](https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-ban-warning) provides.
-
-## Quick start with Docker
+## Subir com Docker (recomendado)
 
 ```bash
-git clone https://github.com/canove/whaticket.git
+git clone https://github.com/optical3r/whaticket.git
 cd whaticket
 cp .env.example .env
 ```
 
-Edit `.env`. At minimum, set `MYSQL_ROOT_PASSWORD`, `JWT_SECRET` and `JWT_REFRESH_SECRET`:
+Preencha o `.env`. Estes campos são obrigatórios e o sistema não sobe sem eles:
+
+| Variável | Como gerar |
+|---|---|
+| `MYSQL_ROOT_PASSWORD` | uma senha forte |
+| `JWT_SECRET` | `openssl rand -hex 32` |
+| `JWT_REFRESH_SECRET` | `openssl rand -hex 32` (diferente do anterior) |
+
+Opcionais: `ADMIN_EMAIL` e `ADMIN_PASSWORD` (primeiro administrador) e `BRAND_NAME` (nome exibido na interface).
 
 ```bash
-# MYSQL
-MYSQL_ENGINE=mariadb
-MYSQL_VERSION=10.6
-MYSQL_ROOT_PASSWORD=change-me
-MYSQL_DATABASE=whaticket
-MYSQL_PORT=3306
-TZ=America/Fortaleza
+docker compose up -d --build
 
-# BACKEND
-BACKEND_PORT=8080
-BACKEND_SERVER_NAME=api.mydomain.com
-BACKEND_URL=https://api.mydomain.com
-PROXY_PORT=443
-JWT_SECRET=change-me
-JWT_REFRESH_SECRET=change-me-too
-
-# FRONTEND
-FRONTEND_PORT=80
-FRONTEND_SSL_PORT=443
-FRONTEND_SERVER_NAME=myapp.mydomain.com
-FRONTEND_URL=https://myapp.mydomain.com
+# Somente na primeira vez: cria o administrador e as configurações padrão
+docker compose exec backend npx sequelize db:seed:all
 ```
 
-Bring everything up:
+Se `ADMIN_PASSWORD` estiver vazio, o seed gera uma senha aleatória e mostra no terminal **uma única vez**. Anote a senha e troque depois do primeiro login.
+
+Depois, entre no sistema, abra **Conexões**, crie a primeira conexão e leia o QR Code com o celular.
+
+### Fila de processamento (Redis)
+
+O `docker compose` já sobe um Redis e configura `REDIS_URL`. Com ele, webhooks e mensagens automáticas (fora do horário e pesquisa de satisfação) vão para uma fila e são reenviados em caso de falha: até 5 tentativas para webhooks e 3 para mensagens, com espera crescente entre elas. Um reinício do backend não perde o que estava na fila.
+
+Sem `REDIS_URL`, o envio acontece na hora, sem novas tentativas. Serve para desenvolvimento, mas não é indicado em produção.
+
+O processamento roda no próprio backend, porque as sessões do WhatsApp ficam nele. `QUEUE_CONCURRENCY` (padrão 5) define quantos envios rodam ao mesmo tempo.
+
+### Saúde do sistema
+
+`GET /health` responde `{"status":"ok","database":"ok","queue":"ok"}`. Se o banco ou o Redis estiverem fora, responde com código 503 e indica qual parte falhou. Use essa rota no monitoramento.
+
+### Mídias em S3 ou R2
+
+Por padrão, as mídias ficam em `backend/public`. Para guardar em um bucket, preencha no `.env`:
+
+| Variável | Exemplo |
+|---|---|
+| `STORAGE_DRIVER` | `s3` |
+| `S3_BUCKET` | `atendimento-midias` |
+| `S3_REGION` | `auto` (R2) ou `us-east-1` |
+| `S3_ENDPOINT` | `https://<conta>.r2.cloudflarestorage.com` (vazio para AWS) |
+| `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY` | chaves com leitura e escrita no bucket |
+| `S3_FORCE_PATH_STYLE` | `true` para MinIO |
+
+O bucket deve ser privado. As mídias continuam abrindo só por links assinados, e o backend busca o arquivo no bucket.
+
+Para levar as mídias que já estão no disco para o bucket:
 
 ```bash
-docker-compose up -d --build
+docker compose exec backend npm run storage:migrate
 ```
 
-On the **first run only**, seed the database:
+Os arquivos que ainda não estiverem no bucket continuam sendo lidos do disco, então a troca pode ser feita sem parar o sistema.
+
+### HTTPS
+
+Coloque os certificados em `ssl/certs`, uma pasta por serviço:
+
+```
+ssl/
+├── certs/
+│   ├── backend/   (fullchain.pem, privkey.pem)
+│   └── frontend/  (fullchain.pem, privkey.pem)
+└── www/
+```
+
+O nginx do frontend já responde ao desafio do certbot:
 
 ```bash
-docker-compose exec backend npx sequelize db:seed:all
+certbot certonly --cert-name backend  --webroot --webroot-path ./ssl/www/ -d api.seudominio.com
+certbot certonly --cert-name frontend --webroot --webroot-path ./ssl/www/ -d app.seudominio.com
+docker compose restart frontend
 ```
 
-Open the frontend, log in with the seeded account, go to **Connections**, create your first
-WhatsApp connection and scan the QR code. Every message that number receives now shows up in
-the ticket list.
+O backend (porta 8080) e o banco (porta 3306) só ficam acessíveis pelo próprio servidor. O acesso externo passa pelo nginx do frontend.
 
-**Default credentials:** `admin@whaticket.com` / `admin`. Change them immediately.
+### Backup
 
-<details>
-<summary><b>Optional Docker services</b></summary>
-
-phpMyAdmin, to inspect the database (port `9000` by default, configurable with `PMA_PORT`):
+`scripts/backup.sh` salva o banco, as sessões do WhatsApp (para não precisar ler o QR Code de novo) e as mídias em `backups/<data>`. Com `STORAGE_DRIVER=s3`, as mídias ficam de fora: use o versionamento ou a replicação do próprio bucket. Backups com mais de `BACKUP_RETENTION_DAYS` dias (padrão 14) são apagados.
 
 ```bash
-docker-compose -f docker-compose.phpmyadmin.yaml up -d
+./scripts/backup.sh
+
+# Agendamento diário às 3h15 (crontab -e)
+15 3 * * * cd /caminho/do/projeto && ./scripts/backup.sh >> backups/backup.log 2>&1
 ```
 
-Browserless, to run Chrome outside the backend container (set `MAX_CONCURRENT_SESSIONS`):
+Guarde uma cópia fora do servidor (por exemplo, em um bucket S3/R2).
+
+## Webhooks
+
+Cadastre em **Administração → Webhooks**. Cada envio é um `POST` com JSON:
+
+```json
+{ "event": "ticket.closed", "companyId": 1, "sentAt": "2026-10-19T17:28:49.000Z", "data": { "id": 1000, "status": "closed" } }
+```
+
+O cabeçalho `X-Webhook-Signature` traz `sha256=<HMAC do corpo com o segredo do webhook>`. Para validar em Node.js:
+
+```js
+const crypto = require("crypto");
+const expected = "sha256=" + crypto.createHmac("sha256", SEGREDO).update(corpoBruto).digest("hex");
+const valido = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers["x-webhook-signature"]));
+```
+
+Por segurança, URLs que apontam para a rede interna (localhost, 10.x, 192.168.x, 169.254.x etc.) são recusadas. Em desenvolvimento, `WEBHOOK_ALLOW_PRIVATE_URLS=true` libera esses endereços.
+
+## Inteligência artificial
+
+A IA usa a API do Claude, da Anthropic. Para ligar, crie uma chave em https://platform.claude.com e preencha no `.env`:
+
+| Variável | Uso |
+|---|---|
+| `ANTHROPIC_API_KEY` | Chave da Cerqueira Labs, usada pelos planos com chave da plataforma. |
+| `DATA_ENCRYPTION_KEY` | Criptografa as chaves que os clientes cadastram e os tokens da API oficial (`openssl rand -hex 32`). Vazia = derivada do `JWT_SECRET`. Se mudar, chaves e tokens precisam ser cadastrados de novo. |
+| `AI_MODEL` | Modelo usado (padrão `claude-opus-5-5`). |
+| `AI_ASSISTANT_DELAY_MS` | Espera antes de o assistente responder, para juntar mensagens enviadas em sequência (padrão 8000). |
+
+A IA só funciona quando estas condições valem:
+
+1. **Plano**: o superadmin marca **Módulo de IA liberado** no plano, em **Plataforma → Planos**. Planos novos começam sem IA. Na atualização, só o plano 1 ("Interno") vem liberado.
+2. **Chave**: no mesmo plano, o superadmin escolhe de quem é a chave da API:
+   - **Da Cerqueira Labs**: usa `ANTHROPIC_API_KEY` da instalação. O consumo é custo da plataforma, controlado pelo limite de **solicitações de IA por mês** de cada empresa.
+   - **Do cliente**: o administrador de cada empresa cadastra a própria chave da Anthropic em **Administração → Inteligência artificial**. O consumo é cobrado na conta do cliente e não há limite mensal. Sem chave cadastrada, a IA fica desligada na empresa.
+3. **Empresa**: o administrador deixa ligada a opção **Usar IA nesta empresa** (ligada por padrão). Desligada, os botões de IA somem para todos da empresa e o assistente virtual para de responder.
+
+A chave do cliente é verificada com a Anthropic antes de ser salva, fica criptografada no banco (AES-256-GCM) e nunca volta para o navegador: a tela mostra só os 4 últimos caracteres. Se a Anthropic recusar a chave depois (revogada ou sem crédito), a IA avisa o atendente e o assistente transfere a conversa para a equipe.
+
+Na mesma tela, a empresa vê o consumo do mês feito com a chave que o plano usa: solicitações e tokens de entrada e saída, no total e por recurso. Para quem usa a própria chave, o valor exato fica no painel da Anthropic.
+
+Para controlar o gasto da plataforma:
+
+- Sugestões, resumos, revisões e respostas do assistente contam igualmente no limite mensal.
+- Cada usuário pode fazer até 20 solicitações por minuto.
+- Cada solicitação fica registrada na tabela `AiUsages`, com tokens de entrada e saída e de quem era a chave (`keySource`), para separar o custo da plataforma do custo de cada cliente.
+
+**Para o atendente**: no campo de mensagem, o botão de IA sugere uma resposta, resume a conversa (o resumo pode ser salvo como nota) e reescreve o rascunho (corrigir, mais formal, mais cordial, mais curto). Nada é enviado ao cliente sem o atendente revisar.
+
+**Assistente virtual**: o administrador ativa em **Administração → Inteligência artificial** e cadastra a base de conhecimento (horários, preços, políticas, perguntas frequentes). O assistente:
+
+- responde só tickets aguardando, sem atendente, fora de grupos, e depois que o cliente escolheu a fila no menu;
+- usa somente a base de conhecimento e as instruções da empresa, e não inventa preços nem políticas;
+- transfere para a equipe quando não sabe a resposta, quando o cliente pede uma pessoa, em reclamações e cancelamentos, se a IA falhar ou depois do limite de respostas por conversa. A transferência envia a mensagem configurada, deixa uma nota no ticket com o motivo e, fora do horário da fila, também a mensagem de fora do horário;
+- para quando alguém aceita o ticket ou responde ao cliente pelo celular, e volta a valer quando o ticket é encerrado e reaberto.
+
+Quando o modelo recusa um pedido por política de uso, a API tenta de novo em um modelo alternativo recomendado pela Anthropic (`fallbacks: "default"`).
+
+## Aplicativo no celular e no computador (PWA)
+
+O sistema pode ser instalado como aplicativo: no Chrome ou Edge, pelo ícone de instalar na barra de endereço; no iPhone, em **Compartilhar → Adicionar à Tela de Início**. O nome do aplicativo vem de `BRAND_NAME`.
+
+- Sem internet, abre uma tela avisando que está sem conexão, em vez de uma página de erro.
+- Com a permissão do navegador, avisa nova mensagem e conexão caída mesmo com a aba em segundo plano. Tocar no aviso abre o ticket.
+- A instalação exige HTTPS (ou `localhost`).
+
+## Kanban
+
+Em **Kanban**, os tickets aguardando e abertos aparecem em colunas. Supervisores e administradores criam, renomeiam, colorem e reordenam as etapas (por exemplo: Novo, Proposta enviada, Aguardando pagamento). A primeira coluna, **Sem etapa**, recebe os tickets que ainda não foram classificados.
+
+- Arrastar um cartão muda a etapa do ticket para todos, em tempo real.
+- Cada pessoa vê os mesmos tickets que vê na lista: o atendente vê os seus e os aguardando das suas filas; supervisor e administrador veem todos.
+- A etapa é só uma classificação: não muda o status, a fila nem o responsável.
+
+## Campanhas
+
+Em **Administração → Campanhas** (administrador e supervisor, quando o plano libera), a empresa envia uma mensagem para os contatos de uma ou mais etiquetas.
+
+- Público: até 5.000 contatos por campanha. Grupos e contatos que pediram para sair ficam de fora.
+- A mensagem aceita `{{name}}` e `{{firstName}}`.
+- Entre um envio e outro há uma espera aleatória (padrão de 20 a 60 segundos, mínimo 5) e os envios só acontecem na janela de horário escolhida, no fuso da empresa.
+- A campanha pode ser agendada, pausada, retomada e cancelada. Se o servidor reiniciar, ela continua de onde parou.
+- O relatório mostra, contato a contato, quem recebeu, quem ficou de fora (por exemplo, por ter pedido para sair) e as falhas com o motivo.
+- Se o contato responder SAIR, PARAR, STOP, DESCADASTRAR ou CANCELAR em até 30 dias depois de receber uma campanha, ele recebe uma confirmação e sai de todas as campanhas da empresa.
+- As mensagens enviadas ficam no histórico do contato, em um ticket encerrado, sem ocupar a fila. Se o cliente responder, o atendimento segue o caminho normal.
+
+> **Risco**: envio em massa por QR Code pode levar ao bloqueio do número pelo WhatsApp. Use só com contatos que pediram para receber, mantenha os intervalos e evite listas compradas. Por enquanto, campanhas só saem por conexões de QR Code; pela API oficial, a Meta exige templates aprovados para esse tipo de envio.
+
+## API oficial do WhatsApp
+
+Além do QR Code, uma conexão pode usar a API oficial da Meta (WhatsApp Cloud API). O passo a passo para criar o app na Meta está em [docs/whatsapp-cloud-api.md](docs/whatsapp-cloud-api.md). Resumo:
+
+1. Em **Conexões → Adicionar WhatsApp**, escolha **API oficial da Meta** e informe o ID do número de telefone, o ID da conta do WhatsApp Business, o token de acesso e a chave secreta do app. O sistema confere os dados com a Meta antes de salvar.
+2. Abra a conexão de novo para copiar a **URL de callback** e o **token de verificação**, e cadastre os dois no app da Meta, assinando o campo `messages`.
+3. O token e a chave secreta ficam criptografados no banco (com `DATA_ENCRYPTION_KEY`) e nunca voltam para o navegador.
+
+Como funciona:
+
+- Cada mensagem recebida tem a assinatura `X-Hub-Signature-256` conferida com a chave secreta do app. Sem assinatura válida, o evento é descartado.
+- **Janela de 24 horas**: a Meta só permite texto livre até 24 horas depois da última mensagem do cliente. Fora dela, o ticket mostra um aviso e o botão **Enviar template**, que lista os templates aprovados da conta.
+- Texto, imagem, áudio, vídeo e documento chegam e saem normalmente; figurinhas e localização chegam. As confirmações de entregue e lido também.
+- A Meta cobra por conversa, direto na conta do cliente na Meta.
+- `WHATSAPP_CLOUD_API_URL` troca o endereço da Graph API (padrão `https://graph.facebook.com/v21.0`), útil para testes.
+
+## Fluxos de atendimento
+
+Em **Administração → Fluxos**, o administrador monta a conversa automática que acontece antes da equipe, e em **Conexões** escolhe o fluxo de cada conexão. Cada etapa é de um tipo:
+
+| Etapa | O que faz |
+|---|---|
+| Mensagem | Envia um texto e segue para a próxima etapa. |
+| Menu de opções | Envia opções numeradas. O cliente responde com o número ou com o texto da opção. |
+| Pergunta | Faz uma pergunta e guarda a resposta em um campo do contato (por exemplo, "Pedido"). |
+| Enviar para fila | Coloca o ticket na fila escolhida, com mensagem opcional. O fluxo termina. |
+| Encerrar atendimento | Encerra o ticket, com mensagem opcional. O fluxo termina. |
+
+- O fluxo roda em tickets novos, aguardando e sem atendente. Enquanto ele roda, o menu de filas, o assistente virtual e a mensagem de fora do horário ficam de fora.
+- Depois de 3 respostas inválidas em um menu, ou quando uma etapa não tem próxima, o fluxo termina e o ticket fica aguardando a equipe. Se alguém aceitar o ticket no meio, o fluxo para.
+- O fluxo roda de novo só quando o ticket é encerrado e o cliente volta a escrever.
+- O editor confere cada etapa antes de salvar e recusa mensagens que apontam umas para as outras sem esperar resposta. O **Simulador**, ao lado, mostra a conversa como o cliente verá, sem enviar nada.
+- Os textos aceitam `{{name}}` e `{{firstName}}`.
+
+## Segurança
+
+- Segredos JWT fracos, conhecidos ou com menos de 32 caracteres impedem o backend de iniciar.
+- Não há cadastro público. Empresas são criadas pelo superadmin e usuários pelo administrador de cada empresa.
+- Todo acesso é filtrado pela empresa do usuário logado, inclusive os eventos em tempo real e o token da API.
+- Conexões, filas e exclusão de tickets e contatos só podem ser alterados por administradores, e o backend faz essa checagem.
+- As mídias só abrem por links assinados que expiram. O arquivo não fica público.
+- O login e o cadastro têm limite de tentativas (20 a cada 15 minutos por IP).
+- Cabeçalhos de segurança HTTP são aplicados com `helmet`.
+- As mensagens do cliente vão para a IA marcadas como conteúdo da conversa, e o assistente é instruído a não seguir ordens vindas delas. Ele só escreve texto para o cliente e não executa nenhuma ação no sistema.
+
+## Desenvolvimento local
+
+Requisitos: Node.js 22 e MariaDB 10.6. O Redis é opcional no desenvolvimento.
 
 ```bash
-docker-compose -f docker-compose.browserless.yaml up -d
-```
-
-</details>
-
-<details>
-<summary><b>SSL certificates for the Docker setup</b></summary>
-
-Drop your certificates into `ssl/certs`, with one folder per service:
-
-```
-.
-├── certs
-│   ├── backend
-│   │   ├── fullchain.pem
-│   │   └── privkey.pem
-│   └── frontend
-│       ├── fullchain.pem
-│       └── privkey.pem
-└── www
-```
-
-The frontend nginx container is already set up to answer certbot's webroot challenge:
-
-```bash
-certbot certonly --cert-name backend  --webroot --webroot-path ./ssl/www/ -d api.mydomain.com
-certbot certonly --cert-name frontend --webroot --webroot-path ./ssl/www/ -d myapp.mydomain.com
-```
-
-</details>
-
-## Running locally for development
-
-<details>
-<summary><b>Step-by-step development setup</b></summary>
-
-**1. Start a database**
-
-```bash
-docker run --name whaticketdb \
-  -e MYSQL_ROOT_PASSWORD=strongpassword \
-  -e MYSQL_DATABASE=whaticket \
-  -e MYSQL_USER=whaticket \
-  -e MYSQL_PASSWORD=whaticket \
-  --restart always -p 3306:3306 -d mariadb:10.6 \
-  --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
-```
-
-**2. Install Puppeteer's system dependencies** (only needed for the `wwebjs` provider):
-
-```bash
-sudo apt-get install -y libxshmfence-dev libgbm-dev wget unzip fontconfig locales gconf-service \
-  libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 \
-  libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 \
-  libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 \
-  libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates \
-  fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils
-```
-
-**3. Backend**
-
-```bash
+# Backend
 cd backend
-cp .env.example .env   # then fill it in, see Configuration below
+cp .env.example .env    # preencha banco e segredos JWT
 npm install
 npm run build
 npx sequelize db:migrate
 npx sequelize db:seed:all
-npm run dev            # or: npm start
-```
+npm run dev
 
-**4. Frontend**, in a second terminal:
-
-```bash
+# Frontend (outro terminal)
 cd frontend
-cp .env.example .env
+cp .env.example .env    # VITE_BACKEND_URL aponta para o backend
 npm install
 npm run dev
 ```
 
-`frontend/.env` only needs to point at the backend:
+### Testes
+
+Os testes do backend usam um banco separado definido em `backend/.env.test`:
 
 ```bash
-VITE_BACKEND_URL = http://localhost:8080/
-```
-
-**5.** Open <http://localhost:3000/signup>, create a user, then go to **Connections** and
-scan the QR code.
-
-</details>
-
-## Production deployment on a VPS
-
-<details>
-<summary><b>Ubuntu 20.04 + pm2 + nginx + Let's Encrypt</b></summary>
-
-These steps assume you are **not** running as root, since Puppeteer refuses to start as root.
-Point two subdomains at your server first; this walkthrough uses `myapp.mydomain.com` for the
-frontend and `api.mydomain.com` for the backend.
-
-**Create a deploy user**
-
-```bash
-adduser deploy
-usermod -aG sudo deploy
-su deploy
-```
-
-**Install Node and Docker**
-
-```bash
-sudo apt update && sudo apt upgrade -y
-
-curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
-sudo apt update && sudo apt install -y docker-ce
-sudo usermod -aG docker ${USER}
-su - ${USER}
-```
-
-**Database, code and backend**
-
-```bash
-docker run --name whaticketdb \
-  -e MYSQL_ROOT_PASSWORD=strongpassword -e MYSQL_DATABASE=whaticket \
-  -e MYSQL_USER=whaticket -e MYSQL_PASSWORD=whaticket \
-  --restart always -p 3306:3306 -d mariadb:10.6 \
-  --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
-
-cd ~ && git clone https://github.com/canove/whaticket.git whaticket
-cp whaticket/backend/.env.example whaticket/backend/.env
-nano whaticket/backend/.env    # use https:// URLs and PROXY_PORT=443
-
-cd whaticket/backend
-npm install
-npm run build
-npx sequelize db:migrate
-npx sequelize db:seed:all
-```
-
-Confirm it boots with `npm start` (you should see `Server started on port...`), stop it with
-`CTRL + C`, then hand it to pm2:
-
-```bash
-sudo npm install -g pm2
-pm2 start dist/server.js --name whaticket-backend
-pm2 startup ubuntu -u $USER     # run the command it prints back
-```
-
-**Frontend**
-
-```bash
-cd ../frontend
-npm install
-echo "VITE_BACKEND_URL = https://api.mydomain.com/" > .env
-npm run build
-pm2 start server.js --name whaticket-frontend
-pm2 save
-```
-
-**nginx**
-
-```bash
-sudo apt install -y nginx
-sudo rm /etc/nginx/sites-enabled/default
-sudo nano /etc/nginx/sites-available/whaticket-frontend
-```
-
-```nginx
-server {
-  server_name myapp.mydomain.com;
-
-  location / {
-    proxy_pass http://127.0.0.1:3333;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-```
-
-Copy it for the backend, changing `server_name` to `api.mydomain.com` and `proxy_pass` to
-`http://127.0.0.1:8080`, then enable both:
-
-```bash
-sudo cp /etc/nginx/sites-available/whaticket-frontend /etc/nginx/sites-available/whaticket-backend
-sudo nano /etc/nginx/sites-available/whaticket-backend
-sudo ln -s /etc/nginx/sites-available/whaticket-frontend /etc/nginx/sites-enabled
-sudo ln -s /etc/nginx/sites-available/whaticket-backend  /etc/nginx/sites-enabled
-```
-
-nginx caps request bodies at 1MB, which is too small for media uploads. In
-`/etc/nginx/nginx.conf`, inside the `http { }` block:
-
-```nginx
-client_max_body_size 20M;
+DB_HOST=127.0.0.1
+DB_DIALECT=mysql
+DB_NAME=whaticket_test
+DB_USER=root
+DB_PASS=sua-senha
 ```
 
 ```bash
-sudo nginx -t && sudo service nginx restart
+cd backend && npm test
 ```
 
-**HTTPS**, required for notifications and audio messages:
+Os testes de IA usam um servidor local que imita a API da Anthropic, sem chave nem custo. Os testes da fila com Redis só rodam quando `REDIS_TEST_URL` está definido (por exemplo, `redis://127.0.0.1:6379/15`). Os testes de armazenamento usam um S3 local simulado e não precisam de conta.
 
-```bash
-sudo snap install --classic certbot
-sudo certbot --nginx
-```
+O CI (`.github/workflows/ci.yaml`) roda o build e os testes do backend e o build do frontend em todo pull request.
 
-</details>
+## Créditos e licença
 
-## Configuration
-
-### Backend (`backend/.env`)
-
-| Variable | Description | Default |
-|---|---|---|
-| `WHATSAPP_PROVIDER` | WhatsApp driver: `wwebjs` or `zapo` | `wwebjs` |
-| `NODE_ENV` | `DEVELOPMENT` gives you verbose debugging | |
-| `PORT` | Port the backend listens on | `8080` |
-| `PROXY_PORT` | Public port behind your reverse proxy (`443` in production) | `8080` |
-| `BACKEND_URL` | Public backend URL | `http://localhost:8080` |
-| `FRONTEND_URL` | Public frontend URL. **CORS depends on this** | `http://localhost:3000` |
-| `DB_HOST` / `DB_PORT` | Database host and port | `localhost` / `3306` |
-| `DB_DIALECT` | `mysql` | `mysql` |
-| `DB_NAME` / `DB_USER` / `DB_PASS` | Database credentials | |
-| `JWT_SECRET` / `JWT_REFRESH_SECRET` | Token signing secrets, **change these** | |
-| `CHROME_BIN` / `CHROME_WS` / `CHROME_ARGS` | Puppeteer/Chrome settings (`wwebjs` only) | |
-| `LOG_LEVEL` | `silent`, `fatal`, `error`, `warn`, `info`, `debug`, `trace` | `info` |
-| `ZAPO_LOG_LEVEL` | Log level for the `zapo` provider | `error` |
-| `ZAPO_AUTH_PATH` | SQLite file where the `zapo` provider keeps session state | `.zapo_auth/state.sqlite` |
-
-### Frontend (`frontend/.env`)
-
-| Variable | Description |
-|---|---|
-| `VITE_BACKEND_URL` | Backend URL the app talks to |
-| `VITE_HOURS_CLOSE_TICKETS_AUTO` | Hours of inactivity before tickets auto-close |
-
-### Choosing a WhatsApp provider
-
-| | `wwebjs` | `zapo` |
-|---|---|---|
-| How it connects | Puppeteer driving WhatsApp Web | Direct WebSocket protocol |
-| Memory footprint | Heavy, one Chrome per session | Light |
-| System dependencies | Chrome + many `lib*` packages | Node 22+ and SQLite (`better-sqlite3`) |
-| Maturity in this repo | Default, in production for years | Newer, in active development |
-
-Switch between them with `WHATSAPP_PROVIDER` in `backend/.env`.
-
-The `zapo` provider uploads media without any extra dependency, but thumbnails, media
-dimensions and voice-note waveforms come from the optional `@zapo-js/media-utils` package
-(which needs `ffmpeg`/`ffprobe` and `sharp`). Install it and the provider picks it up on the
-next restart; without it media still sends, just without previews.
-
-## Updating an existing installation
-
-Always diff `.env.example` against your `.env` before upgrading. New variables show up there
-first.
-
-```bash
-#!/bin/bash
-echo "Updating Whaticket, please wait."
-
-cd ~/whaticket
-git pull
-
-cd backend
-npm install
-rm -rf dist
-npm run build
-npx sequelize db:migrate
-npx sequelize db:seed
-
-cd ../frontend
-npm install
-rm -rf build
-npm run build
-
-pm2 restart all
-echo "Update finished. Enjoy!"
-```
-
-### Coming from the `whaileys` provider
-
-The `whaileys` provider was replaced by `zapo`. Connections paired under `whaileys` carry
-over on their own, without scanning a new QR code:
-
-1. Move the server to Node.js 22+ (a `better-sqlite3` requirement).
-2. Optionally, set `WHATSAPP_PROVIDER=zapo` in `backend/.env`. The old `whaileys` value keeps
-   working and points to the same provider.
-3. Run the update script above. When the backend restarts, each connection's session is copied
-   from the database into `.zapo_auth/state.sqlite` and the connection comes back without a new
-   QR code.
-
-The copy reads the `session` column of `Whatsapps` and the `WppKeys` table, so keep `WppKeys`
-until every connection is back online. Redis is no longer read and can be turned off. A
-connection whose session can't be copied shows a new QR code, like a fresh pairing.
-
-## Project status
-
-**Maintenance mode, with active development returning.**
-
-For the last few years this repository has received security and dependency patches while
-the team's effort went into the commercial platform. That is changing: we are planning a
-return to regular feature work here. Recent commits are the first steps: the frontend moved
-to Vite, and the WhatsApp integration moved to a pluggable provider layer with the new
-[zapo-js](https://github.com/vinikjkkj/zapo) driver.
-
-What that means for you today:
-
-- Issues and pull requests are read. Reviews may be slow.
-- The codebase is stable and widely deployed, but expect rough edges and dated dependencies.
-- Breaking changes will be called out in release notes.
-
-If you depend on this project, [tell us on Discord](https://discord.gg/Dp2tTZRYHg) what you
-need most. That is what shapes the priorities.
-
-## Contributing
-
-Pull requests are welcome: bug fixes, dependency upgrades, documentation and translations.
-For anything large, open an issue first so we can agree on the approach.
-
-- 💬 [Discord](https://discord.gg/Dp2tTZRYHg): questions and discussion
-- 🐛 [Issues](https://github.com/canove/whaticket/issues): bugs and feature requests
-
-## Related projects
-
-- **[zapo-js](https://github.com/vinikjkkj/zapo)**: the WhatsApp WebSocket library used by
-  the `zapo` provider
-- **[Whaticket](https://whaticket.com/?utm_source=github&utm_medium=readme&utm_campaign=whaticket-oss&utm_content=en-related-projects)**: the managed commercial platform
-
-## License
-
-[MIT](LICENSE) © Whaticket and contributors.
-
-## Disclaimer
-
-This project is not affiliated with, associated with, authorized by, endorsed by, or in any
-way officially connected to WhatsApp or any of its subsidiaries or affiliates. The official
-WhatsApp website is <https://whatsapp.com>. "WhatsApp" and related names, marks, emblems and
-images are registered trademarks of their respective owners.
-
-Using unofficial clients to connect to WhatsApp can get your number blocked. Run this
-software at your own risk, and review it against your own security requirements before
-exposing it to the internet.
+Projeto derivado do [Whaticket Open Source](https://github.com/canove/whaticket), distribuído sob a licença MIT. O aviso de copyright original está em [LICENSE](LICENSE).

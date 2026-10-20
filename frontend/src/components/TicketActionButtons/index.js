@@ -1,9 +1,9 @@
 import React, { useContext, useState } from "react";
 import { useHistory } from "react-router-dom";
 
-import { makeStyles } from "@material-ui/core/styles";
-import { IconButton } from "@material-ui/core";
-import { MoreVert, Replay } from "@material-ui/icons";
+import { makeStyles } from 'tss-react/mui';
+import { IconButton } from "@mui/material";
+import { MoreVert, Replay } from "@mui/icons-material";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
@@ -11,8 +11,9 @@ import TicketOptionsMenu from "../TicketOptionsMenu";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import CloseTicketModal from "../CloseTicketModal";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	actionButtons: {
 		marginRight: 6,
 		flex: "none",
@@ -25,7 +26,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const TicketActionButtons = ({ ticket }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const history = useHistory();
 	const [anchorEl, setAnchorEl] = useState(null);
 	const [loading, setLoading] = useState(false);
@@ -40,12 +41,15 @@ const TicketActionButtons = ({ ticket }) => {
 		setAnchorEl(null);
 	};
 
-	const handleUpdateTicketStatus = async (e, status, userId) => {
+	const [closeModal, setCloseModal] = useState({ open: false, reasons: [], required: false });
+
+	const handleUpdateTicketStatus = async (e, status, userId, extra = {}) => {
 		setLoading(true);
 		try {
 			await api.put(`/tickets/${ticket.id}`, {
 				status: status,
 				userId: userId || null,
+				...extra,
 			});
 
 			setLoading(false);
@@ -60,8 +64,39 @@ const TicketActionButtons = ({ ticket }) => {
 		}
 	};
 
+	// Asks for a close reason when the company has registered any.
+	const handleResolve = async e => {
+		setLoading(true);
+		try {
+			const { data } = await api.get("/closeReasons");
+			setLoading(false);
+			if (data.reasons.length > 0) {
+				setCloseModal({ open: true, reasons: data.reasons, required: data.required });
+				return;
+			}
+		} catch (err) {
+			setLoading(false);
+			toastError(err);
+			return;
+		}
+		await handleUpdateTicketStatus(e, "closed", user?.id);
+	};
+
+	const handleConfirmClose = async closeReasonId => {
+		setCloseModal(prev => ({ ...prev, open: false }));
+		await handleUpdateTicketStatus(null, "closed", user?.id, { closeReasonId });
+	};
+
 	return (
-		<div className={classes.actionButtons}>
+        <div className={classes.actionButtons}>
+			<CloseTicketModal
+				open={closeModal.open}
+				reasons={closeModal.reasons}
+				required={closeModal.required}
+				loading={loading}
+				onClose={() => setCloseModal(prev => ({ ...prev, open: false }))}
+				onConfirm={handleConfirmClose}
+			/>
 			{ticket.status === "closed" && (
 				<ButtonWithSpinner
 					loading={loading}
@@ -87,11 +122,11 @@ const TicketActionButtons = ({ ticket }) => {
 						size="small"
 						variant="contained"
 						color="primary"
-						onClick={e => handleUpdateTicketStatus(e, "closed", user?.id)}
+						onClick={handleResolve}
 					>
 						{i18n.t("messagesList.header.buttons.resolve")}
 					</ButtonWithSpinner>
-					<IconButton onClick={handleOpenTicketOptionsMenu}>
+					<IconButton onClick={handleOpenTicketOptionsMenu} size="large">
 						<MoreVert />
 					</IconButton>
 					<TicketOptionsMenu
@@ -114,7 +149,7 @@ const TicketActionButtons = ({ ticket }) => {
 				</ButtonWithSpinner>
 			)}
 		</div>
-	);
+    );
 };
 
 export default TicketActionButtons;

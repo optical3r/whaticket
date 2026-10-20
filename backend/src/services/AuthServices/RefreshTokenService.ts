@@ -3,12 +3,13 @@ import { Response as Res } from "express";
 
 import User from "../../models/User";
 import AppError from "../../errors/AppError";
-import ShowUserService from "../UserServices/ShowUserService";
 import authConfig from "../../config/auth";
 import {
   createAccessToken,
   createRefreshToken
 } from "../../helpers/CreateTokens";
+import { SerializeUser } from "../../helpers/SerializeUser";
+import { assertCompanyIsActive } from "../../helpers/CompanyStatus";
 
 interface RefreshTokenPayload {
   id: string;
@@ -16,7 +17,7 @@ interface RefreshTokenPayload {
 }
 
 interface Response {
-  user: User;
+  user: ReturnType<typeof SerializeUser>;
   newToken: string;
   refreshToken: string;
 }
@@ -29,19 +30,25 @@ export const RefreshTokenService = async (
     const decoded = verify(token, authConfig.refreshSecret);
     const { id, tokenVersion } = decoded as RefreshTokenPayload;
 
-    const user = await ShowUserService(id);
+    const user = await User.findByPk(id, {
+      include: ["queues", "whatsapp", "company"]
+    });
 
-    if (user.tokenVersion !== tokenVersion) {
-      res.clearCookie("jrt");
+    if (!user || user.tokenVersion !== tokenVersion) {
       throw new AppError("ERR_SESSION_EXPIRED", 401);
     }
+
+    await assertCompanyIsActive(user.companyId);
 
     const newToken = createAccessToken(user);
     const refreshToken = createRefreshToken(user);
 
-    return { user, newToken, refreshToken };
+    return { user: SerializeUser(user), newToken, refreshToken };
   } catch (err) {
     res.clearCookie("jrt");
+    if (err instanceof AppError && err.message === "ERR_COMPANY_SUSPENDED") {
+      throw err;
+    }
     throw new AppError("ERR_SESSION_EXPIRED", 401);
   }
 };

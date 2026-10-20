@@ -4,22 +4,23 @@ import { format } from "date-fns";
 import openSocket from "../../services/socket-io";
 import useSound from "use-sound";
 
-import Popover from "@material-ui/core/Popover";
-import IconButton from "@material-ui/core/IconButton";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
-import { makeStyles } from "@material-ui/core/styles";
-import Badge from "@material-ui/core/Badge";
-import ChatIcon from "@material-ui/icons/Chat";
+import Popover from "@mui/material/Popover";
+import IconButton from "@mui/material/IconButton";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import { makeStyles } from 'tss-react/mui';
+import Badge from "@mui/material/Badge";
+import ChatIcon from "@mui/icons-material/Chat";
 
 import TicketListItem from "../TicketListItem";
+import { showBrowserNotification } from "../../helpers/browserNotification";
 import { i18n } from "../../translate/i18n";
 import useTickets from "../../hooks/useTickets";
 import alertSound from "../../assets/sound.mp3";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	tabContainer: {
 		overflowY: "auto",
 		maxHeight: 350,
@@ -30,7 +31,7 @@ const useStyles = makeStyles(theme => ({
 		maxWidth: 350,
 		marginLeft: theme.spacing(2),
 		marginRight: theme.spacing(1),
-		[theme.breakpoints.down("sm")]: {
+		[theme.breakpoints.down('md')]: {
 			maxWidth: 270,
 		},
 	},
@@ -43,7 +44,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const NotificationsPopOver = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	const history = useHistory();
 	const { user } = useContext(AuthContext);
@@ -141,26 +142,23 @@ const NotificationsPopOver = () => {
 		};
 	}, [user]);
 
-	const handleNotifications = data => {
+	const handleNotifications = async data => {
 		const { message, contact, ticket } = data;
 
-		const options = {
-			body: `${message.body} - ${format(new Date(), "HH:mm")}`,
-			icon: contact.profilePicUrl,
-			tag: ticket.id,
-			renotify: true,
-		};
-
-		const notification = new Notification(
+		const notification = await showBrowserNotification(
 			`${i18n.t("tickets.notification.message")} ${contact.name}`,
-			options
+			{
+				body: `${message.body} - ${format(new Date(), "HH:mm")}`,
+				icon: contact.profilePicUrl,
+				tag: String(ticket.id),
+				renotify: true,
+				url: `/tickets/${ticket.id}`,
+				onClick: () => historyRef.current.push(`/tickets/${ticket.id}`),
+			}
 		);
 
-		notification.onclick = e => {
-			e.preventDefault();
-			window.focus();
-			historyRef.current.push(`/tickets/${ticket.id}`);
-		};
+		soundAlertRef.current();
+		if (!notification) return;
 
 		setDesktopNotifications(prevState => {
 			const notfiticationIndex = prevState.findIndex(
@@ -172,8 +170,6 @@ const NotificationsPopOver = () => {
 			}
 			return [notification, ...prevState];
 		});
-
-		soundAlertRef.current();
 	};
 
 	const handleClick = () => {
@@ -188,49 +184,47 @@ const NotificationsPopOver = () => {
 		return <div onClick={handleClickAway}>{children}</div>;
 	};
 
-	return (
-		<>
-			<IconButton
-				onClick={handleClick}
-				ref={anchorEl}
-				aria-label="Open Notifications"
-				className={classes.iconButton}
-			>
-				<Badge badgeContent={notifications.length} color="error">
-					<ChatIcon />
-				</Badge>
-			</IconButton>
-			<Popover
-				disableScrollLock
-				open={isOpen}
-				anchorEl={anchorEl.current}
-				anchorOrigin={{
-					vertical: "bottom",
-					horizontal: "right",
-				}}
-				transformOrigin={{
-					vertical: "top",
-					horizontal: "right",
-				}}
-				classes={{ paper: classes.popoverPaper }}
-				onClose={handleClickAway}
-			>
-				<List dense className={classes.tabContainer}>
-					{notifications.length === 0 ? (
-						<ListItem>
-							<ListItemText>{i18n.t("notifications.noTickets")}</ListItemText>
-						</ListItem>
-					) : (
-						notifications.map(ticket => (
-							<NotificationTicket key={ticket.id}>
-								<TicketListItem ticket={ticket} />
-							</NotificationTicket>
-						))
-					)}
-				</List>
-			</Popover>
-		</>
-	);
+	return <>
+        <IconButton
+            onClick={handleClick}
+            ref={anchorEl}
+            aria-label="Open Notifications"
+            className={classes.iconButton}
+            size="large">
+            <Badge badgeContent={notifications.length} color="error">
+                <ChatIcon />
+            </Badge>
+        </IconButton>
+        <Popover
+            disableScrollLock
+            open={isOpen}
+            anchorEl={anchorEl.current}
+            anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "right",
+            }}
+            transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+            }}
+            classes={{ paper: classes.popoverPaper }}
+            onClose={handleClickAway}
+        >
+            <List dense className={classes.tabContainer}>
+                {notifications.length === 0 ? (
+                    <ListItem>
+                        <ListItemText>{i18n.t("notifications.noTickets")}</ListItemText>
+                    </ListItem>
+                ) : (
+                    notifications.map(ticket => (
+                        <NotificationTicket key={ticket.id}>
+                            <TicketListItem ticket={ticket} />
+                        </NotificationTicket>
+                    ))
+                )}
+            </List>
+        </Popover>
+    </>;
 };
 
 export default NotificationsPopOver;

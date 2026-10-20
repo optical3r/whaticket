@@ -1,28 +1,27 @@
 import React, { useState, useContext } from "react";
-import { Link as RouterLink } from "react-router-dom";
 
 import {
   Button,
   CssBaseline,
   TextField,
-  Grid,
   Box,
   Typography,
   Container,
   InputAdornment,
-  IconButton,
-  Link
-} from '@material-ui/core';
+  IconButton
+} from '@mui/material';
 
-import { Visibility, VisibilityOff } from '@material-ui/icons';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
-import { makeStyles, useTheme } from "@material-ui/core/styles";
+import { useTheme } from "@mui/material/styles";
+
+import { makeStyles } from 'tss-react/mui';
 
 import { i18n } from "../../translate/i18n";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
-import logoBlack from "../../assets/whaticket-logo-black.png";
-import logoWhite from "../../assets/whaticket-logo-white.png";
+import { getLogoFor } from "../../brand";
+import LanguageSelector from "../../components/LanguageSelector";
 
 // const Copyright = () => {
 // 	return (
@@ -37,7 +36,12 @@ import logoWhite from "../../assets/whaticket-logo-white.png";
 // 	);
 // };
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
+  languageSelector: {
+    position: "absolute",
+    top: theme.spacing(2),
+    right: theme.spacing(2),
+  },
   paper: {
     marginTop: theme.spacing(8),
     display: "flex",
@@ -47,7 +51,7 @@ const useStyles = makeStyles((theme) => ({
   logo: {
     width: "75%",
     marginBottom: theme.spacing(3),
-    [theme.breakpoints.down("sm")]: {
+    [theme.breakpoints.down('md')]: {
       width: "95%",
     },
   },
@@ -61,7 +65,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const Login = () => {
-  const classes = useStyles();
+  const { classes } = useStyles();
   const theme = useTheme();
 
   const [user, setUser] = useState({ email: "", password: "" });
@@ -78,13 +82,16 @@ const Login = () => {
     handleLogin(user);
   };
 
-  const logo = theme.palette.type === "dark" ? logoWhite : logoBlack;
+  const logo = getLogoFor(theme.palette.mode);
 
   return (
     <Container component="main" maxWidth="xs">
       <CssBaseline />
+      <div className={classes.languageSelector}>
+        <LanguageSelector />
+      </div>
       <div className={classes.paper}>
-        <img src={logo} alt="Whaticket" className={classes.logo} />
+        <img src={logo} alt="Cerqueira Labs" className={classes.logo} />
         <Typography component="h1" variant="h5">
           {i18n.t("login.title")}
         </Typography>
@@ -120,7 +127,7 @@ const Login = () => {
                   <IconButton
                     aria-label="toggle password visibility"
                     onClick={() => setShowPassword((e) => !e)}
-                  >
+                    size="large">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -136,18 +143,6 @@ const Login = () => {
           >
             {i18n.t("login.buttons.submit")}
           </Button>
-          <Grid container>
-            <Grid item>
-              <Link
-                href="#"
-                variant="body2"
-                component={RouterLink}
-                to="/signup"
-              >
-                {i18n.t("login.buttons.register")}
-              </Link>
-            </Grid>
-          </Grid>
         </form>
       </div>
       <Box mt={8}>{/* <Copyright /> */}</Box>

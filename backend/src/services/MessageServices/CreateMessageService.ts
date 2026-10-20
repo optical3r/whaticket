@@ -1,7 +1,10 @@
-import { getIO } from "../../libs/socket";
+import { companyRoom, getIO } from "../../libs/socket";
+import { DispatchWebhookEvent } from "../WebhookServices/WebhookServices";
+import { messagePayload } from "../../helpers/WebhookPayloads";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
+import Tag from "../../models/Tag";
 
 interface MessageData {
   id: string;
@@ -34,6 +37,12 @@ const CreateMessageService = async ({
           "contact",
           "queue",
           {
+            model: Tag,
+            as: "tags",
+            attributes: ["id", "name", "color"],
+            through: { attributes: [] }
+          },
+          {
             model: Whatsapp,
             as: "whatsapp",
             attributes: ["name"]
@@ -52,16 +61,23 @@ const CreateMessageService = async ({
     throw new Error("ERR_CREATING_MESSAGE");
   }
 
+  const { companyId } = message.ticket;
   const io = getIO();
-  io.to(message.ticketId.toString())
-    .to(message.ticket.status)
-    .to("notification")
+  io.to(companyRoom(companyId, message.ticketId.toString()))
+    .to(companyRoom(companyId, message.ticket.status))
+    .to(companyRoom(companyId, "notification"))
     .emit("appMessage", {
       action: "create",
       message,
       ticket: message.ticket,
       contact: message.ticket.contact
     });
+
+  DispatchWebhookEvent(
+    companyId,
+    message.fromMe ? "message.sent" : "message.received",
+    messagePayload(message)
+  );
 
   return message;
 };

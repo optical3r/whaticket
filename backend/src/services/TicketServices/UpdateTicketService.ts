@@ -1,9 +1,16 @@
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
-import { getIO } from "../../libs/socket";
+import AppError from "../../errors/AppError";
+import { isSettingEnabled } from "../../helpers/CompanySettings";
+import CloseReason from "../../models/CloseReason";
+import {
+  assertCloseReasonInCompany,
+  assertQueuesInCompany,
+  assertUserInCompany,
+  assertWhatsappInCompany
+} from "../../helpers/AssertCompanyOwnership";
+import { companyRoom, getIO } from "../../libs/socket";
 import Ticket from "../../models/Ticket";
-import SendWhatsAppMessage from "../WbotServices/SendWhatsAppMessage";
-import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 import ShowTicketService from "./ShowTicketService";
 
 interface TicketData {
@@ -11,11 +18,13 @@ interface TicketData {
   userId?: number;
   queueId?: number;
   whatsappId?: number;
+  closeReasonId?: number | null;
 }
 
 interface Request {
   ticketData: TicketData;
   ticketId: string | number;
+  companyId: number;
 }
 
 interface Response {
@@ -26,11 +35,30 @@ interface Response {
 
 const UpdateTicketService = async ({
   ticketData,
-  ticketId
+  ticketId,
+  companyId
 }: Request): Promise<Response> => {
-  const { status, userId, queueId, whatsappId } = ticketData;
+  const { status, userId, queueId, whatsappId, closeReasonId } = ticketData;
 
-  const ticket = await ShowTicketService(ticketId);
+  const ticket = await ShowTicketService(ticketId, companyId);
+
+  await assertUserInCompany(userId, companyId);
+  await assertQueuesInCompany([queueId], companyId);
+  await assertWhatsappInCompany(whatsappId, companyId);
+  await assertCloseReasonInCompany(closeReasonId, companyId);
+
+  const isClosing = status === "closed" && ticket.status !== "closed";
+  const isReopening = status !== undefined && status !== "closed";
+
+  if (
+    isClosing &&
+    !closeReasonId &&
+    (await isSettingEnabled(companyId, "closeReasonRequired")) &&
+    (await CloseReason.count({ where: { companyId } })) > 0
+  ) {
+    throw new AppError("ERR_CLOSE_REASON_REQUIRED");
+  }
+
   await SetTicketMessagesAsRead(ticket);
 
   if (whatsappId && ticket.whatsappId !== whatsappId) {
@@ -47,7 +75,22 @@ const UpdateTicketService = async ({
   await ticket.update({
     status,
     queueId,
-    userId
+    userId,
+    // closedAt and the reason describe the latest closing only.
+    // A reopened conversation gets the virtual assistant again.
+    ...(isClosing
+      ? {
+          closedAt: new Date(),
+          closeReasonId: closeReasonId || null,
+          aiHandoffAt: null,
+          aiReplies: 0,
+          flowId: null,
+          flowStepId: null,
+          flowAttempts: 0,
+          flowFinishedAt: null
+        }
+      : {}),
+    ...(isReopening ? { closedAt: null, closeReasonId: null } : {})
   });
 
   if (whatsappId) {
@@ -61,15 +104,15 @@ const UpdateTicketService = async ({
   const io = getIO();
 
   if (ticket.status !== oldStatus || ticket.user?.id !== oldUserId) {
-    io.to(oldStatus).emit("ticket", {
+    io.to(companyRoom(companyId, oldStatus)).emit("ticket", {
       action: "delete",
       ticketId: ticket.id
     });
   }
 
-  io.to(ticket.status)
-    .to("notification")
-    .to(ticketId.toString())
+  io.to(companyRoom(companyId, ticket.status))
+    .to(companyRoom(companyId, "notification"))
+    .to(companyRoom(companyId, ticketId.toString()))
     .emit("ticket", {
       action: "update",
       ticket

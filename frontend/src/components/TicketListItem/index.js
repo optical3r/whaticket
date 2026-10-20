@@ -2,28 +2,32 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 
 import { useHistory, useParams } from "react-router-dom";
 import { parseISO, format, isSameDay } from "date-fns";
-import clsx from "clsx";
 
-import { alpha, makeStyles } from "@material-ui/core/styles";
-import { green } from "@material-ui/core/colors";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
-import ListItemAvatar from "@material-ui/core/ListItemAvatar";
-import Typography from "@material-ui/core/Typography";
-import Avatar from "@material-ui/core/Avatar";
-import Divider from "@material-ui/core/Divider";
-import Badge from "@material-ui/core/Badge";
+import { alpha } from "@mui/material/styles";
+import { makeStyles } from 'tss-react/mui';
+import { green } from "@mui/material/colors";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import Typography from "@mui/material/Typography";
+import Avatar from "@mui/material/Avatar";
+import Divider from "@mui/material/Divider";
+import Badge from "@mui/material/Badge";
 
 import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import MarkdownWrapper from "../MarkdownWrapper";
-import { Tooltip } from "@material-ui/core";
+import TagChips from "../TagChips";
+import { Tooltip } from "@mui/material";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
+	ticketTags: {
+		marginTop: theme.spacing(0.5),
+	},
 	ticket: {
 		position: "relative",
 	},
@@ -114,6 +118,18 @@ const useStyles = makeStyles(theme => ({
 		backgroundColor: theme.palette.queue.fallback,
 	},
 
+	aiTag: {
+		flex: "none",
+		alignSelf: "center",
+		marginLeft: theme.spacing(1),
+		padding: theme.spacing(0, 0.75),
+		borderRadius: theme.borderRadius.pill,
+		backgroundColor: theme.palette.tintedBackground,
+		color: theme.palette.text.link,
+		...theme.typography.caption,
+		fontWeight: 600,
+	},
+
 	userTag: {
 		flex: "none",
 		alignSelf: "center",
@@ -127,7 +143,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const TicketListItem = ({ ticket }) => {
-	const classes = useStyles();
+	const { classes, cx } = useStyles();
 	const history = useHistory();
 	const [loading, setLoading] = useState(false);
 	const { ticketId } = useParams();
@@ -162,17 +178,16 @@ const TicketListItem = ({ ticket }) => {
 	};
 
 	return (
-		<React.Fragment key={ticket.id}>
-			<ListItem
+        <React.Fragment key={ticket.id}>
+			<ListItemButton
 				dense
-				button
 				onClick={e => {
 					if (ticket.status === "pending") return;
 					handleSelectTicket(ticket.id);
 				}}
 				selected={ticketId && +ticketId === ticket.id}
 				classes={{ selected: classes.ticketSelected }}
-				className={clsx(classes.ticket, {
+				className={cx(classes.ticket, {
 					[classes.pendingTicket]: ticket.status === "pending",
 				})}
 			>
@@ -227,6 +242,7 @@ const TicketListItem = ({ ticket }) => {
 						</span>
 					}
 					secondary={
+						<>
 						<span className={classes.contactNameWrapper}>
 							<Typography
 								className={classes.contactLastMessage}
@@ -242,6 +258,13 @@ const TicketListItem = ({ ticket }) => {
 								)}
 							</Typography>
 
+							{ticket.status === "pending" &&
+								ticket.aiReplies > 0 &&
+								!ticket.aiHandoffAt && (
+									<span className={classes.aiTag} title={i18n.t("ticketsList.aiTagTitle")}>
+										{i18n.t("ticketsList.aiTag")}
+									</span>
+								)}
 							{ticket.whatsappId && (
 								<span className={classes.userTag} title={i18n.t("ticketsList.connectionTitle")}>{ticket.whatsapp?.name}</span>
 							)}
@@ -251,6 +274,8 @@ const TicketListItem = ({ ticket }) => {
 								</span>
 							)}
 						</span>
+						<TagChips tags={ticket.tags} className={classes.ticketTags} />
+						</>
 					}
 				/>
 				{ticket.status === "pending" && (
@@ -265,10 +290,10 @@ const TicketListItem = ({ ticket }) => {
 						{i18n.t("ticketsList.buttons.accept")}
 					</ButtonWithSpinner>
 				)}
-			</ListItem>
+			</ListItemButton>
 			<Divider variant="inset" component="li" />
 		</React.Fragment>
-	);
+    );
 };
 
 export default TicketListItem;

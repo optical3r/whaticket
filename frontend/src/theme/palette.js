@@ -1,56 +1,76 @@
+// Colors follow the Cerqueira Labs design system tokens. The token name is
+// noted next to each value; change the tokens, not the hex values.
+const shared = {
+  success: { main: "#28C98B" }, // status-success
+  warning: { main: "#F2B84B" }, // status-warning
+  error: { main: "#F06464", contrastText: "#070B12" }, // status-error / on-bright
+  appBar: { background: "#070B12" }, // Midnight Graphite
+  queue: { fallback: "#768498" },
+  focusRing: "#17889A",
+  chart: ["#3478F6", "#35C2D6", "#7158E8", "#D6B98C", "#96A3B5"],
+};
+
 const palette = {
   light: {
+    ...shared,
     primary: {
-      main: "#212121",
-      dark: "#000000",
+      main: "#2A68DE", // action-primary
+      dark: "#2158C7", // action-primary-hover
+      contrastText: "#FFFFFF", // on-action
+    },
+    secondary: {
+      main: "#526176", // text-secondary
+      dark: "#253044",
+    },
+    text: {
+      primary: "#111827",
+      secondary: "#526176",
+      link: "#2158C7",
+    },
+    divider: "#E8ECF2", // border-subtle
+    border: { strong: "#768498" },
+    background: {
+      default: "#F3F6FA", // bg-primary
+      paper: "#FFFFFF", // bg-surface
+      chat: "#F3F6FA",
+    },
+    action: { selected: "#E8ECF2", hover: "rgba(42, 104, 222, 0.06)" },
+    cards: { background: "#FFFFFF" },
+    scrollbar: { thumb: "rgba(17, 24, 39, .16)" },
+    userMessage: { main: "#DCE9FF" },
+    contactMessage: { main: "#FFFFFF" },
+    timestamp: { background: "#E8ECF2" },
+  },
+  dark: {
+    ...shared,
+    focusRing: "#35C2D6",
+    primary: {
+      main: "#2A68DE",
+      dark: "#2158C7",
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: "#616161",
-      dark: "#424242",
+      main: "#96A3B5",
+      dark: "#9BA8BA",
     },
-    success: { main: "#2E7D32" },
-    error: { main: "#D32F2F" },
-    text: { secondary: "rgba(0, 0, 0, 0.6)" },
+    text: {
+      primary: "#F3F6FA",
+      secondary: "#96A3B5",
+      link: "#8FB4FF",
+    },
+    divider: "#253044",
+    border: { strong: "#9BA8BA" },
     background: {
-      default: "#F5F5F5",
-      paper: "#FAFAFA",
-      chat: "#F5F5F5",
+      default: "#070B12",
+      paper: "#111827",
+      chat: "#070B12",
     },
-    action: { selected: "rgba(0, 0, 0, 0.08)" },
-    cards: { background: "#FFF" },
-    appBar: { background: "#000000" },
-    scrollbar: { thumb: "rgba(0,0,0,.1)" },
-    userMessage: { main: "#E0E0E0" },
-    contactMessage: { main: "#FFFFFF" },
-    timestamp: { background: "#EEEEEE" },
-    queue: { fallback: "#7C7C7C" },
-  },
-  dark: {
-    primary: {
-      main: "#FFFFFF",
-      dark: "#E0E0E0",
-      contrastText: "rgba(0, 0, 0, 0.87)",
-    },
-    secondary: {
-      main: "#BDBDBD",
-      dark: "#9E9E9E",
-    },
-    success: { main: "#66BB6A" },
-    error: { main: "#F44336" },
-    background: {
-      default: "#242424",
-      paper: "#1E1E1E",
-      chat: "#121212",
-    },
-    action: { selected: "#383838" },
-    cards: { background: "#2C2C2C" },
-    appBar: { background: "#000000" },
-    scrollbar: { thumb: "hsla(0,0%,100%,.16)" },
-    userMessage: { main: "#424242" },
-    contactMessage: { main: "#2C2C2C" },
-    timestamp: { background: "#242424" },
-    queue: { fallback: "#7C7C7C" },
+    action: { selected: "#253044", hover: "rgba(143, 180, 255, 0.08)" },
+    cards: { background: "#111827" },
+    scrollbar: { thumb: "hsla(0, 0%, 100%, .16)" },
+    userMessage: { main: "#12306F" },
+    contactMessage: { main: "#253044" },
+    timestamp: { background: "#253044" },
   },
 };
 

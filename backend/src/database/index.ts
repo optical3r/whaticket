@@ -10,6 +10,22 @@ import Queue from "../models/Queue";
 import WhatsappQueue from "../models/WhatsappQueue";
 import UserQueue from "../models/UserQueue";
 import QuickAnswer from "../models/QuickAnswer";
+import Company from "../models/Company";
+import Plan from "../models/Plan";
+import Tag from "../models/Tag";
+import TicketTag from "../models/TicketTag";
+import ContactTag from "../models/ContactTag";
+import TicketNote from "../models/TicketNote";
+import CloseReason from "../models/CloseReason";
+import TicketRating from "../models/TicketRating";
+import Webhook from "../models/Webhook";
+import KnowledgeArticle from "../models/KnowledgeArticle";
+import AiUsage from "../models/AiUsage";
+import KanbanStage from "../models/KanbanStage";
+import Campaign from "../models/Campaign";
+import CampaignContact from "../models/CampaignContact";
+import CloudApiCredential from "../models/CloudApiCredential";
+import Flow from "../models/Flow";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -28,7 +44,23 @@ const models = [
   Queue,
   WhatsappQueue,
   UserQueue,
-  QuickAnswer
+  QuickAnswer,
+  Company,
+  Plan,
+  Tag,
+  TicketTag,
+  ContactTag,
+  TicketNote,
+  CloseReason,
+  TicketRating,
+  Webhook,
+  KnowledgeArticle,
+  AiUsage,
+  KanbanStage,
+  Campaign,
+  CampaignContact,
+  CloudApiCredential,
+  Flow
 ];
 
 sequelize.addModels(models);

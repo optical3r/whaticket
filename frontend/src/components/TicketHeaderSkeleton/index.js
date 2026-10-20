@@ -1,10 +1,10 @@
 import React from "react";
 
-import { makeStyles } from "@material-ui/core/styles";
-import { Avatar, Card, CardHeader } from "@material-ui/core";
-import Skeleton from "@material-ui/lab/Skeleton";
+import { makeStyles } from 'tss-react/mui';
+import { Avatar, Card, CardHeader } from "@mui/material";
+import Skeleton from '@mui/material/Skeleton';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	ticketHeader: {
 		display: "flex",
 		backgroundColor: theme.palette.action.selected,
@@ -14,15 +14,15 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const TicketHeaderSkeleton = () => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 
 	return (
-		<Card square className={classes.ticketHeader}>
+        <Card square className={classes.ticketHeader}>
 			<CardHeader
 				titleTypographyProps={{ noWrap: true }}
 				subheaderTypographyProps={{ noWrap: true }}
 				avatar={
-					<Skeleton animation="wave" variant="circle">
+					<Skeleton animation="wave" variant="circular">
 						<Avatar alt="contact_image" />
 					</Skeleton>
 				}
@@ -30,7 +30,7 @@ const TicketHeaderSkeleton = () => {
 				subheader={<Skeleton animation="wave" width={140} />}
 			/>
 		</Card>
-	);
+    );
 };
 
 export default TicketHeaderSkeleton;

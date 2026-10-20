@@ -1,7 +1,17 @@
 _writeFrontendEnvVars() {
-    ENV_JSON="$(jq --compact-output --null-input 'env | with_entries(select(.key | startswith("REACT_APP_")))')"
+    ENV_JSON="$(jq --compact-output --null-input 'env | with_entries(select(.key | startswith("VITE_") or startswith("REACT_APP_")))')"
     ENV_JSON_ESCAPED="$(printf "%s" "${ENV_JSON}" | sed -e 's/[\&/]/\\&/g')"
     sed -i "s/<noscript id=\"env-insertion-point\"><\/noscript>/<script>var ENV=${ENV_JSON_ESCAPED}<\/script>/g" ${PUBLIC_HTML}index.html
+}
+
+# The installed app (PWA) shows the product name from VITE_BRAND_NAME.
+_writeManifestName() {
+    if [ -n "${VITE_BRAND_NAME}" ]; then
+        jq --arg name "${VITE_BRAND_NAME}" '.name = $name | .short_name = $name' \
+            ${PUBLIC_HTML}manifest.json > /tmp/manifest.json && mv /tmp/manifest.json ${PUBLIC_HTML}manifest.json
+        TITLE_HTML="$(jq -rn --arg name "${VITE_BRAND_NAME}" '$name | @html' | sed -e 's/[\\&|]/\\&/g')"
+        sed -i "s|<meta name=\"apple-mobile-web-app-title\" content=\"[^\"]*\"|<meta name=\"apple-mobile-web-app-title\" content=\"${TITLE_HTML}\"|" ${PUBLIC_HTML}index.html
+    fi
 }
 
 _writeNginxEnvVars() {
@@ -27,6 +37,7 @@ _addSslConfig() {
 }
 
 _writeFrontendEnvVars;
+_writeManifestName;
 _writeNginxEnvVars;
 
 _addSslConfig 'backend'

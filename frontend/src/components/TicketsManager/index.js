@@ -1,19 +1,19 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import clsx from "clsx";
-import { alpha, makeStyles } from "@material-ui/core/styles";
-import Paper from "@material-ui/core/Paper";
-import SearchIcon from "@material-ui/icons/Search";
-import InputBase from "@material-ui/core/InputBase";
-import Tabs from "@material-ui/core/Tabs";
-import Tab from "@material-ui/core/Tab";
-import Chip from "@material-ui/core/Chip";
-import Fab from "@material-ui/core/Fab";
-import Tooltip from "@material-ui/core/Tooltip";
-import AddIcon from "@material-ui/icons/Add";
-import MoveToInboxIcon from "@material-ui/icons/MoveToInbox";
-import CheckBoxIcon from "@material-ui/icons/CheckBox";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Switch from "@material-ui/core/Switch";
+import { alpha } from "@mui/material/styles";
+import { makeStyles } from 'tss-react/mui';
+import Paper from "@mui/material/Paper";
+import SearchIcon from "@mui/icons-material/Search";
+import InputBase from "@mui/material/InputBase";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Chip from "@mui/material/Chip";
+import Fab from "@mui/material/Fab";
+import Tooltip from "@mui/material/Tooltip";
+import AddIcon from "@mui/icons-material/Add";
+import MoveToInboxIcon from "@mui/icons-material/MoveToInbox";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import NewTicketModal from "../NewTicketModal";
 import TicketsList from "../TicketsList";
 import TabPanel from "../TabPanel";
@@ -21,8 +21,9 @@ import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../Can";
 import TicketsQueueSelect from "../TicketsQueueSelect";
+import TicketsTagSelect from "../TicketsTagSelect";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   ticketsWrapper: {
     position: "relative",
     display: "flex",
@@ -69,15 +70,12 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: alpha(theme.palette.primary.main, 0.12),
     },
   },
-  tabWrapper: {
-    flexDirection: "row",
-    gap: theme.spacing(1),
-  },
   tabLabelIcon: {
     minHeight: 0,
     paddingTop: theme.spacing(1.25),
-    "& $tabWrapper > *:first-child": {
-      marginBottom: 0,
+    gap: theme.spacing(1),
+    "& .MuiTab-iconWrapper": {
+      margin: 0,
     },
   },
   ticketOptionsBox: {
@@ -149,7 +147,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const TicketsManager = () => {
-  const classes = useStyles();
+  const { classes, cx } = useStyles();
   const [searchParam, setSearchParam] = useState("");
   const [tab, setTab] = useState("open");
   const [tabOpen, setTabOpen] = useState("open");
@@ -161,9 +159,10 @@ const TicketsManager = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const userQueueIds = user.queues.map((q) => q.id);
   const [selectedQueueIds, setSelectedQueueIds] = useState(userQueueIds || []);
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
 
   useEffect(() => {
-    if (user.profile.toUpperCase() === "ADMIN") {
+    if (user.profile === "admin" || user.profile === "supervisor") {
       setShowAllTickets(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,7 +210,6 @@ const TicketsManager = () => {
   const tabClasses = {
     root: classes.tab,
     selected: classes.tabSelected,
-    wrapper: classes.tabWrapper,
     labelIcon: classes.tabLabelIcon,
   };
 
@@ -226,7 +224,7 @@ const TicketsManager = () => {
           value={tab}
           onChange={handleChangeTab}
           variant="scrollable"
-          scrollButtons="off"
+          scrollButtons={false}
           indicatorColor="primary"
           textColor="primary"
           aria-label="icon label tabs example"
@@ -237,18 +235,21 @@ const TicketsManager = () => {
           }}
         >
           <Tab
+            iconPosition="start"
             value={"open"}
             icon={<MoveToInboxIcon fontSize="small" />}
             label={i18n.t("tickets.tabs.open.title")}
             classes={tabClasses}
           />
           <Tab
+            iconPosition="start"
             value={"closed"}
             icon={<CheckBoxIcon fontSize="small" />}
             label={i18n.t("tickets.tabs.closed.title")}
             classes={tabClasses}
           />
           <Tab
+            iconPosition="start"
             value={"search"}
             icon={<SearchIcon fontSize="small" />}
             label={i18n.t("tickets.tabs.search.title")}
@@ -294,8 +295,13 @@ const TicketsManager = () => {
         <TicketsQueueSelect
           style={{ marginLeft: 6 }}
           selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
           userQueues={user?.queues}
           onChange={(values) => setSelectedQueueIds(values)}
+        />
+        <TicketsTagSelect
+          selectedTagIds={selectedTagIds}
+          onChange={(values) => setSelectedTagIds(values)}
         />
       </Paper>
       <TabPanel value={tab} name="open" className={classes.ticketsWrapper}>
@@ -303,7 +309,7 @@ const TicketsManager = () => {
           <Chip
             clickable
             onClick={(e) => handleChangeTabOpen(e, "open")}
-            className={clsx(
+            className={cx(
               classes.statusChip,
               tabOpen === "open" && classes.statusChipSelected
             )}
@@ -321,7 +327,7 @@ const TicketsManager = () => {
           <Chip
             clickable
             onClick={(e) => handleChangeTabOpen(e, "pending")}
-            className={clsx(
+            className={cx(
               classes.statusChip,
               tabOpen === "pending" && classes.statusChipSelected
             )}
@@ -342,12 +348,16 @@ const TicketsManager = () => {
             status="open"
             showAll={showAllTickets}
             selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
+            selectedTagIds={selectedTagIds}
             updateCount={(val) => setOpenCount(val)}
             style={applyPanelStyle("open")}
           />
           <TicketsList
             status="pending"
             selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
+            selectedTagIds={selectedTagIds}
             updateCount={(val) => setPendingCount(val)}
             style={applyPanelStyle("pending")}
           />
@@ -358,6 +368,7 @@ const TicketsManager = () => {
           status="closed"
           showAll={true}
           selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
         />
       </TabPanel>
       <TabPanel value={tab} name="search" className={classes.ticketsWrapper}>
@@ -365,6 +376,7 @@ const TicketsManager = () => {
           searchParam={searchParam}
           showAll={true}
           selectedQueueIds={selectedQueueIds}
+          selectedTagIds={selectedTagIds}
         />
       </TabPanel>
       {tab !== "search" && (

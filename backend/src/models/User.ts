@@ -16,6 +16,7 @@ import {
   BelongsTo
 } from "sequelize-typescript";
 import { hash, compare } from "bcryptjs";
+import Company from "./Company";
 import Ticket from "./Ticket";
 import Queue from "./Queue";
 import UserQueue from "./UserQueue";
@@ -48,12 +49,24 @@ class User extends Model<User> {
   @Column
   profile: string;
 
+  // Cerqueira Labs staff: manages companies and plans across the platform.
+  @Default(false)
+  @Column
+  super: boolean;
+
   @ForeignKey(() => Whatsapp)
   @Column
   whatsappId: number;
 
   @BelongsTo(() => Whatsapp)
   whatsapp: Whatsapp;
+
+  @ForeignKey(() => Company)
+  @Column
+  companyId: number;
+
+  @BelongsTo(() => Company)
+  company: Company;
 
   @CreatedAt
   createdAt: Date;

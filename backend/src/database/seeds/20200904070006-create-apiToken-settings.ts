@@ -9,6 +9,7 @@ module.exports = {
         {
           key: "userApiToken",
           value: uuidv4(),
+          companyId: 1,
           createdAt: new Date(),
           updatedAt: new Date()
         }
@@ -18,6 +19,6 @@ module.exports = {
   },
 
   down: (queryInterface: QueryInterface) => {
-    return queryInterface.bulkDelete("Settings", {});
+    return queryInterface.bulkDelete("Settings", { key: "userApiToken" });
   }
 };

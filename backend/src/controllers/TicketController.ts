@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getIO } from "../libs/socket";
+import { companyRoom, getIO } from "../libs/socket";
 
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
@@ -9,6 +9,9 @@ import UpdateTicketService from "../services/TicketServices/UpdateTicketService"
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import formatBody from "../helpers/Mustache";
+import { DispatchWebhookEvent } from "../services/WebhookServices/WebhookServices";
+import { ticketPayload } from "../helpers/WebhookPayloads";
+import { SendRatingRequest } from "../services/TicketServices/TicketRatingService";
 
 type IndexQuery = {
   searchParam: string;
@@ -18,6 +21,7 @@ type IndexQuery = {
   showAll: string;
   withUnreadMessages: string;
   queueIds: string;
+  tagIds: string;
 };
 
 interface TicketData {
@@ -25,6 +29,7 @@ interface TicketData {
   status: string;
   queueId: number;
   userId: number;
+  closeReasonId?: number | null;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -35,16 +40,21 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     searchParam,
     showAll,
     queueIds: queueIdsStringified,
+    tagIds: tagIdsStringified,
     withUnreadMessages
   } = req.query as IndexQuery;
 
-  const userId = req.user.id;
+  const { id: userId, companyId } = req.user;
 
   let queueIds: number[] = [];
 
   if (queueIdsStringified) {
     queueIds = JSON.parse(queueIdsStringified);
   }
+
+  const tagIds: number[] = tagIdsStringified
+    ? JSON.parse(tagIdsStringified)
+    : [];
 
   const { tickets, count, hasMore } = await ListTicketsService({
     searchParam,
@@ -54,7 +64,9 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     showAll,
     userId,
     queueIds,
-    withUnreadMessages
+    withUnreadMessages,
+    tagIds: Array.isArray(tagIds) ? tagIds : [],
+    companyId
   });
 
   return res.status(200).json({ tickets, count, hasMore });
@@ -62,11 +74,17 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { contactId, status, userId }: TicketData = req.body;
+  const { companyId } = req.user;
 
-  const ticket = await CreateTicketService({ contactId, status, userId });
+  const ticket = await CreateTicketService({
+    contactId,
+    status,
+    userId,
+    companyId
+  });
 
   const io = getIO();
-  io.to(ticket.status).emit("ticket", {
+  io.to(companyRoom(companyId, ticket.status)).emit("ticket", {
     action: "update",
     ticket
   });
@@ -77,7 +95,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
 
-  const contact = await ShowTicketService(ticketId);
+  const contact = await ShowTicketService(ticketId, req.user.companyId);
 
   return res.status(200).json(contact);
 };
@@ -88,14 +106,16 @@ export const update = async (
 ): Promise<Response> => {
   const { ticketId } = req.params;
   const ticketData: TicketData = req.body;
+  const { companyId } = req.user;
 
-  const { ticket } = await UpdateTicketService({
+  const { ticket, oldStatus } = await UpdateTicketService({
     ticketData,
-    ticketId
+    ticketId,
+    companyId
   });
 
-  if (ticket.status === "closed") {
-    const whatsapp = await ShowWhatsAppService(ticket.whatsappId);
+  if (ticket.status === "closed" && oldStatus !== "closed") {
+    const whatsapp = await ShowWhatsAppService(ticket.whatsappId, companyId);
 
     const { farewellMessage } = whatsapp;
 
@@ -105,6 +125,9 @@ export const update = async (
         ticket
       });
     }
+
+    await SendRatingRequest(ticket);
+    DispatchWebhookEvent(companyId, "ticket.closed", ticketPayload(ticket));
   }
 
   return res.status(200).json(ticket);
@@ -116,13 +139,17 @@ export const remove = async (
 ): Promise<Response> => {
   const { ticketId } = req.params;
 
-  const ticket = await DeleteTicketService(ticketId);
+  const { companyId } = req.user;
+  const ticket = await DeleteTicketService(ticketId, companyId);
 
   const io = getIO();
-  io.to(ticket.status).to(ticketId).to("notification").emit("ticket", {
-    action: "delete",
-    ticketId: +ticketId
-  });
+  io.to(companyRoom(companyId, ticket.status))
+    .to(companyRoom(companyId, ticketId))
+    .to(companyRoom(companyId, "notification"))
+    .emit("ticket", {
+      action: "delete",
+      ticketId: +ticketId
+    });
 
   return res.status(200).json({ message: "ticket deleted" });
 };

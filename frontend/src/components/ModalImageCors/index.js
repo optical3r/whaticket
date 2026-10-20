@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { makeStyles } from "@material-ui/core/styles";
+import { makeStyles } from 'tss-react/mui';
 
 import ModalImage from "react-modal-image";
 import api from "../../services/api";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
 	messageMedia: {
 		objectFit: "cover",
 		width: 250,
@@ -17,7 +17,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const ModalImageCors = ({ imageUrl }) => {
-	const classes = useStyles();
+	const { classes } = useStyles();
 	const [fetching, setFetching] = useState(true);
 	const [blobUrl, setBlobUrl] = useState("");
 
