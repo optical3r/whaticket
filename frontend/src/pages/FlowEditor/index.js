@@ -9,13 +9,16 @@ import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import MainContainer from "../../components/MainContainer";
@@ -25,31 +28,70 @@ import Title from "../../components/Title";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { i18n } from "../../translate/i18n";
+import FlowCanvas from "./FlowCanvas";
 import FlowSimulator from "./FlowSimulator";
+import StepEditor, { stepLabel } from "./StepEditor";
 import {
-	MAX_OPTIONS,
+	COLUMN_WIDTH,
 	MAX_STEPS,
-	STEP_TYPES,
+	autoLayout,
 	newStep,
 	removeStep,
 	stepProblem,
 	withType,
+	withoutPositions,
 } from "./flowLogic";
 
+const VIEW_KEY = "flowEditor.view";
+
 const useStyles = makeStyles()(theme => ({
+	page: {
+		flex: 1,
+		minHeight: 0,
+		display: "flex",
+		flexDirection: "column",
+		gap: theme.spacing(2),
+		[theme.breakpoints.down("md")]: {
+			overflowY: "auto",
+		},
+	},
+	top: {
+		padding: theme.spacing(2),
+		display: "flex",
+		flexDirection: "column",
+		gap: theme.spacing(1.5),
+	},
+	help: {
+		color: theme.palette.text.secondary,
+	},
+	row: {
+		display: "flex",
+		flexWrap: "wrap",
+		alignItems: "flex-start",
+		gap: theme.spacing(2),
+		"& > .MuiTextField-root": {
+			flex: "1 1 220px",
+		},
+	},
 	layout: {
 		flex: 1,
 		minHeight: 0,
 		display: "grid",
-		gridTemplateColumns: "minmax(0, 1fr) 360px",
+		gridTemplateColumns: "minmax(0, 1fr) 380px",
 		gap: theme.spacing(2),
 		[theme.breakpoints.down("md")]: {
 			display: "flex",
 			flexDirection: "column",
-			overflowY: "auto",
 		},
 	},
-	editor: {
+	board: {
+		minHeight: 0,
+		[theme.breakpoints.down("md")]: {
+			flexShrink: 0,
+			height: 480,
+		},
+	},
+	list: {
 		minHeight: 0,
 		overflowY: "auto",
 		display: "flex",
@@ -62,11 +104,35 @@ const useStyles = makeStyles()(theme => ({
 			overflowY: "visible",
 		},
 	},
-	simulator: {
+	side: {
 		minHeight: 0,
+		display: "flex",
+		flexDirection: "column",
 		[theme.breakpoints.down("md")]: {
 			flexShrink: 0,
-			height: 520,
+			height: 560,
+		},
+	},
+	sidePaper: {
+		flex: 1,
+		minHeight: 0,
+		display: "flex",
+		flexDirection: "column",
+	},
+	sideBody: {
+		flex: 1,
+		minHeight: 0,
+		overflowY: "auto",
+		padding: theme.spacing(2),
+		...theme.scrollbarStyles,
+	},
+	simulatorBox: {
+		flex: 1,
+		minHeight: 0,
+		display: "flex",
+		"& > *": {
+			flex: 1,
+			border: "none",
 		},
 	},
 	section: {
@@ -75,16 +141,10 @@ const useStyles = makeStyles()(theme => ({
 		flexDirection: "column",
 		gap: theme.spacing(2),
 	},
-	help: {
-		color: theme.palette.text.secondary,
-	},
-	row: {
+	panelStep: {
 		display: "flex",
-		flexWrap: "wrap",
+		flexDirection: "column",
 		gap: theme.spacing(2),
-		"& > *": {
-			flex: "1 1 220px",
-		},
 	},
 	stepHeader: {
 		display: "flex",
@@ -105,22 +165,8 @@ const useStyles = makeStyles()(theme => ({
 	error: {
 		borderColor: theme.palette.error.main,
 	},
-	errorText: {
-		color: theme.palette.error.main,
-	},
-	option: {
-		display: "flex",
-		alignItems: "flex-start",
-		gap: theme.spacing(1),
-		"& > .MuiTextField-root": {
-			flex: 1,
-		},
-	},
-	optionNumber: {
-		fontFamily: theme.typography.monoFontFamily,
+	empty: {
 		color: theme.palette.text.secondary,
-		minWidth: 24,
-		paddingTop: theme.spacing(1.25),
 	},
 	loading: {
 		flex: 1,
@@ -130,7 +176,15 @@ const useStyles = makeStyles()(theme => ({
 	},
 }));
 
-const NONE = "";
+// Steps saved before the board existed have no position: lay them out.
+const withPositions = definition => {
+	if (definition.steps.every(step => step.position)) return definition;
+	const positions = autoLayout(definition);
+	return {
+		...definition,
+		steps: definition.steps.map(step => (step.position ? step : { ...step, position: positions[step.id] })),
+	};
+};
 
 const emptyDefinition = () => ({
 	startId: "s1",
@@ -140,9 +194,18 @@ const emptyDefinition = () => ({
 			type: "message",
 			text: i18n.t("flowEditor.defaultGreeting").replace("%FIRST_NAME%", "{{firstName}}"),
 			next: null,
+			position: { x: 0, y: 0 },
 		},
 	],
 });
+
+const readView = () => {
+	try {
+		return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "board";
+	} catch {
+		return "board";
+	}
+};
 
 const FlowEditor = () => {
 	const { classes, cx } = useStyles();
@@ -155,6 +218,9 @@ const FlowEditor = () => {
 	const [queues, setQueues] = useState([]);
 	const [showErrors, setShowErrors] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [view, setView] = useState(readView);
+	const [selectedId, setSelectedId] = useState(null);
+	const [sideTab, setSideTab] = useState("step");
 
 	useEffect(() => {
 		const load = async () => {
@@ -164,7 +230,7 @@ const FlowEditor = () => {
 				if (!isNew) {
 					const { data: flow } = await api.get(`/flows/${flowId}`);
 					setName(flow.name);
-					setDefinition(flow.definition);
+					setDefinition(withPositions(flow.definition));
 				}
 			} catch (err) {
 				toastError(err);
@@ -173,16 +239,21 @@ const FlowEditor = () => {
 		void load();
 	}, [flowId, isNew]);
 
-	const problems = useMemo(
-		() => (definition ? definition.steps.map(stepProblem) : []),
-		[definition]
-	);
+	const problems = useMemo(() => (definition ? definition.steps.map(stepProblem) : []), [definition]);
 	const hasProblems = problems.some(Boolean);
 
-	const stepLabel = (step, index) => {
-		const type = i18n.t(`flowEditor.types.${step.type}`);
-		const snippet = step.text.trim().slice(0, 40);
-		return `${index + 1}. ${type}${snippet ? `: ${snippet}` : ""}`;
+	// Moving steps on the board must not restart the simulator.
+	const logicKey = definition ? JSON.stringify(withoutPositions(definition)) : "";
+	const simulated = useMemo(() => (logicKey ? JSON.parse(logicKey) : null), [logicKey]);
+
+	const changeView = (event, value) => {
+		if (!value) return;
+		setView(value);
+		try {
+			localStorage.setItem(VIEW_KEY, value);
+		} catch {
+			// The choice only lasts for this visit.
+		}
 	};
 
 	const updateStep = (id, changes) =>
@@ -197,18 +268,24 @@ const FlowEditor = () => {
 			steps: current.steps.map(step => (step.id === id ? withType(step, type) : step)),
 		}));
 
-	const updateOption = (step, index, changes) =>
-		updateStep(step.id, {
-			options: step.options.map((option, position) =>
-				position === index ? { ...option, ...changes } : option
-			),
-		});
+	const addStep = position => {
+		if (definition.steps.length >= MAX_STEPS) return;
+		const last = definition.steps[definition.steps.length - 1];
+		const created = newStep(
+			definition.steps,
+			"message",
+			position || (last?.position ? { x: last.position.x + COLUMN_WIDTH, y: last.position.y } : { x: 0, y: 0 })
+		);
+		setDefinition(current => ({ ...current, steps: [...current.steps, created] }));
+		setSelectedId(created.id);
+		setSideTab("step");
+	};
 
-	const addStep = () =>
-		setDefinition(current => ({
-			...current,
-			steps: [...current.steps, newStep(current.steps)],
-		}));
+	const deleteStep = id =>
+		setDefinition(current => {
+			if (current.steps.length <= 1) return current;
+			return removeStep(current, id);
+		});
 
 	const moveStep = (index, offset) =>
 		setDefinition(current => {
@@ -218,10 +295,42 @@ const FlowEditor = () => {
 			return { ...current, steps };
 		});
 
+	// Links made on the board: the exit is "next" or "opt-<n>".
+	const link = (sourceId, exit, targetId) =>
+		setDefinition(current => ({
+			...current,
+			steps: current.steps.map(step => {
+				if (step.id !== sourceId) return step;
+				if (exit === "next" && (step.type === "message" || step.type === "question")) {
+					return { ...step, next: targetId };
+				}
+				const match = /^opt-(\d+)$/.exec(exit || "");
+				if (match && step.type === "menu") {
+					const position = Number(match[1]);
+					return {
+						...step,
+						options: step.options.map((option, index) => (index === position ? { ...option, next: targetId || "" } : option)),
+					};
+				}
+				return step;
+			}),
+		}));
+
+	const organize = () =>
+		setDefinition(current => {
+			const positions = autoLayout(current);
+			return { ...current, steps: current.steps.map(step => ({ ...step, position: positions[step.id] })) };
+		});
+
 	const save = async () => {
 		if (!name.trim() || hasProblems) {
 			setShowErrors(true);
 			toast.error(i18n.t("flowEditor.errors.fix"));
+			const firstProblem = definition.steps[problems.findIndex(Boolean)];
+			if (firstProblem) {
+				setSelectedId(firstProblem.id);
+				setSideTab("step");
+			}
 			return;
 		}
 		setSaving(true);
@@ -240,145 +349,6 @@ const FlowEditor = () => {
 		setSaving(false);
 	};
 
-	const nextSelect = (step, value, onChange, required, label) => (
-		<TextField
-			select
-			size="small"
-			label={label}
-			value={value || NONE}
-			onChange={event => onChange(event.target.value || null)}
-			error={showErrors && required && !value}
-			SelectProps={{ displayEmpty: true }}
-			InputLabelProps={{ shrink: true }}
-		>
-			{!required && <MenuItem value={NONE}>{i18n.t("flowEditor.endFlow")}</MenuItem>}
-			{required && (
-				<MenuItem value={NONE} disabled>
-					{i18n.t("flowEditor.chooseStep")}
-				</MenuItem>
-			)}
-			{definition.steps.map((target, index) =>
-				target.id === step.id ? null : (
-					<MenuItem key={target.id} value={target.id}>
-						{stepLabel(target, index)}
-					</MenuItem>
-				)
-			)}
-		</TextField>
-	);
-
-	const renderStepFields = step => {
-		switch (step.type) {
-			case "message":
-			case "question":
-				return (
-					<div className={classes.row}>
-						{step.type === "question" && (
-							<TextField
-								size="small"
-								label={i18n.t("flowEditor.field")}
-								helperText={i18n.t("flowEditor.fieldHelp")}
-								value={step.field}
-								inputProps={{ maxLength: 40 }}
-								error={showErrors && !step.field.trim()}
-								onChange={event => updateStep(step.id, { field: event.target.value })}
-							/>
-						)}
-						{nextSelect(
-							step,
-							step.next,
-							value => updateStep(step.id, { next: value }),
-							false,
-							i18n.t("flowEditor.next")
-						)}
-					</div>
-				);
-			case "menu":
-				return (
-					<>
-						{step.options.map((option, index) => (
-							// Options have no id of their own; the position is their identity.
-							// eslint-disable-next-line react/no-array-index-key
-							<div className={classes.option} key={index}>
-								<span className={classes.optionNumber}>{index + 1}</span>
-								<TextField
-									size="small"
-									label={i18n.t("flowEditor.optionLabel")}
-									value={option.label}
-									inputProps={{ maxLength: 60 }}
-									error={showErrors && !option.label.trim()}
-									onChange={event => updateOption(step, index, { label: event.target.value })}
-								/>
-								{nextSelect(
-									step,
-									option.next,
-									value => updateOption(step, index, { next: value || "" }),
-									true,
-									i18n.t("flowEditor.optionNext")
-								)}
-								<IconButton
-									aria-label={i18n.t("flowEditor.removeOption")}
-									disabled={step.options.length === 1}
-									onClick={() =>
-										updateStep(step.id, {
-											options: step.options.filter((_, position) => position !== index),
-										})
-									}
-								>
-									<CloseIcon />
-								</IconButton>
-							</div>
-						))}
-						<div>
-							<Button
-								size="small"
-								startIcon={<AddIcon />}
-								disabled={step.options.length >= MAX_OPTIONS}
-								onClick={() =>
-									updateStep(step.id, { options: [...step.options, { label: "", next: "" }] })
-								}
-							>
-								{i18n.t("flowEditor.addOption")}
-							</Button>
-						</div>
-						<TextField
-							size="small"
-							label={i18n.t("flowEditor.invalidText")}
-							helperText={i18n.t("flowEditor.invalidTextHelp")}
-							value={step.invalidText}
-							inputProps={{ maxLength: 500 }}
-							onChange={event => updateStep(step.id, { invalidText: event.target.value })}
-						/>
-					</>
-				);
-			case "queue":
-				return (
-					<TextField
-						select
-						size="small"
-						label={i18n.t("flowEditor.queue")}
-						value={step.queueId || NONE}
-						error={showErrors && !step.queueId}
-						helperText={queues.length === 0 ? i18n.t("flowEditor.noQueues") : " "}
-						onChange={event => updateStep(step.id, { queueId: Number(event.target.value) })}
-					>
-						{queues.map(queue => (
-							<MenuItem key={queue.id} value={queue.id}>
-								{queue.name}
-							</MenuItem>
-						))}
-					</TextField>
-				);
-			default:
-				return null;
-		}
-	};
-
-	const textLabel = step =>
-		["queue", "close"].includes(step.type)
-			? i18n.t("flowEditor.textOptional")
-			: i18n.t(`flowEditor.textLabel.${step.type}`);
-
 	if (!definition) {
 		return (
 			<MainContainer>
@@ -388,6 +358,68 @@ const FlowEditor = () => {
 			</MainContainer>
 		);
 	}
+
+	const selectedIndex = definition.steps.findIndex(step => step.id === selectedId);
+	const selected = selectedIndex >= 0 ? definition.steps[selectedIndex] : null;
+
+	const editorFor = (step, index, compact) => (
+		<StepEditor
+			step={step}
+			steps={definition.steps}
+			queues={queues}
+			problem={showErrors ? problems[index] : null}
+			showErrors={showErrors}
+			compact={compact}
+			onChange={changes => updateStep(step.id, changes)}
+			onChangeType={type => changeType(step.id, type)}
+		/>
+	);
+
+	const simulator = <FlowSimulator definition={simulated} queues={queues} disabled={hasProblems} />;
+
+	const selectedPanel = selected ? (
+		<div className={classes.panelStep}>
+			<div className={classes.stepHeader}>
+				<Typography className={classes.stepTitle}>
+					{i18n.t("flowEditor.stepTitle", { number: selectedIndex + 1 })}
+				</Typography>
+				<span className={classes.stepId}>{selected.id}</span>
+				{definition.startId === selected.id && (
+					<Chip size="small" color="primary" label={i18n.t("flowEditor.startTag")} />
+				)}
+				<span className={classes.spacer} />
+				<Tooltip title={i18n.t("flowEditor.removeStep")}>
+					<span>
+						<IconButton
+							aria-label={i18n.t("flowEditor.removeStep")}
+							disabled={definition.steps.length === 1}
+							onClick={() => {
+								deleteStep(selected.id);
+								setSelectedId(null);
+							}}
+						>
+							<DeleteOutlineIcon />
+						</IconButton>
+					</span>
+				</Tooltip>
+			</div>
+			{definition.startId !== selected.id && (
+				<div>
+					<Button
+						size="small"
+						onClick={() => setDefinition(current => ({ ...current, startId: selected.id }))}
+					>
+						{i18n.t("flowEditor.board.makeStart")}
+					</Button>
+				</div>
+			)}
+			{editorFor(selected, selectedIndex, true)}
+		</div>
+	) : (
+		<Typography variant="body2" className={classes.empty}>
+			{i18n.t("flowEditor.board.selectHint")}
+		</Typography>
+	);
 
 	return (
 		<MainContainer>
@@ -402,143 +434,169 @@ const FlowEditor = () => {
 					</Button>
 				</MainHeaderButtonsWrapper>
 			</MainHeader>
-			<div className={classes.layout}>
-				<div className={classes.editor}>
-					<Paper variant="outlined" className={classes.section}>
-						<Typography variant="body2" className={classes.help}>
-							{i18n.t("flowEditor.help")
-								.replace("%NAME%", "{{name}}")
-								.replace("%FIRST_NAME%", "{{firstName}}")}
-						</Typography>
-						<div className={classes.row}>
-							<TextField
-								size="small"
-								label={i18n.t("flowEditor.name")}
-								value={name}
-								inputProps={{ maxLength: 80 }}
-								error={showErrors && !name.trim()}
-								helperText={showErrors && !name.trim() ? i18n.t("flowEditor.errors.name") : " "}
-								onChange={event => setName(event.target.value)}
-							/>
-							<TextField
-								select
-								size="small"
-								label={i18n.t("flowEditor.start")}
-								value={definition.startId}
-								helperText=" "
-								onChange={event =>
-									setDefinition(current => ({ ...current, startId: event.target.value }))
-								}
-							>
-								{definition.steps.map((step, index) => (
-									<MenuItem key={step.id} value={step.id}>
-										{stepLabel(step, index)}
-									</MenuItem>
-								))}
-							</TextField>
-						</div>
-					</Paper>
+			<div className={classes.page}>
+				<Paper variant="outlined" className={classes.top}>
+					<Typography variant="body2" className={classes.help}>
+						{i18n
+							.t(view === "board" ? "flowEditor.board.help" : "flowEditor.help")
+							.replace("%NAME%", "{{name}}")
+							.replace("%FIRST_NAME%", "{{firstName}}")}
+					</Typography>
+					<div className={classes.row}>
+						<TextField
+							size="small"
+							label={i18n.t("flowEditor.name")}
+							value={name}
+							inputProps={{ maxLength: 80 }}
+							error={showErrors && !name.trim()}
+							helperText={showErrors && !name.trim() ? i18n.t("flowEditor.errors.name") : " "}
+							onChange={event => setName(event.target.value)}
+						/>
+						<TextField
+							select
+							size="small"
+							label={i18n.t("flowEditor.start")}
+							value={definition.startId}
+							helperText=" "
+							onChange={event => setDefinition(current => ({ ...current, startId: event.target.value }))}
+						>
+							{definition.steps.map((step, index) => (
+								<MenuItem key={step.id} value={step.id}>
+									{stepLabel(step, index)}
+								</MenuItem>
+							))}
+						</TextField>
+						<ToggleButtonGroup
+							exclusive
+							size="small"
+							color="primary"
+							value={view}
+							onChange={changeView}
+							aria-label={i18n.t("flowEditor.board.view")}
+						>
+							<ToggleButton value="board">{i18n.t("flowEditor.board.viewBoard")}</ToggleButton>
+							<ToggleButton value="list">{i18n.t("flowEditor.board.viewList")}</ToggleButton>
+						</ToggleButtonGroup>
+					</div>
+				</Paper>
 
-					{definition.steps.map((step, index) => {
-						const problem = showErrors && problems[index];
-						return (
-							<Paper
-								key={step.id}
-								variant="outlined"
-								className={cx(classes.section, problem && classes.error)}
-								component="section"
-								aria-label={i18n.t("flowEditor.stepTitle", { number: index + 1 })}
-							>
-								<div className={classes.stepHeader}>
-									<Typography className={classes.stepTitle}>
-										{i18n.t("flowEditor.stepTitle", { number: index + 1 })}
-									</Typography>
-									<span className={classes.stepId}>{step.id}</span>
-									{definition.startId === step.id && (
-										<Chip size="small" color="primary" label={i18n.t("flowEditor.startTag")} />
-									)}
-									<span className={classes.spacer} />
-									<Tooltip title={i18n.t("flowEditor.moveUp")}>
-										<span>
-											<IconButton
-												aria-label={i18n.t("flowEditor.moveUp")}
-												disabled={index === 0}
-												onClick={() => moveStep(index, -1)}
-											>
-												<ArrowUpwardIcon />
-											</IconButton>
-										</span>
-									</Tooltip>
-									<Tooltip title={i18n.t("flowEditor.moveDown")}>
-										<span>
-											<IconButton
-												aria-label={i18n.t("flowEditor.moveDown")}
-												disabled={index === definition.steps.length - 1}
-												onClick={() => moveStep(index, 1)}
-											>
-												<ArrowDownwardIcon />
-											</IconButton>
-										</span>
-									</Tooltip>
-									<Tooltip title={i18n.t("flowEditor.removeStep")}>
-										<span>
-											<IconButton
-												aria-label={i18n.t("flowEditor.removeStep")}
-												disabled={definition.steps.length === 1}
-												onClick={() => setDefinition(current => removeStep(current, step.id))}
-											>
-												<DeleteOutlineIcon />
-											</IconButton>
-										</span>
-									</Tooltip>
-								</div>
-								<TextField
-									select
-									size="small"
-									label={i18n.t("flowEditor.type")}
-									value={step.type}
-									helperText={i18n.t(`flowEditor.typeHelp.${step.type}`)}
-									onChange={event => changeType(step.id, event.target.value)}
+				<div className={classes.layout}>
+					{view === "board" ? (
+						<div className={classes.board}>
+							<FlowCanvas
+								definition={definition}
+								queues={queues}
+								problems={problems}
+								showErrors={showErrors}
+								selectedId={selectedId}
+								onSelect={id => {
+									setSelectedId(id);
+									if (id) setSideTab("step");
+								}}
+								onMove={(id, position) =>
+									updateStep(id, { position: { x: Math.round(position.x), y: Math.round(position.y) } })
+								}
+								onLink={link}
+								onUnlink={(id, exit) => link(id, exit, null)}
+								onAdd={addStep}
+								onRemove={id => {
+									deleteStep(id);
+									setSelectedId(null);
+								}}
+								onOrganize={organize}
+							/>
+						</div>
+					) : (
+						<div className={classes.list}>
+							{definition.steps.map((step, index) => (
+								<Paper
+									key={step.id}
+									variant="outlined"
+									className={cx(classes.section, showErrors && problems[index] && classes.error)}
+									component="section"
+									aria-label={i18n.t("flowEditor.stepTitle", { number: index + 1 })}
 								>
-									{STEP_TYPES.map(type => (
-										<MenuItem key={type} value={type}>
-											{i18n.t(`flowEditor.types.${type}`)}
-										</MenuItem>
-									))}
-								</TextField>
-								<TextField
-									multiline
-									minRows={2}
-									size="small"
-									label={textLabel(step)}
-									value={step.text}
-									inputProps={{ maxLength: 2000 }}
-									error={problem === "flowEditor.errors.text"}
-									onChange={event => updateStep(step.id, { text: event.target.value })}
-								/>
-								{renderStepFields(step)}
-								{problem && (
-									<Typography variant="body2" className={classes.errorText} role="alert">
-										{i18n.t(problem)}
-									</Typography>
+									<div className={classes.stepHeader}>
+										<Typography className={classes.stepTitle}>
+											{i18n.t("flowEditor.stepTitle", { number: index + 1 })}
+										</Typography>
+										<span className={classes.stepId}>{step.id}</span>
+										{definition.startId === step.id && (
+											<Chip size="small" color="primary" label={i18n.t("flowEditor.startTag")} />
+										)}
+										<span className={classes.spacer} />
+										<Tooltip title={i18n.t("flowEditor.moveUp")}>
+											<span>
+												<IconButton
+													aria-label={i18n.t("flowEditor.moveUp")}
+													disabled={index === 0}
+													onClick={() => moveStep(index, -1)}
+												>
+													<ArrowUpwardIcon />
+												</IconButton>
+											</span>
+										</Tooltip>
+										<Tooltip title={i18n.t("flowEditor.moveDown")}>
+											<span>
+												<IconButton
+													aria-label={i18n.t("flowEditor.moveDown")}
+													disabled={index === definition.steps.length - 1}
+													onClick={() => moveStep(index, 1)}
+												>
+													<ArrowDownwardIcon />
+												</IconButton>
+											</span>
+										</Tooltip>
+										<Tooltip title={i18n.t("flowEditor.removeStep")}>
+											<span>
+												<IconButton
+													aria-label={i18n.t("flowEditor.removeStep")}
+													disabled={definition.steps.length === 1}
+													onClick={() => deleteStep(step.id)}
+												>
+													<DeleteOutlineIcon />
+												</IconButton>
+											</span>
+										</Tooltip>
+									</div>
+									{editorFor(step, index, false)}
+								</Paper>
+							))}
+							<div>
+								<Button
+									variant="outlined"
+									startIcon={<AddIcon />}
+									disabled={definition.steps.length >= MAX_STEPS}
+									onClick={() => addStep()}
+								>
+									{i18n.t("flowEditor.addStep")}
+								</Button>
+							</div>
+						</div>
+					)}
+
+					<div className={classes.side}>
+						{view === "board" ? (
+							<Paper variant="outlined" className={classes.sidePaper}>
+								<Tabs
+									value={sideTab}
+									onChange={(event, value) => setSideTab(value)}
+									variant="fullWidth"
+									aria-label={i18n.t("flowEditor.board.panel")}
+								>
+									<Tab value="step" label={i18n.t("flowEditor.board.stepTab")} />
+									<Tab value="simulator" label={i18n.t("flowEditor.simulator.title")} />
+								</Tabs>
+								{sideTab === "step" ? (
+									<div className={classes.sideBody}>{selectedPanel}</div>
+								) : (
+									<div className={classes.simulatorBox}>{simulator}</div>
 								)}
 							</Paper>
-						);
-					})}
-
-					<div>
-						<Button
-							variant="outlined"
-							startIcon={<AddIcon />}
-							disabled={definition.steps.length >= MAX_STEPS}
-							onClick={addStep}
-						>
-							{i18n.t("flowEditor.addStep")}
-						</Button>
+						) : (
+							simulator
+						)}
 					</div>
-				</div>
-				<div className={classes.simulator}>
-					<FlowSimulator definition={definition} queues={queues} disabled={hasProblems} />
 				</div>
 			</div>
 		</MainContainer>

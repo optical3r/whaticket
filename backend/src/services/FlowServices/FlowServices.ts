@@ -24,6 +24,25 @@ const text = (value: unknown, max: number, required: boolean): string => {
   return result;
 };
 
+// Where the step sits on the editor's board; ignored when it is not a
+// pair of reasonable numbers.
+const boardPosition = (value: unknown): Pick<FlowStep, "position"> => {
+  const point = (value || {}) as { x?: unknown; y?: unknown };
+  const x = Number(point.x);
+  const y = Number(point.y);
+  if (
+    point.x === undefined ||
+    point.y === undefined ||
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    Math.abs(x) > 100000 ||
+    Math.abs(y) > 100000
+  ) {
+    return {};
+  }
+  return { position: { x: Math.round(x), y: Math.round(y) } };
+};
+
 // Cleans and checks a definition sent by the editor. Every reference must
 // point to an existing step or to a queue of the company, and message
 // steps cannot loop among themselves (they would send forever).
@@ -61,7 +80,7 @@ export const validateDefinition = async (
   const steps: FlowStep[] = rawSteps.map(step => {
     const type = step.type as FlowStepType;
     if (!TYPES.includes(type)) fail("ERR_FLOW_INVALID_STEP");
-    const base = { id: String(step.id), type };
+    const base = { id: String(step.id), type, ...boardPosition(step.position) };
 
     switch (type) {
       case "message":

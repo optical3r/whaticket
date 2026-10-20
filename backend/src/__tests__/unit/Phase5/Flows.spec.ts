@@ -183,6 +183,25 @@ describe("Phase 5: flows", () => {
     );
   });
 
+  it("keeps where each step sits on the board, and drops bad positions", async () => {
+    const queue = await Queue.create({
+      name: "Q",
+      color: "#3478F6",
+      companyId: 1
+    });
+    const good = definition(queue.id);
+    const placed = {
+      ...good,
+      steps: good.steps.map((step, index) => ({
+        ...step,
+        position: index === 0 ? { x: 120.4, y: -40 } : { x: "abc", y: 10 }
+      }))
+    };
+    const result = await validateDefinition(1, placed);
+    expect(result.steps[0].position).toEqual({ x: 120, y: -40 });
+    expect(result.steps[1]).not.toHaveProperty("position");
+  });
+
   it("greets, shows the menu, saves the answer and transfers to the queue", async () => {
     const { ticket, contact, queue, say } = await setup();
 

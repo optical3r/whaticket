@@ -36,7 +36,8 @@ Cada evento recebido tem a assinatura `X-Hub-Signature-256` conferida com a chav
 - **Mensagens enviadas**: texto, imagem, áudio, vídeo e documento. As confirmações de entregue e lido atualizam o ticket.
 - **Janela de 24 horas**: a Meta só aceita texto livre até 24 horas depois da última mensagem do cliente. Fora dela, o ticket mostra um aviso e o botão **Enviar template**, que lista os templates aprovados da conta. Os templates são criados e aprovados no **Gerenciador do WhatsApp** da Meta.
 - **Custos**: a Meta cobra por conversa, na conta do cliente.
-- **Limitações**: a API oficial não importa os contatos do celular nem mostra a foto de perfil. Campanhas por enquanto só saem por conexões de QR Code.
+- **Campanhas**: numa conexão oficial, a campanha envia um modelo aprovado, com as variáveis preenchidas por contato.
+- **Limitações**: a API oficial não importa os contatos do celular nem mostra a foto de perfil.
 
 ## Onde está no código
 

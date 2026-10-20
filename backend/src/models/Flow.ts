@@ -30,6 +30,8 @@ export interface FlowStep {
   invalidText?: string;
   field?: string;
   queueId?: number | null;
+  // Where the step sits on the editor's board.
+  position?: { x: number; y: number };
 }
 
 export interface FlowDefinition {
