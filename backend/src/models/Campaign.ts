@@ -84,6 +84,31 @@ class Campaign extends Model<Campaign> {
   @Column
   includeOptOut: boolean;
 
+  // Official connections send this approved template; `message` keeps its
+  // body for the screens.
+  @Column(DataType.STRING)
+  templateName: string | null;
+
+  @Column(DataType.STRING)
+  templateLanguage: string | null;
+
+  @Column(DataType.TEXT)
+  get templateParams(): string[] {
+    const raw = this.getDataValue("templateParams") as unknown as string;
+    try {
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  set templateParams(value: string[]) {
+    this.setDataValue(
+      "templateParams",
+      (value && value.length ? JSON.stringify(value) : null) as never
+    );
+  }
+
   @Column(DataType.STRING)
   lastError: string | null;
 

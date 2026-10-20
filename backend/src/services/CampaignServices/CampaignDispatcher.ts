@@ -10,6 +10,7 @@ import Company from "../../models/Company";
 import Contact from "../../models/Contact";
 import Whatsapp from "../../models/Whatsapp";
 import { whatsappProvider } from "../../providers/WhatsApp";
+import { sendTemplate } from "../../providers/WhatsApp/Implementations/cloudapi";
 import { logger } from "../../utils/logger";
 
 // Sends a campaign one contact per step. Each step queues the next one
@@ -70,6 +71,33 @@ const randomDelay = (campaign: Campaign): number => {
   const min = campaign.minDelaySeconds * 1000;
   const max = campaign.maxDelaySeconds * 1000;
   return min + Math.floor(Math.random() * (max - min + 1));
+};
+
+// Meta rejects empty template values, so a contact without a name gets a
+// neutral word instead.
+const sendCampaignTemplate = async (
+  campaign: Campaign,
+  whatsappId: number,
+  target: CampaignContact,
+  recipient: Contact
+): Promise<void> => {
+  const params = campaign.templateParams.map(
+    value => formatBody(value, recipient).trim() || "cliente"
+  );
+  const bodyText = params.reduce(
+    (text, value, index) => text.split(`{{${index + 1}}}`).join(value),
+    campaign.message
+  );
+  await sendTemplate(
+    whatsappId,
+    `${target.number}@c.us`,
+    {
+      name: campaign.templateName as string,
+      language: campaign.templateLanguage as string,
+      bodyParams: params
+    },
+    `${CAMPAIGN_MARK}${bodyText}`
+  );
 };
 
 // Exported for tests, which run the steps one by one.
@@ -146,20 +174,22 @@ export const RunCampaignStep = async ({
     return;
   }
 
-  const text = formatBody(
-    campaign.message,
-    contact || ({ name: next.name } as Contact)
-  );
-  const body = `${CAMPAIGN_MARK}${text}${
-    campaign.includeOptOut ? `\n\n_${OPT_OUT_LINE}_` : ""
-  }`;
+  const recipient = contact || ({ name: next.name } as Contact);
 
   try {
-    await whatsappProvider.sendMessage(
-      whatsapp.id,
-      `${next.number}@c.us`,
-      body
-    );
+    if (campaign.templateName) {
+      await sendCampaignTemplate(campaign, whatsapp.id, next, recipient);
+    } else {
+      const text = formatBody(campaign.message, recipient);
+      const body = `${CAMPAIGN_MARK}${text}${
+        campaign.includeOptOut ? `\n\n_${OPT_OUT_LINE}_` : ""
+      }`;
+      await whatsappProvider.sendMessage(
+        whatsapp.id,
+        `${next.number}@c.us`,
+        body
+      );
+    }
     await next.update({ status: "sent", sentAt: new Date(), error: null });
   } catch (err) {
     // Providers throw AppError, which is not an Error: read its message.
