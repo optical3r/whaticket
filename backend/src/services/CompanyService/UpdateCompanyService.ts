@@ -9,6 +9,7 @@ import Whatsapp from "../../models/Whatsapp";
 import { invalidateCompanyStatus } from "../../helpers/CompanyStatus";
 import { whatsappProvider } from "../../providers/WhatsApp";
 import { StartWhatsAppSession } from "../WbotServices/StartWhatsAppSession";
+import { SyncQrcodeSessions } from "../WbotServices/QrcodeSessions";
 import { logger } from "../../utils/logger";
 
 interface CompanyData {
@@ -95,6 +96,9 @@ const UpdateCompanyService = async ({
   }
 
   const previousStatus = company.status;
+  const previousPlan = await Plan.findByPk(company.planId, {
+    attributes: ["qrcodeEnabled"]
+  });
 
   await company.update({
     name: name ? name.trim() : company.name,
@@ -117,6 +121,16 @@ const UpdateCompanyService = async ({
   }
 
   await company.reload({ include: [{ model: Plan, as: "plan" }] });
+
+  // A new plan may add or take away QR code connections.
+  const qrcodeNow = company.plan?.qrcodeEnabled !== false;
+  if (
+    company.status === "active" &&
+    (status === undefined || status === previousStatus) &&
+    qrcodeNow !== (previousPlan?.qrcodeEnabled !== false)
+  ) {
+    await SyncQrcodeSessions([company.id], qrcodeNow);
+  }
 
   return company;
 };

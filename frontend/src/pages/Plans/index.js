@@ -33,6 +33,7 @@ const limitColumns = [
 	"users",
 	"connections",
 	"queues",
+	"qrcodeEnabled",
 	"campaignsEnabled",
 	"aiMonthlyRequests",
 	"transcriptionMonthlyMinutes",
@@ -132,8 +133,8 @@ const Plans = () => {
 									>
 										{column === "transcriptionMonthlyMinutes"
 											? transcriptionLabel(plan)
-											: column === "campaignsEnabled"
-											? i18n.t(plan.campaignsEnabled ? "plans.yes" : "plans.no")
+											: column === "campaignsEnabled" || column === "qrcodeEnabled"
+											? i18n.t(plan[column] ? "plans.yes" : "plans.no")
 											: column !== "aiMonthlyRequests"
 											? plan[column]
 											: !plan.aiEnabled

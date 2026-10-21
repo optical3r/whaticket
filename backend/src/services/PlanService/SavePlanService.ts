@@ -2,7 +2,9 @@ import * as Yup from "yup";
 import { Op } from "sequelize";
 
 import AppError from "../../errors/AppError";
+import Company from "../../models/Company";
 import Plan from "../../models/Plan";
+import { SyncQrcodeSessions } from "../WbotServices/QrcodeSessions";
 
 interface PlanData {
   name: string;
@@ -15,6 +17,7 @@ interface PlanData {
   aiMonthlyRequests?: number;
   transcriptionEnabled?: boolean;
   transcriptionMonthlyMinutes?: number;
+  qrcodeEnabled?: boolean;
 }
 
 const schema = Yup.object().shape({
@@ -45,6 +48,7 @@ const schema = Yup.object().shape({
     .min(0, "ERR_PLAN_INVALID_LIMIT")
     .max(10000000, "ERR_PLAN_INVALID_LIMIT"),
   transcriptionEnabled: Yup.boolean(),
+  qrcodeEnabled: Yup.boolean(),
   transcriptionMonthlyMinutes: Yup.number()
     .integer("ERR_PLAN_INVALID_LIMIT")
     .min(0, "ERR_PLAN_INVALID_LIMIT")
@@ -66,7 +70,8 @@ const SavePlanService = async (
     aiKeySource,
     aiMonthlyRequests,
     transcriptionEnabled,
-    transcriptionMonthlyMinutes
+    transcriptionMonthlyMinutes,
+    qrcodeEnabled
   } = planData;
 
   try {
@@ -80,7 +85,8 @@ const SavePlanService = async (
       aiKeySource,
       aiMonthlyRequests,
       transcriptionEnabled,
-      transcriptionMonthlyMinutes
+      transcriptionMonthlyMinutes,
+      qrcodeEnabled
     });
   } catch (err) {
     throw new AppError(err.message);
@@ -108,6 +114,7 @@ const SavePlanService = async (
     ...(aiMonthlyRequests !== undefined && aiMonthlyRequests !== null
       ? { aiMonthlyRequests: Number(aiMonthlyRequests) }
       : {}),
+    ...(typeof qrcodeEnabled === "boolean" ? { qrcodeEnabled } : {}),
     ...(typeof transcriptionEnabled === "boolean"
       ? { transcriptionEnabled }
       : {}),
@@ -126,7 +133,20 @@ const SavePlanService = async (
     throw new AppError("ERR_PLAN_NOT_FOUND", 404);
   }
 
+  const hadQrcode = plan.qrcodeEnabled;
   await plan.update(values);
+
+  // Companies on the plan lose (or get back) their QR code connections.
+  if (plan.qrcodeEnabled !== hadQrcode) {
+    const companies = await Company.findAll({
+      where: { planId: plan.id },
+      attributes: ["id"]
+    });
+    await SyncQrcodeSessions(
+      companies.map(company => company.id),
+      plan.qrcodeEnabled
+    );
+  }
   return plan;
 };
 

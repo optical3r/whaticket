@@ -8,6 +8,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
+import FormHelperText from "@mui/material/FormHelperText";
 import FormLabel from "@mui/material/FormLabel";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
@@ -28,6 +29,7 @@ const emptyPlan = {
 	aiKeySource: "platform",
 	aiMonthlyRequests: 1000,
 	transcriptionEnabled: false,
+	qrcodeEnabled: true,
 	transcriptionMonthlyMinutes: 600,
 };
 
@@ -59,6 +61,7 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			aiKeySource: values.aiKeySource,
 			aiMonthlyRequests: Number(values.aiMonthlyRequests),
 			transcriptionEnabled: values.transcriptionEnabled,
+			qrcodeEnabled: values.qrcodeEnabled,
 			transcriptionMonthlyMinutes: Number(values.transcriptionMonthlyMinutes),
 		};
 		try {
@@ -117,6 +120,19 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 						autoFocus
 					/>
 					{["users", "connections", "queues"].map(name => numberField(name))}
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.qrcodeEnabled}
+								onChange={e => setValues(prev => ({ ...prev, qrcodeEnabled: e.target.checked }))}
+							/>
+						}
+						label={i18n.t("planModal.form.qrcodeEnabled")}
+					/>
+					{!values.qrcodeEnabled && (
+						<FormHelperText>{i18n.t("planModal.form.qrcodeOffHelp")}</FormHelperText>
+					)}
 					<FormControlLabel
 						control={
 							<Switch
