@@ -43,6 +43,15 @@ const TermsModal = () => {
 		if (!user.id || !isAdmin) return undefined;
 
 		setPending(!user.company?.termsAcceptedAt);
+		// The terms are about QR code: plans without it do not need them.
+		if (!user.company?.termsAcceptedAt) {
+			api
+				.get("/company")
+				.then(({ data }) => {
+					if (data.plan?.qrcodeEnabled === false) setPending(false);
+				})
+				.catch(() => undefined);
+		}
 
 		const socket = openSocket();
 		socket.on("company", data => {

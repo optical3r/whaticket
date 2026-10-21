@@ -63,6 +63,12 @@ class Plan extends Model<Plan> {
   @Column
   aiMonthlyRequests: number;
 
+  // QR code connections (unofficial WhatsApp). Off = official API only.
+  @AllowNull(false)
+  @Default(true)
+  @Column
+  qrcodeEnabled: boolean;
+
   // Voice notes transcribed with the platform's OpenAI key.
   @AllowNull(false)
   @Default(false)

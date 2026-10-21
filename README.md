@@ -49,6 +49,7 @@ As cinco fases do plano de implementação aprovado estão entregues.
 - Ao atualizar uma instalação anterior, todos os dados existentes vão para a empresa 1 ("Cerqueira Labs", plano "Interno"), e o administrador mais antigo vira superadmin.
 - Cada conexão tem um canal: `qrcode` (WhatsApp no celular) ou `cloudapi` (API oficial da Meta). Veja [API oficial do WhatsApp](#api-oficial-do-whatsapp).
 - O plano define também se a empresa pode usar **campanhas** (**Campanhas liberadas**). Na atualização, só o plano 1 ("Interno") vem liberado.
+- **Conexão por QR Code liberada** (ligada por padrão): desligada, o plano fica só com a API oficial da Meta. As empresas do plano não criam conexões por QR Code, as que existem são desligadas (o login fica guardado e volta se a opção for religada) e o aviso de termos do QR Code não aparece. Sem QR Code, o servidor não abre nenhum navegador, e uma VPS pequena dá conta.
 
 ## Arquitetura
 

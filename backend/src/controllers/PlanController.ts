@@ -22,7 +22,8 @@ const planFields = (body: Record<string, unknown>) => {
     aiKeySource,
     aiMonthlyRequests,
     transcriptionEnabled,
-    transcriptionMonthlyMinutes
+    transcriptionMonthlyMinutes,
+    qrcodeEnabled
   } = body;
   return {
     name,
@@ -34,7 +35,8 @@ const planFields = (body: Record<string, unknown>) => {
     aiKeySource,
     aiMonthlyRequests,
     transcriptionEnabled,
-    transcriptionMonthlyMinutes
+    transcriptionMonthlyMinutes,
+    qrcodeEnabled
   } as Parameters<typeof SavePlanService>[0];
 };
 

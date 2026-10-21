@@ -97,6 +97,8 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 	const [cloudInfo, setCloudInfo] = useState(null);
 	const [selectedQueueIds, setSelectedQueueIds] = useState([]);
 	const [flows, setFlows] = useState([]);
+	// Plans can leave QR code out and offer only the official API.
+	const [qrcodeAllowed, setQrcodeAllowed] = useState(true);
 
 	useEffect(() => {
 		if (!open) return;
@@ -104,7 +106,17 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 			.get("/flows")
 			.then(({ data }) => setFlows(data))
 			.catch(() => setFlows([]));
-	}, [open]);
+		api
+			.get("/company")
+			.then(({ data }) => {
+				const allowed = data.plan?.qrcodeEnabled !== false;
+				setQrcodeAllowed(allowed);
+				if (!allowed && !whatsAppId) {
+					setWhatsApp(previous => ({ ...previous, channel: "cloudapi" }));
+				}
+			})
+			.catch(() => setQrcodeAllowed(true));
+	}, [open, whatsAppId]);
 
 	useEffect(() => {
 		const fetchSession = async () => {
@@ -237,9 +249,16 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 											value={values.channel}
 											onChange={e => setFieldValue("channel", e.target.value)}
 										>
-											<FormControlLabel value="qrcode" control={<Radio color="primary" />} label={i18n.t("whatsappModal.channel.qrcode")} />
+											{qrcodeAllowed && (
+												<FormControlLabel value="qrcode" control={<Radio color="primary" />} label={i18n.t("whatsappModal.channel.qrcode")} />
+											)}
 											<FormControlLabel value="cloudapi" control={<Radio color="primary" />} label={i18n.t("whatsappModal.channel.cloudapi")} />
 										</RadioGroup>
+										{!qrcodeAllowed && (
+											<Typography variant="body2" color="textSecondary">
+												{i18n.t("whatsappModal.channel.qrcodeNotInPlan")}
+											</Typography>
+										)}
 									</FormControl>
 								)}
 								<div className={classes.multFieldLine}>

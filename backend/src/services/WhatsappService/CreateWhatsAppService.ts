@@ -11,6 +11,7 @@ import {
   saveCloudCredentials
 } from "../../helpers/CloudApiCredentials";
 import { assertFlowInCompany } from "../FlowServices/FlowServices";
+import { isQrcodeAllowed } from "../../helpers/PlanFeatures";
 import {
   availableChannels,
   WhatsappChannel
@@ -76,6 +77,9 @@ const CreateWhatsAppService = async ({
 
   // QR code connections can get the number banned; the company admin has to
   // accept that risk before the first connection is created.
+  if (channel === "qrcode" && !(await isQrcodeAllowed(companyId))) {
+    throw new AppError("ERR_QRCODE_NOT_IN_PLAN", 403);
+  }
   const company = await Company.findByPk(companyId);
   if (channel === "qrcode" && !company?.termsAcceptedAt) {
     throw new AppError("ERR_TERMS_NOT_ACCEPTED", 403);
