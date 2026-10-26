@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import AppError from "../errors/AppError";
 import { isValidTimezone } from "../helpers/BusinessHours";
 import Company from "../models/Company";
+import { getCoexyAccess } from "../libs/coexy";
 import { emitToCompany } from "../libs/socket";
 import AcceptTermsService from "../services/CompanyService/AcceptTermsService";
 import CreateCompanyService from "../services/CompanyService/CreateCompanyService";
@@ -16,8 +17,10 @@ export const current = async (
   res: Response
 ): Promise<Response> => {
   const { company, usage } = await ShowCompanyService(req.user.companyId);
+  // Whether new connections can use Coexy, and why not.
+  const coexy = await getCoexyAccess(req.user.companyId);
 
-  return res.status(200).json({ ...company.toJSON(), usage });
+  return res.status(200).json({ ...company.toJSON(), usage, coexy });
 };
 
 // Company admins can only change their company's time zone.

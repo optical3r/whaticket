@@ -18,6 +18,8 @@ interface PlanData {
   transcriptionEnabled?: boolean;
   transcriptionMonthlyMinutes?: number;
   qrcodeEnabled?: boolean;
+  coexyEnabled?: boolean;
+  coexyMaxChannels?: number;
 }
 
 const schema = Yup.object().shape({
@@ -49,6 +51,11 @@ const schema = Yup.object().shape({
     .max(10000000, "ERR_PLAN_INVALID_LIMIT"),
   transcriptionEnabled: Yup.boolean(),
   qrcodeEnabled: Yup.boolean(),
+  coexyEnabled: Yup.boolean(),
+  coexyMaxChannels: Yup.number()
+    .integer("ERR_PLAN_INVALID_LIMIT")
+    .min(0, "ERR_PLAN_INVALID_LIMIT")
+    .max(1000, "ERR_PLAN_INVALID_LIMIT"),
   transcriptionMonthlyMinutes: Yup.number()
     .integer("ERR_PLAN_INVALID_LIMIT")
     .min(0, "ERR_PLAN_INVALID_LIMIT")
@@ -71,7 +78,9 @@ const SavePlanService = async (
     aiMonthlyRequests,
     transcriptionEnabled,
     transcriptionMonthlyMinutes,
-    qrcodeEnabled
+    qrcodeEnabled,
+    coexyEnabled,
+    coexyMaxChannels
   } = planData;
 
   try {
@@ -86,7 +95,9 @@ const SavePlanService = async (
       aiMonthlyRequests,
       transcriptionEnabled,
       transcriptionMonthlyMinutes,
-      qrcodeEnabled
+      qrcodeEnabled,
+      coexyEnabled,
+      coexyMaxChannels
     });
   } catch (err) {
     throw new AppError(err.message);
@@ -115,6 +126,10 @@ const SavePlanService = async (
       ? { aiMonthlyRequests: Number(aiMonthlyRequests) }
       : {}),
     ...(typeof qrcodeEnabled === "boolean" ? { qrcodeEnabled } : {}),
+    ...(typeof coexyEnabled === "boolean" ? { coexyEnabled } : {}),
+    ...(coexyMaxChannels !== undefined && coexyMaxChannels !== null
+      ? { coexyMaxChannels: Number(coexyMaxChannels) }
+      : {}),
     ...(typeof transcriptionEnabled === "boolean"
       ? { transcriptionEnabled }
       : {}),

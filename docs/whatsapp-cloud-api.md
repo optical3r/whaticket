@@ -2,6 +2,8 @@
 
 Cada conexão pode usar QR Code (`Whatsapps.channel = "qrcode"`) ou a API oficial da Meta (`cloudapi`). Este guia mostra como preparar a conta na Meta e ligar uma conexão oficial.
 
+> Prefere não criar app na Meta? A **conexão guiada** liga o número por um link, pelo Coexy. Veja [coexy.md](coexy.md).
+
 ## Antes de começar
 
 - O backend precisa estar em um endereço público com HTTPS. A Meta não entrega mensagens para `localhost` nem para HTTP.

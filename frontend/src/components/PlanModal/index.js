@@ -31,6 +31,8 @@ const emptyPlan = {
 	transcriptionEnabled: false,
 	qrcodeEnabled: true,
 	transcriptionMonthlyMinutes: 600,
+	coexyEnabled: false,
+	coexyMaxChannels: 1,
 };
 
 const PlanModal = ({ open, onClose, plan, onSaved }) => {
@@ -63,6 +65,8 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			transcriptionEnabled: values.transcriptionEnabled,
 			qrcodeEnabled: values.qrcodeEnabled,
 			transcriptionMonthlyMinutes: Number(values.transcriptionMonthlyMinutes),
+			coexyEnabled: values.coexyEnabled,
+			coexyMaxChannels: Number(values.coexyMaxChannels),
 		};
 		try {
 			const { data } = plan
@@ -86,9 +90,9 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 			label={i18n.t(`planModal.form.${name}`)}
 			value={values[name]}
 			onChange={handleChange}
-			inputProps={{ min: ["queues", "aiMonthlyRequests", "transcriptionMonthlyMinutes"].includes(name) ? 0 : 1, step: 1 }}
+			inputProps={{ min: ["queues", "aiMonthlyRequests", "transcriptionMonthlyMinutes", "coexyMaxChannels"].includes(name) ? 0 : 1, step: 1 }}
 			helperText={
-				["aiMonthlyRequests", "transcriptionMonthlyMinutes"].includes(name)
+				["aiMonthlyRequests", "transcriptionMonthlyMinutes", "coexyMaxChannels"].includes(name)
 					? i18n.t(`planModal.form.${name}Help`)
 					: undefined
 			}
@@ -133,6 +137,17 @@ const PlanModal = ({ open, onClose, plan, onSaved }) => {
 					{!values.qrcodeEnabled && (
 						<FormHelperText>{i18n.t("planModal.form.qrcodeOffHelp")}</FormHelperText>
 					)}
+					<FormControlLabel
+						control={
+							<Switch
+								color="primary"
+								checked={values.coexyEnabled}
+								onChange={e => setValues(prev => ({ ...prev, coexyEnabled: e.target.checked }))}
+							/>
+						}
+						label={i18n.t("planModal.form.coexyEnabled")}
+					/>
+					{values.coexyEnabled && numberField("coexyMaxChannels")}
 					<FormControlLabel
 						control={
 							<Switch

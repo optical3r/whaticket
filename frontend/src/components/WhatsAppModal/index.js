@@ -25,8 +25,10 @@ import {
 	InputAdornment,
 	Typography,
 	MenuItem,
+	Link,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
@@ -57,6 +59,13 @@ const useStyles = makeStyles()(theme => ({
 	},
 	cloudNote: {
 		marginTop: theme.spacing(1),
+	},
+	coexyActions: {
+		display: "flex",
+		flexWrap: "wrap",
+		gap: theme.spacing(1),
+		marginTop: theme.spacing(1),
+		marginBottom: theme.spacing(1),
 	},
 	mono: {
 		"& input": {
@@ -99,6 +108,9 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 	const [flows, setFlows] = useState([]);
 	// Plans can leave QR code out and offer only the official API.
 	const [qrcodeAllowed, setQrcodeAllowed] = useState(true);
+	// Guided connection through Coexy: whether the plan allows one more.
+	const [coexy, setCoexy] = useState({ allowed: false });
+	const [checking, setChecking] = useState(false);
 
 	useEffect(() => {
 		if (!open) return;
@@ -111,8 +123,12 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 			.then(({ data }) => {
 				const allowed = data.plan?.qrcodeEnabled !== false;
 				setQrcodeAllowed(allowed);
+				setCoexy(data.coexy || { allowed: false });
 				if (!allowed && !whatsAppId) {
-					setWhatsApp(previous => ({ ...previous, channel: "cloudapi" }));
+					setWhatsApp(previous => ({
+						...previous,
+						channel: data.coexy?.allowed ? "coexy" : "cloudapi",
+					}));
 				}
 			})
 			.catch(() => setQrcodeAllowed(true));
@@ -128,7 +144,9 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 				setWhatsApp({
 					...initialState,
 					...data,
-					channel: data.channel || "qrcode",
+					// "coexy" is a form value only: the connection is an official
+					// API one whose number is connected through Coexy.
+					channel: data.cloud?.provider === "coexy" ? "coexy" : data.channel || "qrcode",
 					flowId: data.flowId || "",
 					cloud: {
 						...initialState.cloud,
@@ -150,7 +168,11 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 	const handleSaveWhatsApp = async values => {
 		const { cloud, ...rest } = values;
 		const whatsappData = { ...rest, flowId: rest.flowId || null, queueIds: selectedQueueIds };
-		if (values.channel === "cloudapi") {
+		delete whatsappData.cloudProvider;
+		if (values.channel === "coexy") {
+			whatsappData.channel = "cloudapi";
+			if (!whatsAppId) whatsappData.cloud = { provider: "coexy" };
+		} else if (values.channel === "cloudapi") {
 			whatsappData.cloud = Object.fromEntries(
 				Object.entries(cloud).filter(([, value]) => String(value).trim())
 			);
@@ -162,7 +184,11 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 			} else {
 				await api.post("/whatsapp", whatsappData);
 			}
-			toast.success(i18n.t("whatsappModal.success"));
+			toast.success(
+				values.channel === "coexy" && !whatsAppId
+					? i18n.t("whatsappModal.coexy.created")
+					: i18n.t("whatsappModal.success")
+			);
 			handleClose();
 		} catch (err) {
 			toastError(err);
@@ -182,6 +208,25 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 		} catch {
 			// The field stays selectable for a manual copy.
 		}
+	};
+
+	// After opening the link: reads the channel now (and keeps checking it).
+	const checkCoexy = async () => {
+		setChecking(true);
+		try {
+			const { data } = await api.post(`/whatsapp/${whatsAppId}/coexy/sync`);
+			setCloudInfo(data.cloud);
+			toast.info(i18n.t(`whatsappModal.coexy.status.${data.cloud?.coexyStatus || "pending"}`));
+		} catch (err) {
+			toastError(err);
+		}
+		setChecking(false);
+	};
+
+	const openConnectLink = () => {
+		window.open(cloudInfo.connectUrl, "_blank", "noopener,noreferrer");
+		// Checks often for a while, so the connection shows up soon after.
+		api.post(`/whatsapp/${whatsAppId}/coexy/sync`).catch(() => undefined);
 	};
 
 	const webhookUrl = whatsAppId ? `${getBackendUrl()}webhooks/whatsapp-cloud/${whatsAppId}` : "";
@@ -252,8 +297,21 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 											{qrcodeAllowed && (
 												<FormControlLabel value="qrcode" control={<Radio color="primary" />} label={i18n.t("whatsappModal.channel.qrcode")} />
 											)}
+											<FormControlLabel
+												value="coexy"
+												disabled={!coexy.allowed}
+												control={<Radio color="primary" />}
+												label={i18n.t("whatsappModal.channel.coexy")}
+											/>
 											<FormControlLabel value="cloudapi" control={<Radio color="primary" />} label={i18n.t("whatsappModal.channel.cloudapi")} />
 										</RadioGroup>
+										{!coexy.allowed && coexy.reason && (
+											<Typography variant="body2" color="textSecondary">
+												{i18n.t(`whatsappModal.coexy.unavailable.${coexy.reason}`, {
+													max: coexy.max,
+												})}
+											</Typography>
+										)}
 										{!qrcodeAllowed && (
 											<Typography variant="body2" color="textSecondary">
 												{i18n.t("whatsappModal.channel.qrcodeNotInPlan")}
@@ -323,6 +381,81 @@ const WhatsAppModal = ({ open, onClose, whatsAppId }) => {
 										margin="dense"
 									/>
 								</div>
+								{values.channel === "coexy" && !whatsAppId && (
+									<div className={classes.cloudBox}>
+										<Alert severity="info">{i18n.t("whatsappModal.coexy.help")}</Alert>
+									</div>
+								)}
+								{values.channel === "coexy" && whatsAppId && cloudInfo && (
+									<div className={classes.cloudBox}>
+										<Alert
+											severity={
+												cloudInfo.coexyStatus === "active"
+													? "success"
+													: cloudInfo.coexyStatus === "pending"
+													? "info"
+													: "warning"
+											}
+										>
+											{i18n.t(`whatsappModal.coexy.status.${cloudInfo.coexyStatus || "pending"}`)}
+											{cloudInfo.displayPhoneNumber ? ` ${cloudInfo.displayPhoneNumber}` : ""}
+										</Alert>
+										{cloudInfo.coexyStatus !== "active" && (
+											<Typography variant="body2" color="textSecondary" className={classes.cloudNote}>
+												{i18n.t("whatsappModal.coexy.connectHelp")}
+											</Typography>
+										)}
+										<div className={classes.coexyActions}>
+											{cloudInfo.coexyStatus !== "active" && cloudInfo.connectUrl && (
+												<Button
+													variant="contained"
+													color="primary"
+													endIcon={<OpenInNewIcon />}
+													onClick={openConnectLink}
+												>
+													{cloudInfo.coexyStatus === "pending"
+														? i18n.t("whatsappModal.coexy.connect")
+														: i18n.t("whatsappModal.coexy.reconnect")}
+												</Button>
+											)}
+											<Button variant="outlined" onClick={checkCoexy} disabled={checking}>
+												{i18n.t("whatsappModal.coexy.check")}
+											</Button>
+										</div>
+										{cloudInfo.coexyStatus !== "active" &&
+											cloudInfo.connectUrl &&
+											copyField("coexy-connect-url", i18n.t("whatsappModal.coexy.link"), cloudInfo.connectUrl)}
+										{cloudInfo.verification && (
+											<>
+												<Typography variant="subtitle2" component="h3" className={classes.cloudNote}>
+													{i18n.t("whatsappModal.coexy.verificationTitle")}
+												</Typography>
+												<Typography variant="body2" color="textSecondary">
+													{i18n.t(`whatsappModal.coexy.verification.${cloudInfo.verification.status}`)}
+												</Typography>
+												{cloudInfo.verification.rejectionReasons?.length > 0 && (
+													<Typography variant="body2" color="textSecondary">
+														{cloudInfo.verification.rejectionReasons.join(" ")}
+													</Typography>
+												)}
+												{cloudInfo.verification.status !== "verified" &&
+													cloudInfo.verification.status !== "pending" &&
+													cloudInfo.verification.url && (
+														<Typography variant="body2" className={classes.cloudNote}>
+															<Link href={cloudInfo.verification.url} target="_blank" rel="noopener noreferrer">
+																{i18n.t("whatsappModal.coexy.verify", {
+																	left: Math.max(
+																		cloudInfo.verification.maxAttempts - cloudInfo.verification.attempts,
+																		0
+																	),
+																})}
+															</Link>
+														</Typography>
+													)}
+											</>
+										)}
+									</div>
+								)}
 								{values.channel === "cloudapi" && (
 									<div className={classes.cloudBox}>
 										<Alert severity="info">{i18n.t("whatsappModal.cloud.help")}</Alert>

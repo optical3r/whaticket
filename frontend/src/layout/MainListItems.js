@@ -25,6 +25,7 @@ import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -360,6 +361,12 @@ const MainListItems = (props) => {
             to="/transcription"
             primary={i18n.t("mainDrawer.listItems.transcription")}
             icon={<GraphicEqOutlinedIcon />}
+            collapsed={collapsed}
+          />
+          <ListItemLink
+            to="/coexy"
+            primary={i18n.t("mainDrawer.listItems.coexy")}
+            icon={<HubOutlinedIcon />}
             collapsed={collapsed}
           />
         </>

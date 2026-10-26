@@ -81,6 +81,18 @@ class Plan extends Model<Plan> {
   @Column
   transcriptionMonthlyMinutes: number;
 
+  // Official API connections through Coexy, which charges the platform per
+  // channel. coexyMaxChannels: 0 = no limit.
+  @AllowNull(false)
+  @Default(false)
+  @Column
+  coexyEnabled: boolean;
+
+  @AllowNull(false)
+  @Default(1)
+  @Column
+  coexyMaxChannels: number;
+
   @CreatedAt
   createdAt: Date;
 

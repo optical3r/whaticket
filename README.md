@@ -31,7 +31,7 @@ Central de atendimento via WhatsApp da Cerqueira Labs. Vários atendentes respon
 - **Transcrição de áudio**: os áudios que o cliente envia viram texto na conversa, para o atendente e para a IA. É um módulo liberado por plano, com custo da Cerqueira Labs.
 - **Kanban**: os tickets abertos e aguardando em colunas de etapas definidas pela empresa, movidos arrastando.
 - **Campanhas**: envio em massa para contatos filtrados por etiqueta, com intervalo aleatório, janela de horário, pausa e relatório, por QR Code ou pela API oficial (com modelos aprovados). O contato que responde SAIR deixa de receber.
-- **API oficial do WhatsApp** (Cloud API da Meta) como alternativa ao QR Code, com templates e a janela de 24 horas.
+- **API oficial do WhatsApp** (Cloud API da Meta) como alternativa ao QR Code, com templates e a janela de 24 horas. A empresa conecta o número por um link (conexão guiada, via Coexy) ou com um app próprio na Meta.
 - **Fluxos de atendimento**: menus, perguntas e transferência para a fila certa, montados num quadro visual (ou em lista) com simulador e escolhidos por conexão.
 - **Aplicativo instalável** (PWA) no celular e no computador, com aviso de nova mensagem.
 - **Dashboard**: volume de tickets do dia.
@@ -49,6 +49,7 @@ As cinco fases do plano de implementação aprovado estão entregues.
 - Ao atualizar uma instalação anterior, todos os dados existentes vão para a empresa 1 ("Cerqueira Labs", plano "Interno"), e o administrador mais antigo vira superadmin.
 - Cada conexão tem um canal: `qrcode` (WhatsApp no celular) ou `cloudapi` (API oficial da Meta). Veja [API oficial do WhatsApp](#api-oficial-do-whatsapp).
 - O plano define também se a empresa pode usar **campanhas** (**Campanhas liberadas**). Na atualização, só o plano 1 ("Interno") vem liberado.
+- **Conexão guiada da API oficial liberada** (Coexy) e **Conexões guiadas por empresa** (0 = sem limite): cada conexão guiada tem custo mensal para a Cerqueira Labs. Veja [docs/coexy.md](docs/coexy.md).
 - **Conexão por QR Code liberada** (ligada por padrão): desligada, o plano fica só com a API oficial da Meta. As empresas do plano não criam conexões por QR Code, as que existem são desligadas (o login fica guardado e volta se a opção for religada) e o aviso de termos do QR Code não aparece. Sem QR Code, o servidor não abre nenhum navegador, e uma VPS pequena dá conta.
 
 ## Arquitetura
@@ -255,7 +256,18 @@ Em **Administração → Campanhas** (administrador e supervisor, quando o plano
 
 ## API oficial do WhatsApp
 
-Além do QR Code, uma conexão pode usar a API oficial da Meta (WhatsApp Cloud API). O passo a passo para criar o app na Meta está em [docs/whatsapp-cloud-api.md](docs/whatsapp-cloud-api.md). Resumo:
+Além do QR Code, uma conexão pode usar a API oficial da Meta (WhatsApp Cloud API), de dois jeitos:
+
+- **Conexão guiada (Coexy)**: a empresa abre um link e autoriza a conexão com o Facebook. Não precisa criar app na Meta, e o número pode continuar no app WhatsApp Business do celular. É um módulo do plano, porque o Coexy cobra da Cerqueira Labs por conexão. Veja [docs/coexy.md](docs/coexy.md).
+- **App próprio na Meta**: a empresa cria o app no developers.facebook.com e informa os dados na conexão. O passo a passo está em [docs/whatsapp-cloud-api.md](docs/whatsapp-cloud-api.md).
+
+Resumo da conexão guiada:
+
+1. O superadmin cadastra a chave do Coexy e cria o recebimento em **Plataforma → API oficial (Coexy)**, e libera o módulo no plano, com o limite de conexões por empresa.
+2. A empresa escolhe **API oficial com conexão guiada** em **Conexões → Adicionar WhatsApp**, clica em **Conectar número** e abre o link.
+3. Em até um minuto a conexão aparece como conectada. Se a Meta tirar o acesso, a conexão mostra **Reconectar**, com o mesmo link.
+
+Resumo do app próprio:
 
 1. Em **Conexões → Adicionar WhatsApp**, escolha **API oficial da Meta** e informe o ID do número de telefone, o ID da conta do WhatsApp Business, o token de acesso e a chave secreta do app. O sistema confere os dados com a Meta antes de salvar.
 2. Abra a conexão de novo para copiar a **URL de callback** e o **token de verificação**, e cadastre os dois no app da Meta, assinando o campo `messages`.
@@ -268,6 +280,7 @@ Como funciona:
 - Texto, imagem, áudio, vídeo e documento chegam e saem normalmente; figurinhas e localização chegam. As confirmações de entregue e lido também.
 - A Meta cobra por conversa, direto na conta do cliente na Meta.
 - `WHATSAPP_CLOUD_API_URL` troca o endereço da Graph API (padrão `https://graph.facebook.com/v21.0`), útil para testes.
+- Na conexão guiada, as mensagens passam pelo Coexy com o token do canal, e os eventos de todas as conexões chegam em `/webhooks/coexy`, assinados com `X-Coexy-Signature`.
 
 ## Fluxos de atendimento
 

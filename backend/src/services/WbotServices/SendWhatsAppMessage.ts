@@ -40,6 +40,11 @@ const SendWhatsAppMessage = async ({
     await ticket.update({ lastMessage: body });
     return sentMessage;
   } catch (err) {
+    // Official API errors say what to do (window closed, number to
+    // reconnect...); anything else is a generic failure.
+    if (err instanceof AppError && /^ERR_(CLOUD|COEXY)_/.test(err.message)) {
+      throw err;
+    }
     throw new AppError("ERR_SENDING_WAPP_MSG");
   }
 };

@@ -6,6 +6,7 @@ import {
   Model,
   PrimaryKey,
   AllowNull,
+  Default,
   DataType,
   ForeignKey,
   BelongsTo
@@ -13,7 +14,9 @@ import {
 import Whatsapp from "./Whatsapp";
 
 // Access token and app secret are stored encrypted; read them through
-// helpers/CloudApiCredentials.
+// helpers/CloudApiCredentials. On Coexy connections the access token is the
+// channel token, the ids arrive once the number is connected and there is
+// no app secret.
 @Table
 class CloudApiCredential extends Model<CloudApiCredential> {
   @PrimaryKey
@@ -25,20 +28,22 @@ class CloudApiCredential extends Model<CloudApiCredential> {
   whatsapp: Whatsapp;
 
   @AllowNull(false)
-  @Column
-  phoneNumberId: string;
+  @Default("meta")
+  @Column(DataType.STRING)
+  provider: "meta" | "coexy";
 
-  @AllowNull(false)
-  @Column
-  wabaId: string;
+  @Column(DataType.STRING)
+  phoneNumberId: string | null;
+
+  @Column(DataType.STRING)
+  wabaId: string | null;
 
   @AllowNull(false)
   @Column(DataType.TEXT)
   accessToken: string;
 
-  @AllowNull(false)
   @Column(DataType.TEXT)
-  appSecret: string;
+  appSecret: string | null;
 
   @AllowNull(false)
   @Column
@@ -46,6 +51,18 @@ class CloudApiCredential extends Model<CloudApiCredential> {
 
   @Column(DataType.STRING)
   displayPhoneNumber: string | null;
+
+  @Column(DataType.STRING)
+  coexyChannelId: string | null;
+
+  @Column(DataType.STRING)
+  coexyStatus: string | null;
+
+  @Column(DataType.TEXT)
+  connectUrl: string | null;
+
+  @Column(DataType.TEXT)
+  verification: string | null;
 
   @CreatedAt
   createdAt: Date;

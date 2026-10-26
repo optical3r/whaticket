@@ -1,5 +1,6 @@
 import Whatsapp from "../../models/Whatsapp";
 import AppError from "../../errors/AppError";
+import { DeleteCoexyConnection } from "../CoexyServices/CoexyChannelService";
 
 const DeleteWhatsAppService = async (
   id: string,
@@ -13,6 +14,9 @@ const DeleteWhatsAppService = async (
     throw new AppError("ERR_NO_WAPP_FOUND", 404);
   }
 
+  // The Coexy channel goes first: if Coexy cannot delete it now, the
+  // connection stays and the admin can try again.
+  await DeleteCoexyConnection(whatsapp.id);
   await whatsapp.destroy();
 };
 

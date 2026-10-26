@@ -12,6 +12,8 @@ import {
 } from "../../helpers/CloudApiCredentials";
 import { assertFlowInCompany } from "../FlowServices/FlowServices";
 import { isQrcodeAllowed } from "../../helpers/PlanFeatures";
+import { assertCoexyAllowed } from "../../libs/coexy";
+import { CreateCoexyConnection } from "../CoexyServices/CoexyChannelService";
 import {
   availableChannels,
   WhatsappChannel
@@ -85,6 +87,11 @@ const CreateWhatsAppService = async ({
     throw new AppError("ERR_TERMS_NOT_ACCEPTED", 403);
   }
 
+  // Coexy: the platform pays for each channel, so the plan must allow one
+  // more before anything is created.
+  const viaCoexy = channel === "cloudapi" && cloud?.provider === "coexy";
+  if (viaCoexy) await assertCoexyAllowed(companyId);
+
   await CheckCompanyLimit(companyId, "connections");
   await assertQueuesInCompany(queueIds, companyId);
   const checkedFlowId = await assertFlowInCompany(flowId, companyId);
@@ -124,7 +131,8 @@ const CreateWhatsAppService = async ({
 
   if (channel === "cloudapi") {
     try {
-      await saveCloudCredentials(whatsapp.id, cloud || {});
+      if (viaCoexy) await CreateCoexyConnection(whatsapp);
+      else await saveCloudCredentials(whatsapp.id, cloud || {});
     } catch (err) {
       // A connection without valid credentials would never work.
       await whatsapp.destroy();

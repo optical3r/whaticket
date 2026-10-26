@@ -18,6 +18,13 @@ whatsappRoutes.get(
   WhatsAppController.templates
 );
 
+whatsappRoutes.post(
+  "/whatsapp/:whatsappId/coexy/sync",
+  isAuth,
+  isAdmin,
+  WhatsAppController.syncCoexy
+);
+
 whatsappRoutes.put(
   "/whatsapp/:whatsappId",
   isAuth,

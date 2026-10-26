@@ -3,10 +3,13 @@ import * as Yup from "yup";
 
 import AppError from "../errors/AppError";
 import CloudApiCredential from "../models/CloudApiCredential";
+import type { CoexyChannel } from "../libs/coexy";
 import { decryptSecret, encryptSecret } from "./SecretBox";
 
 export interface CloudApiSecrets {
   whatsappId: number;
+  // meta: the company's own app; coexy: through Coexy (libs/coexy).
+  provider: "meta" | "coexy";
   phoneNumberId: string;
   wabaId: string;
   accessToken: string;
@@ -15,6 +18,9 @@ export interface CloudApiSecrets {
 }
 
 export interface CloudApiInput {
+  // coexy: the number is connected through Coexy (libs/coexy) and the
+  // fields below are not used.
+  provider?: "meta" | "coexy";
   phoneNumberId?: string;
   wabaId?: string;
   accessToken?: string;
@@ -51,6 +57,8 @@ export const saveCloudCredentials = async (
   }
 
   const existing = await CloudApiCredential.findByPk(whatsappId);
+  // Coexy fills these in itself (libs/coexy).
+  if (existing?.provider === "coexy") return existing;
   const phoneNumberId = input.phoneNumberId?.trim() || existing?.phoneNumberId;
   const wabaId = input.wabaId?.trim() || existing?.wabaId;
   const accessToken = input.accessToken?.trim();
@@ -91,16 +99,83 @@ export const saveCloudCredentials = async (
 
 const unseal = (row: CloudApiCredential): CloudApiSecrets | null => {
   const accessToken = decryptSecret(row.accessToken);
-  const appSecret = decryptSecret(row.appSecret);
-  if (!accessToken || !appSecret) return null;
+  const appSecret = row.appSecret ? decryptSecret(row.appSecret) : null;
+  if (!accessToken) return null;
+  if (row.provider !== "coexy" && !appSecret) return null;
   return {
     whatsappId: row.whatsappId,
-    phoneNumberId: row.phoneNumberId,
-    wabaId: row.wabaId,
+    provider: row.provider === "coexy" ? "coexy" : "meta",
+    phoneNumberId: row.phoneNumberId || "",
+    wabaId: row.wabaId || "",
     accessToken,
-    appSecret,
+    appSecret: appSecret || "",
     verifyToken: row.verifyToken
   };
+};
+
+// Records what Coexy says about a connection's channel. The number's ids
+// arrive when the company finishes connecting it.
+export const saveCoexyChannel = async (
+  whatsappId: number,
+  channel: CoexyChannel
+): Promise<CloudApiCredential> => {
+  if (channel.phone_number_id) {
+    const samePhone = await CloudApiCredential.findOne({
+      where: { phoneNumberId: channel.phone_number_id }
+    });
+    if (samePhone && samePhone.whatsappId !== whatsappId) {
+      throw new AppError("ERR_CLOUD_NUMBER_IN_USE");
+    }
+  }
+
+  const values = {
+    provider: "coexy" as const,
+    coexyChannelId: channel.id,
+    coexyStatus: channel.status,
+    connectUrl: channel.connect_url || null,
+    verification: channel.verification
+      ? JSON.stringify(channel.verification)
+      : null,
+    phoneNumberId: channel.phone_number_id || null,
+    wabaId: channel.waba_id || null,
+    displayPhoneNumber: channel.display_phone_number || null,
+    ...(channel.channel_token
+      ? { accessToken: encryptSecret(channel.channel_token) }
+      : {})
+  };
+
+  const existing = await CloudApiCredential.findByPk(whatsappId);
+  if (existing) {
+    await existing.update(values);
+    return existing;
+  }
+  if (!channel.channel_token) throw new AppError("ERR_COEXY_UNAVAILABLE", 502);
+  return CloudApiCredential.create({
+    whatsappId,
+    ...values,
+    accessToken: encryptSecret(channel.channel_token),
+    appSecret: null,
+    verifyToken: randomBytes(24).toString("hex")
+  });
+};
+
+const parseVerification = (value: string | null) => {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return {
+      status: parsed.status || "not_verified",
+      attempts: Number(parsed.attempts) || 0,
+      maxAttempts: Number(parsed.max_attempts) || 3,
+      rejectionReasons: Array.isArray(parsed.rejection_reasons)
+        ? parsed.rejection_reasons.map(String)
+        : [],
+      verifiedAt: parsed.verified_at || null,
+      url: parsed.url || null
+    };
+  } catch {
+    return null;
+  }
 };
 
 export const loadCloudCredentials = async (
@@ -111,12 +186,26 @@ export const loadCloudCredentials = async (
 };
 
 // What the connection screen may show: never the token or the secret.
+// On Coexy connections the connect link is shown to the company admin,
+// who opens it (or sends it to the number's owner) to connect the number.
 export const publicCloudInfo = async (
   whatsappId: number
-): Promise<Record<string, string | null> | null> => {
+): Promise<Record<string, unknown> | null> => {
   const row = await CloudApiCredential.findByPk(whatsappId);
   if (!row) return null;
+  if (row.provider === "coexy") {
+    return {
+      provider: "coexy",
+      phoneNumberId: row.phoneNumberId,
+      wabaId: row.wabaId,
+      displayPhoneNumber: row.displayPhoneNumber,
+      coexyStatus: row.coexyStatus,
+      connectUrl: row.connectUrl,
+      verification: parseVerification(row.verification)
+    };
+  }
   return {
+    provider: "meta",
     phoneNumberId: row.phoneNumberId,
     wabaId: row.wabaId,
     verifyToken: row.verifyToken,

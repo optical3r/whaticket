@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto, { randomUUID } from "crypto";
 import fs from "fs";
 
 import AppError from "../../../errors/AppError";
@@ -10,6 +10,8 @@ import {
 import CloudApiCredential from "../../../models/CloudApiCredential";
 import Contact from "../../../models/Contact";
 import Whatsapp from "../../../models/Whatsapp";
+import { coexyProxyUrl } from "../../../libs/coexy";
+import Message from "../../../models/Message";
 import { logger } from "../../../utils/logger";
 import type { WhatsappProvider } from "../whatsappProvider";
 import {
@@ -26,10 +28,15 @@ import {
 // token. Incoming messages arrive on the webhook (routes/cloudWebhookRoutes)
 // and sent messages are recorded here, because Meta does not echo them.
 
-const graphUrl = (): string =>
+const metaGraphUrl = (): string =>
   (process.env.WHATSAPP_CLOUD_API_URL || "https://graph.facebook.com/v21.0")
     // eslint-disable-next-line no-useless-escape
     .replace(/\/+$/, "");
+
+// Coexy connections call the same Graph API paths through Coexy's proxy,
+// with the channel token in place of the Meta token (docs/coexy-spec.md).
+const graphUrl = (secrets: CloudApiSecrets): string =>
+  secrets.provider === "coexy" ? coexyProxyUrl() : metaGraphUrl();
 
 const sessions = new Map<number, CloudApiSecrets>();
 // Last message received per chat, needed to mark the chat as read.
@@ -40,6 +47,15 @@ const handlers = () =>
   // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
   require("../../../handlers/handleWhatsappEvents") as typeof import("../../../handlers/handleWhatsappEvents");
 
+const coexyChannels = () =>
+  // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+  require("../../../services/CoexyServices/CoexyChannelService") as typeof import("../../../services/CoexyServices/CoexyChannelService");
+
+// Forgets the cached credentials, so the next call reads the saved ones.
+export const forgetCloudSession = (sessionId: number): void => {
+  sessions.delete(sessionId);
+};
+
 const ERRORS_BY_CODE: Record<number, string> = {
   // More than 24 hours since the customer's last message.
   131047: "ERR_CLOUD_WINDOW_CLOSED",
@@ -48,35 +64,84 @@ const ERRORS_BY_CODE: Record<number, string> = {
 };
 
 interface GraphError {
-  error?: { code?: number; message?: string; error_subcode?: number };
+  error?: { code?: number; message?: string; error_subcode?: number } | string;
 }
+
+const sleep = (ms: number) =>
+  new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+
+// Waits asked by a 429 (Retry-After, in seconds), capped so a request
+// never holds a job for long.
+const retryDelay = (response: globalThis.Response): number =>
+  Math.min(Math.max(Number(response.headers.get("retry-after")) || 5, 1), 30) *
+  1000;
 
 const graph = async <T>(
   secrets: CloudApiSecrets,
   path: string,
-  init: { method?: string; body?: unknown; form?: FormData } = {}
+  init: {
+    method?: string;
+    body?: Record<string, unknown>;
+    form?: FormData;
+    idempotencyKey?: string;
+  } = {}
 ): Promise<T> => {
-  const response = await fetch(`${graphUrl()}/${path}`, {
-    method: init.method || (init.body || init.form ? "POST" : "GET"),
-    headers: {
-      Authorization: `Bearer ${secrets.accessToken}`,
-      ...(init.body ? { "Content-Type": "application/json" } : {})
-    },
-    body: init.form || (init.body ? JSON.stringify(init.body) : undefined)
-  });
-  const data = (await response.json().catch(() => ({}))) as T & GraphError;
-  if (!response.ok) {
-    const code = data.error?.code || 0;
+  // Coexy drops this field and never sends the same key twice, so a retry
+  // below cannot duplicate a message.
+  const body =
+    init.body && secrets.provider === "coexy" && path.endsWith("/messages")
+      ? { ...init.body, idempotency_key: init.idempotencyKey || randomUUID() }
+      : init.body;
+
+  let response: globalThis.Response | null = null;
+  // eslint-disable-next-line no-restricted-syntax
+  for (const attempt of [1, 2, 3]) {
+    // eslint-disable-next-line no-await-in-loop
+    response = await fetch(`${graphUrl(secrets)}/${path}`, {
+      method: init.method || (body || init.form ? "POST" : "GET"),
+      headers: {
+        Authorization: `Bearer ${secrets.accessToken}`,
+        ...(body ? { "Content-Type": "application/json" } : {})
+      },
+      body: init.form || (body ? JSON.stringify(body) : undefined)
+    });
+    if (response.status !== 429 || attempt === 3) break;
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(retryDelay(response));
+  }
+  const res = response as globalThis.Response;
+  const data = (await res.json().catch(() => ({}))) as T & GraphError;
+  if (!res.ok) {
+    const error = typeof data.error === "object" ? data.error : undefined;
+    const code = error?.code || 0;
     logger.warn({
       info: "Cloud API request failed",
+      provider: secrets.provider,
       path,
-      status: response.status,
+      status: res.status,
       code,
-      message: data.error?.message
+      message: error?.message || data.error
     });
+    // Coexy: the channel lost access to the number (403 not active, 503
+    // disconnected). The company reconnects from the same link.
+    if (
+      secrets.provider === "coexy" &&
+      (res.status === 403 || res.status === 503)
+    ) {
+      sessions.delete(secrets.whatsappId);
+      coexyChannels()
+        .MarkCoexyDisconnected(secrets.whatsappId)
+        .catch(() => undefined);
+      throw new AppError("ERR_COEXY_CHANNEL_DISCONNECTED", 409);
+    }
+    if (res.status === 429) {
+      throw new AppError("ERR_CLOUD_RATE_LIMITED", 429);
+    }
     throw new AppError(
       ERRORS_BY_CODE[code] || "ERR_CLOUD_REQUEST_FAILED",
-      response.status >= 500 ? 502 : 400
+      res.status >= 500 ? 502 : 400
     );
   }
   return data;
@@ -87,6 +152,8 @@ const secretsFor = async (sessionId: number): Promise<CloudApiSecrets> => {
   if (cached) return cached;
   const secrets = await loadCloudCredentials(sessionId);
   if (!secrets) throw new AppError("ERR_CLOUD_NOT_CONFIGURED");
+  // A Coexy channel has no number until the company connects it.
+  if (!secrets.phoneNumberId) throw new AppError("ERR_COEXY_NOT_CONNECTED");
   sessions.set(sessionId, secrets);
   return secrets;
 };
@@ -179,6 +246,24 @@ const providerMessage = (
 
 const init = async (whatsapp: Whatsapp): Promise<void> => {
   sessions.delete(whatsapp.id);
+  const row = await CloudApiCredential.findByPk(whatsapp.id, {
+    attributes: ["provider"]
+  });
+  if (row?.provider === "coexy") {
+    // Coexy knows whether the number is connected; there is nothing to
+    // check on Meta before that.
+    try {
+      await coexyChannels().SyncCoexyChannel(whatsapp.id);
+    } catch (err) {
+      logger.warn({
+        info: "Coexy channel check failed",
+        whatsappId: whatsapp.id,
+        err: (err as { message?: string })?.message
+      });
+      await setStatus(whatsapp.id, "DISCONNECTED");
+    }
+    return;
+  }
   try {
     const secrets = await secretsFor(whatsapp.id);
     const info = await graph<{ display_phone_number?: string }>(
@@ -323,7 +408,8 @@ export const sendTemplate = async (
   sessionId: number,
   to: string,
   template: { name: string; language: string; bodyParams: string[] },
-  bodyText: string
+  bodyText: string,
+  idempotencyKey?: string
 ): Promise<ProviderMessage> => {
   const secrets = await secretsFor(sessionId);
   const number = numberOf(to);
@@ -353,7 +439,8 @@ export const sendTemplate = async (
               }
             : {})
         }
-      }
+      },
+      idempotencyKey
     }
   );
   const { id } = result.messages[0];
@@ -493,10 +580,17 @@ interface CloudMessage {
   };
 }
 
+// A message the business sent from the WhatsApp Business app on the phone,
+// when the number is on the app and on the API at once (coexistence).
+interface CloudEcho extends CloudMessage {
+  to: string;
+}
+
 interface CloudChangeValue {
   metadata?: { phone_number_id?: string };
   contacts?: { wa_id: string; profile?: { name?: string } }[];
   messages?: CloudMessage[];
+  message_echoes?: CloudEcho[];
   statuses?: { id: string; status: string }[];
 }
 
@@ -514,27 +608,54 @@ const ACK_BY_STATUS: Record<string, MessageAck> = {
 const extension = (mimetype: string): string =>
   (mimetype.split("/")[1] || "bin").split(";")[0].replace(/[^a-z0-9]/gi, "");
 
+// Two steps, as on Meta: the media id gives a short-lived address (about
+// five minutes), downloaded right away with the same token. On Coexy both
+// go through the proxy and the address is used exactly as it comes. An
+// address that expired in between is asked for again, once.
 const downloadMedia = async (
   secrets: CloudApiSecrets,
   media: CloudMedia
-): Promise<{ filename: string; mimetype: string; data: string }> => {
-  const info = await graph<{ url: string; mime_type: string }>(
-    secrets,
-    media.id
-  );
-  const response = await fetch(info.url, {
-    headers: { Authorization: `Bearer ${secrets.accessToken}` }
-  });
-  if (!response.ok) throw new AppError("ERR_CLOUD_MEDIA_DOWNLOAD");
-  const mimetype =
-    info.mime_type || media.mime_type || "application/octet-stream";
-  const data = Buffer.from(await response.arrayBuffer()).toString("base64");
-  return {
-    filename: media.filename || `${media.id}.${extension(mimetype)}`,
-    mimetype,
-    data
-  };
+): Promise<{ filename: string; mimetype: string; data: string } | null> => {
+  // eslint-disable-next-line no-restricted-syntax
+  for (const attempt of [1, 2]) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const info = await graph<{ url: string; mime_type: string }>(
+        secrets,
+        media.id
+      );
+      // eslint-disable-next-line no-await-in-loop
+      const response = await fetch(info.url, {
+        headers: { Authorization: `Bearer ${secrets.accessToken}` }
+      });
+      if (!response.ok) throw new AppError("ERR_CLOUD_MEDIA_DOWNLOAD");
+      const mimetype =
+        info.mime_type || media.mime_type || "application/octet-stream";
+      const data = Buffer.from(
+        // eslint-disable-next-line no-await-in-loop
+        await response.arrayBuffer()
+      ).toString("base64");
+      return {
+        filename: media.filename || `${media.id}.${extension(mimetype)}`,
+        mimetype,
+        data
+      };
+    } catch (err) {
+      logger.warn({
+        info: "Cloud API media download failed",
+        provider: secrets.provider,
+        whatsappId: secrets.whatsappId,
+        attempt,
+        err: (err as { message?: string })?.message
+      });
+    }
+  }
+  return null;
 };
+
+// Shown in place of a file that could not be downloaded, so the message
+// still reaches the ticket.
+const MEDIA_UNAVAILABLE = "[Arquivo recebido, mas não foi possível baixá-lo]";
 
 const toMessageType = (message: CloudMessage): MessageType | null => {
   switch (message.type) {
@@ -580,73 +701,88 @@ const bodyOf = (message: CloudMessage): string => {
   return media?.caption || "";
 };
 
+// A customer's message, or (echo) one the business sent from the phone.
 const handleIncoming = async (
   secrets: CloudApiSecrets,
   value: CloudChangeValue,
-  message: CloudMessage
+  message: CloudMessage | CloudEcho,
+  echo = false
 ): Promise<void> => {
   const type = toMessageType(message);
   if (!type) return;
+  // Deliveries are retried: a message already stored is not stored again.
+  if (await Message.count({ where: { id: message.id } })) return;
 
+  const customer = echo ? (message as CloudEcho).to : message.from;
+  if (!customer) return;
   const name =
-    value.contacts?.find(contact => contact.wa_id === message.from)?.profile
-      ?.name || message.from;
+    value.contacts?.find(contact => contact.wa_id === customer)?.profile
+      ?.name || customer;
   const media =
     message.image ||
     message.video ||
     message.audio ||
     message.document ||
     message.sticker;
+  const downloaded = media ? await downloadMedia(secrets, media) : null;
+  const body =
+    media && !downloaded
+      ? [bodyOf(message), MEDIA_UNAVAILABLE].filter(Boolean).join("\n")
+      : bodyOf(message);
 
-  lastInbound.set(`${secrets.whatsappId}:${message.from}`, message.id);
+  if (!echo) lastInbound.set(`${secrets.whatsappId}:${customer}`, message.id);
 
   await handlers().handleMessage(
     {
       id: message.id,
-      body: bodyOf(message),
-      fromMe: false,
-      hasMedia: Boolean(media),
-      type,
+      body,
+      fromMe: echo,
+      hasMedia: Boolean(downloaded),
+      type: downloaded ? type : "chat",
       timestamp: Number(message.timestamp),
-      from: message.from,
-      to: secrets.phoneNumberId,
+      from: echo ? secrets.phoneNumberId : customer,
+      to: echo ? customer : secrets.phoneNumberId,
       hasQuotedMsg: Boolean(message.context?.id),
       quotedMsgId: message.context?.id,
-      ack: 0
+      ack: echo ? 1 : 0
     },
-    { name, number: message.from, isGroup: false },
-    { whatsappId: secrets.whatsappId, unreadMessages: 1 },
-    media ? await downloadMedia(secrets, media) : undefined
+    { name, number: customer, isGroup: false },
+    { whatsappId: secrets.whatsappId, unreadMessages: echo ? 0 : 1 },
+    downloaded || undefined
   );
 };
 
-// Processes a verified webhook delivery for one connection.
-export const processCloudWebhook = async (
-  whatsappId: number,
-  payload: CloudWebhookPayload
+const FIELDS = ["messages", "smb_message_echoes"];
+// Coexy: the number got restricted, blocked or banned, or its quality
+// dropped. The channel is read again right away.
+const HEALTH_FIELD = "channel_health_update";
+
+// In order: a reply must be stored after the message it answers.
+const processValues = async (
+  secrets: CloudApiSecrets,
+  values: CloudChangeValue[]
 ): Promise<void> => {
-  const secrets = await secretsFor(whatsappId);
-
-  const changes = (payload.entry || []).reduce(
-    (all, entry) => all.concat(entry.changes || []),
-    [] as { field?: string; value?: CloudChangeValue }[]
-  );
-  const values = changes
-    .filter(change => change.field === "messages" && change.value)
-    .map(change => change.value as CloudChangeValue)
-    // A number never posts for another connection's number.
-    .filter(value => value.metadata?.phone_number_id === secrets.phoneNumberId);
-
-  // In order: a reply must be stored after the message it answers.
   // eslint-disable-next-line no-restricted-syntax
   for (const value of values) {
+    const events: [CloudMessage | CloudEcho, boolean][] = [
+      ...(value.messages || []).map(
+        message => [message, false] as [CloudMessage, boolean]
+      ),
+      ...(value.message_echoes || []).map(
+        message => [message, true] as [CloudEcho, boolean]
+      )
+    ];
     // eslint-disable-next-line no-restricted-syntax
-    for (const message of value.messages || []) {
+    for (const [message, echo] of events) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        await handleIncoming(secrets, value, message);
+        await handleIncoming(secrets, value, message, echo);
       } catch (err) {
-        logger.error({ info: "Cloud API message failed", whatsappId, err });
+        logger.error({
+          info: "Cloud API message failed",
+          whatsappId: secrets.whatsappId,
+          err
+        });
       }
     }
     // eslint-disable-next-line no-restricted-syntax
@@ -659,5 +795,83 @@ export const processCloudWebhook = async (
           .catch(() => null);
       }
     }
+  }
+};
+
+const changeValues = (payload: CloudWebhookPayload): CloudChangeValue[] =>
+  (payload.entry || [])
+    .reduce(
+      (all, entry) => all.concat(entry.changes || []),
+      [] as { field?: string; value?: CloudChangeValue }[]
+    )
+    .filter(change => FIELDS.includes(change.field || "") && change.value)
+    .map(change => change.value as CloudChangeValue);
+
+// Processes a verified webhook delivery for one connection.
+export const processCloudWebhook = async (
+  whatsappId: number,
+  payload: CloudWebhookPayload
+): Promise<void> => {
+  const secrets = await secretsFor(whatsappId);
+  await processValues(
+    secrets,
+    // A number never posts for another connection's number.
+    changeValues(payload).filter(
+      value => value.metadata?.phone_number_id === secrets.phoneNumberId
+    )
+  );
+};
+
+// Coexy delivers the events of every channel to one address: each event
+// goes to the Coexy connection of its number, and nowhere else.
+export const processCoexyWebhook = async (
+  payload: CloudWebhookPayload
+): Promise<void> => {
+  const health = (payload.entry || [])
+    .reduce(
+      (all, entry) => all.concat(entry.changes || []),
+      [] as { field?: string; value?: CloudChangeValue }[]
+    )
+    .filter(change => change.field === HEALTH_FIELD);
+  // eslint-disable-next-line no-restricted-syntax
+  for (const change of health) {
+    const phoneNumberId = change.value?.metadata?.phone_number_id;
+    const row = phoneNumberId
+      ? // eslint-disable-next-line no-await-in-loop
+        await CloudApiCredential.findOne({
+          where: { phoneNumberId, provider: "coexy" },
+          attributes: ["whatsappId"]
+        })
+      : null;
+    logger.warn({ info: "Coexy channel health update", change });
+    if (row) {
+      // eslint-disable-next-line no-await-in-loop
+      await coexyChannels()
+        .SyncCoexyChannel(row.whatsappId)
+        .catch(() => undefined);
+    }
+  }
+
+  const byNumber = new Map<string, CloudChangeValue[]>();
+  changeValues(payload).forEach(value => {
+    const id = value.metadata?.phone_number_id;
+    if (!id) return;
+    byNumber.set(id, [...(byNumber.get(id) || []), value]);
+  });
+
+  // eslint-disable-next-line no-restricted-syntax
+  for (const [phoneNumberId, values] of byNumber) {
+    // eslint-disable-next-line no-await-in-loop
+    const row = await CloudApiCredential.findOne({
+      where: { phoneNumberId, provider: "coexy" },
+      attributes: ["whatsappId"]
+    });
+    if (!row) {
+      logger.warn({ info: "Coexy event for an unknown number", phoneNumberId });
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await processValues(await secretsFor(row.whatsappId), values);
   }
 };

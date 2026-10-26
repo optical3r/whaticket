@@ -24,6 +24,7 @@ import {
 	SignalCellular4Bar,
 	CropFree,
 	DeleteOutline,
+	HourglassEmpty,
 } from "@mui/icons-material";
 
 import MainContainer from "../../components/MainContainer";
@@ -208,6 +209,26 @@ const Connections = () => {
 	};
 
 	const renderActionButtons = whatsApp => {
+		// Coexy: the number is connected (or reconnected) from the link on
+		// the connection screen.
+		if (
+			whatsApp.channel === "cloudapi" &&
+			whatsApp.cloudProvider === "coexy" &&
+			(whatsApp.status === "PENDING" || whatsApp.status === "DISCONNECTED")
+		) {
+			return (
+				<Button
+					size="small"
+					variant="contained"
+					color="primary"
+					onClick={() => handleEditWhatsApp(whatsApp)}
+				>
+					{whatsApp.status === "PENDING"
+						? i18n.t("connections.buttons.connectNumber")
+						: i18n.t("connections.buttons.reconnect")}
+				</Button>
+			);
+		}
 		// Official API: no QR code; checking again revalidates the token.
 		if (whatsApp.channel === "cloudapi") {
 			return whatsApp.status === "OPENING" ? (
@@ -291,6 +312,14 @@ const Connections = () => {
 				)}
 				{whatsApp.status === "OPENING" && (
 					<CircularProgress size={24} className={classes.buttonProgress} />
+				)}
+				{whatsApp.status === "PENDING" && (
+					<CustomToolTip
+						title={i18n.t("connections.toolTips.pending.title")}
+						content={i18n.t("connections.toolTips.pending.content")}
+					>
+						<HourglassEmpty color="action" />
+					</CustomToolTip>
 				)}
 				{whatsApp.status === "qrcode" && (
 					<CustomToolTip

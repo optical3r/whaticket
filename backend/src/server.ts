@@ -5,6 +5,7 @@ import { closeQueue, startWorker } from "./libs/queue";
 import { logger } from "./utils/logger";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
 import { ResumeCampaigns } from "./services/CampaignServices/CampaignDispatcher";
+import { StartCoexyMonitor } from "./services/CoexyServices/CoexyChannelService";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -16,6 +17,7 @@ StartAllWhatsAppsSessions();
 ResumeCampaigns().catch(err =>
   logger.error({ info: "Could not resume campaigns", err })
 );
+StartCoexyMonitor();
 gracefulShutdown(server, {
   onShutdown: () => closeQueue()
 });
