@@ -112,7 +112,8 @@ const ListTicketsService = async ({
       }
     : {};
 
-  // Searches the contact name and number and the message bodies. Subqueries
+  // Searches the contact name and number and the message bodies (only the
+  // company's, so the search never scans other companies). Subqueries
   // instead of joins: the tags include makes Sequelize paginate the tickets in
   // a subquery, where columns of joined tables are not available.
   const sanitizedSearchParam = searchParam.toLocaleLowerCase().trim();
@@ -135,7 +136,9 @@ const ListTicketsService = async ({
         {
           id: {
             [Op.in]: literal(
-              `(SELECT \`ticketId\` FROM \`Messages\` WHERE LOWER(\`body\`) LIKE ${pattern})`
+              `(SELECT \`m\`.\`ticketId\` FROM \`Messages\` AS \`m\` INNER JOIN \`Tickets\` AS \`t\` ON \`t\`.\`id\` = \`m\`.\`ticketId\` WHERE \`t\`.\`companyId\` = ${Number(
+                companyId
+              )} AND LOWER(\`m\`.\`body\`) LIKE ${pattern})`
             )
           }
         }
