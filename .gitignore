@@ -8,3 +8,6 @@ ssl/
 # Backups created by scripts/backup.sh
 backups/
 dump.rdb
+# Local test environment (scripts/dev-local.sh)
+.credenciais-local.txt
+.docker/.seeded

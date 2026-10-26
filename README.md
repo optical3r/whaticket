@@ -65,6 +65,25 @@ As cinco fases do plano de implementação aprovado estão entregues.
 
 > **Importante:** a conexão por QR Code usa clientes não oficiais do WhatsApp. O número pode ser bloqueado pelo WhatsApp. Informe isso aos clientes. A estrutura de provedores já está preparada para receber a API oficial (WhatsApp Cloud API).
 
+## Testar no seu computador
+
+Com o Docker instalado, um comando sobe tudo para testes em `http://localhost:3000`, sem domínio e sem HTTPS:
+
+```bash
+git clone https://github.com/optical3r/whaticket.git
+cd whaticket
+./scripts/dev-local.sh                                           # Mac ou Linux
+powershell -ExecutionPolicy Bypass -File scripts\dev-local.ps1   # Windows
+```
+
+Na primeira vez, o script:
+- cria o `.env` com senhas aleatórias;
+- monta os containers (de 10 a 20 minutos);
+- cria o administrador;
+- grava o login em `.credenciais-local.txt`, fora do git.
+
+Rodar de novo só atualiza e sobe os containers. Para parar: `docker compose down`. O recebimento de mensagens da API oficial (Meta ou Coexy) precisa de HTTPS público e não funciona assim.
+
 ## Subir com Docker (recomendado)
 
 ```bash
