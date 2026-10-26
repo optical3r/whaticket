@@ -82,7 +82,7 @@ Na primeira vez, o script:
 - cria o administrador;
 - grava o login em `.credenciais-local.txt`, fora do git.
 
-Rodar de novo só atualiza e sobe os containers. Para parar: `docker compose down`. O recebimento de mensagens da API oficial (Meta ou Coexy) precisa de HTTPS público e não funciona assim.
+O Docker Desktop precisa estar aberto. Se a porta 3000 ou a 8080 já estiver em uso por outro programa, o script escolhe outra e mostra o endereço no final. Rodar de novo só atualiza e sobe os containers. Para parar: `docker compose down`. O recebimento de mensagens da API oficial (Meta ou Coexy) precisa de HTTPS público e não funciona assim.
 
 ## Subir com Docker (recomendado)
 
