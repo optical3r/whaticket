@@ -23,7 +23,9 @@ const planFields = (body: Record<string, unknown>) => {
     aiMonthlyRequests,
     transcriptionEnabled,
     transcriptionMonthlyMinutes,
-    qrcodeEnabled
+    qrcodeEnabled,
+    coexyEnabled,
+    coexyMaxChannels
   } = body;
   return {
     name,
@@ -36,7 +38,9 @@ const planFields = (body: Record<string, unknown>) => {
     aiMonthlyRequests,
     transcriptionEnabled,
     transcriptionMonthlyMinutes,
-    qrcodeEnabled
+    qrcodeEnabled,
+    coexyEnabled,
+    coexyMaxChannels
   } as Parameters<typeof SavePlanService>[0];
 };
 

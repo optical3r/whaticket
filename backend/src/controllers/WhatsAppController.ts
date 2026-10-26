@@ -4,7 +4,10 @@ import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSess
 
 import CreateWhatsAppService from "../services/WhatsappService/CreateWhatsAppService";
 import DeleteWhatsAppService from "../services/WhatsappService/DeleteWhatsAppService";
-import ListWhatsAppsService from "../services/WhatsappService/ListWhatsAppsService";
+import ListWhatsAppsService, {
+  cloudProvidersOf
+} from "../services/WhatsappService/ListWhatsAppsService";
+import { WatchCoexyChannel } from "../services/CoexyServices/CoexyChannelService";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateWhatsAppService from "../services/WhatsappService/UpdateWhatsAppService";
 import { whatsappProvider } from "../providers/WhatsApp";
@@ -15,6 +18,7 @@ import {
   saveCloudCredentials
 } from "../helpers/CloudApiCredentials";
 import AppError from "../errors/AppError";
+import Whatsapp from "../models/Whatsapp";
 
 interface WhatsappData {
   name: string;
@@ -28,10 +32,23 @@ interface WhatsappData {
   flowId?: number | null;
 }
 
+// Connection as the list shows it, with how an official API connection
+// reaches WhatsApp (meta or coexy).
+const withProvider = async (whatsapp: Whatsapp) => {
+  const providers = await cloudProvidersOf([whatsapp.id]);
+  return { ...whatsapp.toJSON(), cloudProvider: providers[whatsapp.id] };
+};
+
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const whatsapps = await ListWhatsAppsService(req.user.companyId);
+  const providers = await cloudProvidersOf(whatsapps.map(item => item.id));
 
-  return res.status(200).json(whatsapps);
+  return res.status(200).json(
+    whatsapps.map(item => ({
+      ...item.toJSON(),
+      cloudProvider: providers[item.id]
+    }))
+  );
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
@@ -63,9 +80,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   StartWhatsAppSession(whatsapp);
 
+  const created = await withProvider(whatsapp);
   emitToCompany(companyId, "whatsapp", {
     action: "update",
-    whatsapp
+    whatsapp: created
   });
 
   if (oldDefaultWhatsapp) {
@@ -75,7 +93,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     });
   }
 
-  return res.status(200).json(whatsapp);
+  return res.status(200).json(created);
 };
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
@@ -107,6 +125,25 @@ export const templates = async (
   return res.status(200).json(await listTemplates(whatsapp.id));
 };
 
+// Coexy connection: reads the channel now (after the admin opened the
+// connect link) and keeps checking it often for a while.
+export const syncCoexy = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const whatsapp = await ShowWhatsAppService(
+    req.params.whatsappId,
+    req.user.companyId
+  );
+  if (!(await WatchCoexyChannel(whatsapp.id))) {
+    throw new AppError("ERR_COEXY_NOT_COEXY");
+  }
+  return res.status(200).json({
+    status: (await whatsapp.reload()).status,
+    cloud: await publicCloudInfo(whatsapp.id)
+  });
+};
+
 export const update = async (
   req: Request,
   res: Response
@@ -127,9 +164,10 @@ export const update = async (
     StartWhatsAppSession(whatsapp);
   }
 
+  const updated = await withProvider(whatsapp);
   emitToCompany(companyId, "whatsapp", {
     action: "update",
-    whatsapp
+    whatsapp: updated
   });
 
   if (oldDefaultWhatsapp) {
@@ -139,7 +177,7 @@ export const update = async (
     });
   }
 
-  return res.status(200).json(whatsapp);
+  return res.status(200).json(updated);
 };
 
 export const remove = async (

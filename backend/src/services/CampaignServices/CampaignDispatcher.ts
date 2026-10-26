@@ -96,7 +96,9 @@ const sendCampaignTemplate = async (
       language: campaign.templateLanguage as string,
       bodyParams: params
     },
-    `${CAMPAIGN_MARK}${bodyText}`
+    `${CAMPAIGN_MARK}${bodyText}`,
+    // On Coexy, a step run again never sends the same contact twice.
+    `campaign-${campaign.id}-${target.id}`
   );
 };
 

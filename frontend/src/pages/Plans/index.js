@@ -34,6 +34,7 @@ const limitColumns = [
 	"connections",
 	"queues",
 	"qrcodeEnabled",
+	"coexyMaxChannels",
 	"campaignsEnabled",
 	"aiMonthlyRequests",
 	"transcriptionMonthlyMinutes",
@@ -45,6 +46,13 @@ const transcriptionLabel = plan =>
 		: plan.transcriptionMonthlyMinutes > 0
 		? i18n.t("plans.transcriptionMinutes", { count: plan.transcriptionMonthlyMinutes })
 		: i18n.t("plans.transcriptionUnlimited");
+
+const coexyLabel = plan =>
+	!plan.coexyEnabled
+		? i18n.t("plans.coexyOff")
+		: plan.coexyMaxChannels > 0
+		? i18n.t("plans.coexyChannels", { count: plan.coexyMaxChannels })
+		: i18n.t("plans.coexyUnlimited");
 
 const Plans = () => {
 	const { classes } = useStyles();
@@ -133,6 +141,8 @@ const Plans = () => {
 									>
 										{column === "transcriptionMonthlyMinutes"
 											? transcriptionLabel(plan)
+											: column === "coexyMaxChannels"
+											? coexyLabel(plan)
 											: column === "campaignsEnabled" || column === "qrcodeEnabled"
 											? i18n.t(plan[column] ? "plans.yes" : "plans.no")
 											: column !== "aiMonthlyRequests"

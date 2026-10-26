@@ -16,7 +16,8 @@ const reducer = (state, action) => {
 		const whatsAppIndex = state.findIndex(s => s.id === whatsApp.id);
 
 		if (whatsAppIndex !== -1) {
-			state[whatsAppIndex] = whatsApp;
+			// Keeps what only the list sends (such as cloudProvider).
+			state[whatsAppIndex] = { ...state[whatsAppIndex], ...whatsApp };
 			return [...state];
 		} else {
 			return [whatsApp, ...state];

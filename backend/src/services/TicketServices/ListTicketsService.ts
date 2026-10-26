@@ -1,18 +1,8 @@
-import {
-  Op,
-  WhereOptions,
-  fn,
-  where,
-  col,
-  literal,
-  Filterable,
-  Includeable
-} from "sequelize";
+import { Op, WhereOptions, literal, Filterable, Includeable } from "sequelize";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
 
 import Ticket from "../../models/Ticket";
 import Contact from "../../models/Contact";
-import Message from "../../models/Message";
 import Queue from "../../models/Queue";
 import ShowUserService from "../UserServices/ShowUserService";
 import Whatsapp from "../../models/Whatsapp";
@@ -53,9 +43,7 @@ const ListTicketsService = async ({
     [Op.or]: [{ userId }, { status: "pending" }],
     queueId: { [Op.or]: [queueIds, null] }
   };
-  let includeCondition: Includeable[];
-
-  includeCondition = [
+  const includeCondition: Includeable[] = [
     {
       model: Contact,
       as: "contact",
@@ -87,49 +75,6 @@ const ListTicketsService = async ({
     whereCondition = {
       ...whereCondition,
       status
-    };
-  }
-
-  if (searchParam) {
-    const sanitizedSearchParam = searchParam.toLocaleLowerCase().trim();
-
-    includeCondition = [
-      ...includeCondition,
-      {
-        model: Message,
-        as: "messages",
-        attributes: ["id", "body"],
-        where: {
-          body: where(
-            fn("LOWER", col("body")),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        },
-        required: false,
-        duplicating: false
-      }
-    ];
-
-    whereCondition = {
-      ...whereCondition,
-      [Op.or]: [
-        {
-          "$contact.name$": where(
-            fn("LOWER", col("contact.name")),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        },
-        { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } },
-        {
-          "$message.body$": where(
-            fn("LOWER", col("body")),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        }
-      ]
     };
   }
 
@@ -167,12 +112,48 @@ const ListTicketsService = async ({
       }
     : {};
 
+  // Searches the contact name and number and the message bodies (only the
+  // company's, so the search never scans other companies). Subqueries
+  // instead of joins: the tags include makes Sequelize paginate the tickets in
+  // a subquery, where columns of joined tables are not available.
+  const sanitizedSearchParam = searchParam.toLocaleLowerCase().trim();
+  let searchFilter: WhereOptions = {};
+  if (sanitizedSearchParam) {
+    const pattern = Ticket.sequelize!.escape(
+      `%${sanitizedSearchParam.replace(/[\\%_]/g, "\\$&")}%`
+    );
+    searchFilter = {
+      [Op.or]: [
+        {
+          contactId: {
+            [Op.in]: literal(
+              `(SELECT \`id\` FROM \`Contacts\` WHERE \`companyId\` = ${Number(
+                companyId
+              )} AND (LOWER(\`name\`) LIKE ${pattern} OR \`number\` LIKE ${pattern}))`
+            )
+          }
+        },
+        {
+          id: {
+            [Op.in]: literal(
+              `(SELECT \`m\`.\`ticketId\` FROM \`Messages\` AS \`m\` INNER JOIN \`Tickets\` AS \`t\` ON \`t\`.\`id\` = \`m\`.\`ticketId\` WHERE \`t\`.\`companyId\` = ${Number(
+                companyId
+              )} AND LOWER(\`m\`.\`body\`) LIKE ${pattern})`
+            )
+          }
+        }
+      ]
+    };
+  }
+
   const limit = 40;
   const offset = limit * (+pageNumber - 1);
 
   const { count, rows: tickets } = await Ticket.findAndCountAll({
     // The company filter is applied last so no branch above can drop it.
-    where: { [Op.and]: [whereCondition, tagFilter, { companyId }] },
+    where: {
+      [Op.and]: [whereCondition, tagFilter, searchFilter, { companyId }]
+    },
     include: includeCondition,
     distinct: true,
     limit,

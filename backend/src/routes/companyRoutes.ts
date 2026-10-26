@@ -5,6 +5,7 @@ import isSuper from "../middleware/isSuper";
 import * as CompanyController from "../controllers/CompanyController";
 import * as PlanController from "../controllers/PlanController";
 import * as TranscriptionController from "../controllers/TranscriptionController";
+import * as CoexyController from "../controllers/CoexyController";
 
 const companyRoutes = Router();
 
@@ -45,6 +46,26 @@ companyRoutes.delete(
   isAuth,
   isSuper,
   TranscriptionController.removeKey
+);
+
+companyRoutes.get("/platform/coexy", isAuth, isSuper, CoexyController.show);
+companyRoutes.put(
+  "/platform/coexy/key",
+  isAuth,
+  isSuper,
+  CoexyController.saveKey
+);
+companyRoutes.delete(
+  "/platform/coexy/key",
+  isAuth,
+  isSuper,
+  CoexyController.removeKey
+);
+companyRoutes.post(
+  "/platform/coexy/webhook",
+  isAuth,
+  isSuper,
+  CoexyController.setupWebhook
 );
 
 export default companyRoutes;
