@@ -39,6 +39,8 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - PROXY_PORT=${PROXY_PORT:-8080}
       - CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
+      # Same reason as large_client_header_buffers in the frontend nginx.
+      - NODE_OPTIONS=--max-http-header-size=65536
     ports:
       # Only reachable from the host; public traffic goes through the frontend nginx.
       - 127.0.0.1:${BACKEND_PORT:-8080}:3000
